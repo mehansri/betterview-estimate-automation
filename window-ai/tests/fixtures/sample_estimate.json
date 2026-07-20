@@ -1,0 +1,32 @@
+{
+  "estimate_number": "1002",
+  "customer": "ABC Builders",
+  "estimate_date": "2025-06-15",
+  "windows": [
+    {
+      "type": "Casement",
+      "width": 48,
+      "height": 60,
+      "frame": "Aluminum",
+      "glass": "Triple",
+      "color": "Black",
+      "tempered": true,
+      "grid": "None",
+      "price": 1450,
+      "quantity": 1
+    },
+    {
+      "type": "Awning",
+      "width": 36,
+      "height": 24,
+      "frame": "Vinyl",
+      "glass": "Double",
+      "color": "White",
+      "tempered": false,
+      "grid": "Colonial",
+      "price": 680,
+      "quantity": 2
+    }
+  ],
+  "total": 2810
+}

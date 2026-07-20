@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.joblib
+!models/.gitkeep
+
+# Models (artifacts)
+models/*.joblib
+models/*.pkl
+models/metrics.json
+models/feature_schema.json
+models/current
+
+# Data (keep structure, ignore contents)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/store/estimates/*
+!data/store/estimates/.gitkeep
+
+# Node / Next.js
+app/node_modules/
+app/.next/
+app/out/
+app/.env*.local
+app/next-env.d.ts
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.ipynb_checkpoints/
+
+# Optuna
+optuna.db
+*.db
