@@ -1,0 +1,58 @@
+# Configurable pricing / feature rules (not ML).
+# Applied after parse+normalize, before store and quote.
+
+version: 1
+
+# Derived feature thresholds (sq inches unless noted)
+thresholds:
+  oversized_area: 3000        # width * height
+  wide_width: 60              # inches
+  tall_height: 72             # inches
+  max_reasonable_width: 240
+  max_reasonable_height: 240
+  min_dimension: 6
+
+# IF condition → set field (simple ops only)
+rules:
+  - name: oversized_by_area
+    when: { field: area, op: gt, value: 3000 }
+    set: { oversized: true }
+
+  - name: wide_window
+    when: { field: width, op: gt, value: 60 }
+    set: { wide_window: true }
+
+  - name: tall_window
+    when: { field: height, op: gt, value: 72 }
+    set: { tall_window: true }
+
+  - name: glass_layers_single
+    when: { field: glass, op: eq, value: Single }
+    set: { glass_layers: 1 }
+
+  - name: glass_layers_double
+    when: { field: glass, op: eq, value: Double }
+    set: { glass_layers: 2 }
+
+  - name: glass_layers_triple
+    when: { field: glass, op: eq, value: Triple }
+    set: { glass_layers: 3 }
+
+  - name: color_upcharge_non_white
+    when: { field: color, op: not_in, value: [White, Beige] }
+    set: { color_upcharge: true }
+
+# Similarity weights for nearest-neighbor search
+similarity_weights:
+  type: 0.40
+  dimensions: 0.30
+  glass: 0.10
+  frame: 0.10
+  color: 0.05
+  options: 0.05
+
+# Quote engine
+quote:
+  min_neighbors: 3
+  top_k: 12
+  currency: CAD

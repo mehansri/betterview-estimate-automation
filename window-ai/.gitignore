@@ -31,11 +31,20 @@ data/store/estimates/*
 !data/store/estimates/.gitkeep
 
 # Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*.local
+frontend/next-env.d.ts
+# legacy path if present
 app/node_modules/
 app/.next/
-app/out/
-app/.env*.local
-app/next-env.d.ts
+
+# Uploads / exports (keep structure)
+uploads/*
+!uploads/.gitkeep
+exports/*
+!exports/.gitkeep
 
 # IDE / OS
 .DS_Store

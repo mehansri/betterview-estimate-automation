@@ -7,12 +7,24 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_RAW = ROOT / "data" / "raw"
 DATA_PROCESSED = ROOT / "data" / "processed"
 DATA_STORE = ROOT / "data" / "store" / "estimates"
+UPLOADS_DIR = ROOT / "uploads"
+EXPORTS_DIR = ROOT / "exports"
+CONFIG_DIR = ROOT / "config"
 MODELS_DIR = ROOT / "models"
 DEFAULT_MODEL_PATH = MODELS_DIR / "quote_predictor.joblib"
 DEFAULT_SCHEMA_PATH = MODELS_DIR / "feature_schema.json"
 DEFAULT_METRICS_PATH = MODELS_DIR / "metrics.json"
+DEFAULT_RULES_PATH = CONFIG_DIR / "pricing_rules.yaml"
 
 
 def ensure_dirs() -> None:
-    for p in (DATA_RAW, DATA_PROCESSED, DATA_STORE, MODELS_DIR):
+    for p in (
+        DATA_RAW,
+        DATA_PROCESSED,
+        DATA_STORE,
+        UPLOADS_DIR,
+        EXPORTS_DIR,
+        CONFIG_DIR,
+        MODELS_DIR,
+    ):
         p.mkdir(parents=True, exist_ok=True)

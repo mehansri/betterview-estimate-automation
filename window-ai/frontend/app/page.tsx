@@ -8,9 +8,9 @@ export default function HomePage() {
           Build a window quote in seconds
         </h2>
         <p className="mt-2 text-slate-600">
-          Select specs for each opening. The model predicts unit prices from
-          historical manufacturer estimates so you can share a ballpark before
-          remoting into the full configurator.
+          Estimates use historical similarity from imported manufacturer orders
+          (with optional ML fallback). Import more PDFs under Admin → Estimates
+          to improve coverage.
         </p>
       </div>
       <QuoteBuilder />

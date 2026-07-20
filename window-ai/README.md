@@ -21,7 +21,7 @@ make bootstrap
 DATABASE_URL=sqlite:///data/local.db uvicorn api.main:app --reload --port 8000
 
 # Quote UI (separate terminal)
-cd app && npm install && npm run dev
+cd frontend && npm install && npm run dev
 ```
 
 Open http://localhost:3000 for the quote builder and http://localhost:8000/docs for the API.
@@ -106,12 +106,17 @@ Primary target: **test MAPE ≤ 4%**.
 ```
 window-ai/
   api/           FastAPI service
+  services/      import, rules, similarity, pricing, analytics
   parser/        PDF/JSON estimate parser
-  training/      clean, features, train, tune, nightly
+  training/      clean, features, train, tune, nightly (optional ML)
   db/            SQLAlchemy models + synthetic seed
-  app/           Next.js quote builder
-  data/raw/      drop PDFs here
-  models/        trained artifacts
+  frontend/      Next.js quote builder + admin
+  uploads/       PDF drop zone for import API
+  exports/       CSV/JSON exports
+  config/        pricing rules YAML
+  data/raw/      historical PDFs
+  data/processed/ parsed JSON
+  models/        optional ML artifacts
   tests/
 ```
 

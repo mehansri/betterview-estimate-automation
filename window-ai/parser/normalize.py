@@ -32,6 +32,9 @@ TYPE_MAP = {
     "fixed": "Fixed",
     "picture": "Picture",
     "picture window": "Picture",
+    "patio door": "Patio Door",
+    "patio": "Patio Door",
+    "sliding door": "Patio Door",
 }
 
 FRAME_MAP = {

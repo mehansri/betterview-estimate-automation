@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import {
   BatchResponse,
   WindowSpec,
-  predictBatch,
+  quoteBatch,
 } from "@/lib/api";
 
 const WINDOW_TYPES = [
@@ -159,7 +159,7 @@ export default function QuoteBuilder() {
     setError(null);
     setResult(null);
     try {
-      const res = await predictBatch(payload);
+      const res = await quoteBatch(payload);
       setLines(payload);
       setResult(res);
     } catch (e) {
@@ -430,8 +430,8 @@ export default function QuoteBuilder() {
           </h2>
           {!result ? (
             <p className="mt-3 text-sm text-slate-500">
-              Click <strong>Generate quote</strong> to get AI price predictions with
-              confidence bands.
+              Click <strong>Generate quote</strong> for a historical similarity estimate
+              (with optional ML fallback) and confidence bands.
             </p>
           ) : (
             <div className="mt-4 space-y-4">
@@ -463,6 +463,25 @@ export default function QuoteBuilder() {
                     {money(line.low * (line.quantity || 1), line.currency)} –{" "}
                     {money(line.high * (line.quantity || 1), line.currency)}
                   </p>
+                  {line.historical_average != null && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Historical avg{" "}
+                      {money(line.historical_average, line.currency)}
+                      {line.neighbor_count != null
+                        ? ` · ${line.neighbor_count} similar`
+                        : ""}
+                    </p>
+                  )}
+                  {line.method && (
+                    <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      Method: {line.method.replace(/_/g, " ")}
+                    </p>
+                  )}
+                  {line.reason && (
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                      {line.reason}
+                    </p>
+                  )}
                 </div>
               ))}
               <div className="border-t border-slate-200 pt-4">
@@ -472,14 +491,6 @@ export default function QuoteBuilder() {
                 <p className="mt-1 text-3xl font-bold text-brand-700">
                   {money(result.quote_subtotal, result.currency)}
                 </p>
-                {result.lines[0]?.model_name && (
-                  <p className="mt-2 text-xs text-slate-400">
-                    Model: {result.lines[0].model_name}
-                    {result.lines[0].model_version
-                      ? ` · ${result.lines[0].model_version.slice(0, 19)}`
-                      : ""}
-                  </p>
-                )}
               </div>
             </div>
           )}
