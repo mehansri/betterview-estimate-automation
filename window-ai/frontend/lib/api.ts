@@ -59,6 +59,166 @@ export type BatchResponse = {
   currency: string;
 };
 
+export type DoorPartSpec = {
+  series?: string;
+  glass?: string;
+  glass_size?: string;
+  panel?: string;
+  height: string;
+  qty: number;
+  direct_glazed?: boolean;
+};
+
+export type DoorOptionSpec = {
+  category?: string;
+  item: string;
+  column?: string;
+  qty: number;
+  row?: string;
+};
+
+export type DoorOpeningSpec = {
+  label?: string;
+  material: "fiberglass" | "steel";
+  finish?: string;
+  opening_type:
+    | "single_door"
+    | "single_1_sidelite"
+    | "single_2_sidelites"
+    | "double_door"
+    | "double_2_sidelites";
+  door: DoorPartSpec;
+  door2?: DoorPartSpec;
+  sidelites: DoorPartSpec[];
+  transom?: {
+    shape: "rectangle" | "shapes";
+    glass?: string;
+    sq_ft: number;
+    tempered: boolean;
+    qty: number;
+  };
+  panel_upcharge?: {
+    code?: string;
+    panel?: string;
+    height: string;
+    width: number;
+    qty: number;
+  };
+  pull_bars: Array<{
+    style: string;
+    block: string;
+    length_in: number;
+    finish: string;
+    shape: string;
+    qty: number;
+  }>;
+  options: DoorOptionSpec[];
+};
+
+export type DoorCatalogRow = {
+  material: string;
+  series: string;
+  series_label: string;
+  component: string;
+  height: string;
+  source_page: number;
+  kind: string;
+  glass_size?: string | null;
+  panel?: string | null;
+  row_label?: string | null;
+};
+
+export type DoorCatalog = {
+  materials: Array<{
+    key: "fiberglass" | "steel";
+    label: string;
+    finishes: Array<{ key: string; label: string }>;
+    slabs: DoorCatalogRow[];
+    options: Array<{
+      category: string;
+      category_label: string;
+      item: string;
+      source_page?: number;
+      columns?: string[];
+    }>;
+    panel_upcharges: Array<{
+      code: string;
+      panel: string;
+      height: string;
+      options: Array<{ sizes: string; upcharge: number }>;
+      source_page?: number;
+    }>;
+    transoms: Array<{
+      shape: "rectangle" | "shapes";
+      shape_label: string;
+      glass: string[];
+      minimum_sqft: number[];
+      source_page?: number;
+    }>;
+    pull_bars: Array<{
+      material: string;
+      style: string;
+      block: string;
+      block_label: string;
+      length_in: number;
+      finish: string;
+      finish_label: string;
+      shape: string;
+    }>;
+  }>;
+  glass_groups: Array<{
+    name: string;
+    group: string;
+    materials: string[];
+    source_pages: Record<string, number>;
+  }>;
+  opening_types: Array<{
+    key: DoorOpeningSpec["opening_type"];
+    label: string;
+    doors: number;
+    sidelites: number;
+  }>;
+  install: Record<string, number>;
+  currency: string;
+};
+
+export type DoorLineItem = {
+  row: string;
+  description: string;
+  customer_description: string;
+  qty: number;
+  unit_list: number;
+  list: number;
+  source?: string;
+};
+
+export type DoorOpeningQuote = {
+  label: string;
+  opening_type: DoorOpeningSpec["opening_type"];
+  material: string;
+  finish: string;
+  finish_label: string;
+  line_items: DoorLineItem[];
+  list_total: number;
+  discount: number;
+  material_cost: number;
+  install_tier: DoorOpeningSpec["opening_type"];
+  install: number;
+  cost_subtotal: number;
+  markup: number;
+  markup_amount: number;
+  sell: number;
+  hst_rate: number;
+  hst: number;
+  customer_total: number;
+  notes: string[];
+};
+
+export type DoorProjectResponse = {
+  openings: DoorOpeningQuote[];
+  totals: Omit<DoorOpeningQuote, "label" | "opening_type" | "material" | "finish" | "finish_label" | "line_items" | "discount" | "install_tier" | "markup" | "hst_rate" | "notes">;
+};
+
 /**
  * Prefer same-origin (empty string) so Next.js rewrites proxy to the FastAPI backend.
  */
@@ -111,6 +271,28 @@ export async function quoteBatch(windows: WindowSpec[]): Promise<BatchResponse> 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ windows }),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(formatApiError(res.status, detail));
+  }
+  return res.json();
+}
+
+export async function fetchDoorCatalog(): Promise<DoorCatalog> {
+  const res = await apiFetch("/api/doors/catalog");
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(formatApiError(res.status, detail));
+  }
+  return res.json();
+}
+
+export async function quoteDoors(openings: DoorOpeningSpec[]): Promise<DoorProjectResponse> {
+  const res = await apiFetch("/api/doors/quote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ openings }),
   });
   if (!res.ok) {
     const detail = await res.text();

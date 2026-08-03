@@ -1,0 +1,1024 @@
+[
+ {
+  "name": "Adelaide",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Allure",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Alys",
+  "brand": "Novatech",
+  "glass_type": "v-groove",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Arima",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Artisan",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Attraction",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "D",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Avenue",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Azur",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Balance",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Belmont",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Bistro",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Bolero",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Cachet",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Canterbury",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Cathedrale",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Celeste",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Chanelle",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "D",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Chinchilla",
+  "brand": "Novatech",
+  "glass_type": "textured",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Crystal",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Distance",
+  "brand": "Novatech",
+  "glass_type": "v-groove",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Distinction",
+  "brand": "Novatech",
+  "glass_type": "v-groove",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Eastmount",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Echo",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Edge",
+  "brand": "Novatech",
+  "glass_type": "sandblast",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Emori",
+  "brand": "Novatech",
+  "glass_type": "v-groove",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Equation",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Evangeline II",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Everton",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Fluid",
+  "brand": "Novatech",
+  "glass_type": "textured",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Granville",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Harlow",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Hollister",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Kallima",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "D",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Kira",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Lexington",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Liano",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Lonsdale",
+  "brand": "Trimlite",
+  "glass_type": "sandblast",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Louisbourg",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Luxe",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Manhattan",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Masterline",
+  "brand": "Novatech",
+  "glass_type": "textured",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Mist",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Mistral",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "D",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Modena",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Mystique",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Niagara",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Nobel",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Nuando",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Opal",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Ophir",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Oso",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Pemberton",
+  "brand": "Trimlite",
+  "glass_type": "wrough iron",
+  "group": "W",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Portrait",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Prism",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "C",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Pure",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Rhythm",
+  "brand": "Novatech",
+  "glass_type": "v-groove",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Riverton",
+  "brand": "Trimlite",
+  "glass_type": "v-groove",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Royston",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Rubik",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 3,
+   "steel": 3
+  }
+ },
+ {
+  "name": "Satin",
+  "brand": "Novatech",
+  "glass_type": "textured",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Side",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Soft",
+  "brand": "Novatech",
+  "glass_type": "textured",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Solstice",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Sullivan",
+  "brand": "Trimlite",
+  "glass_type": "sandblast",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Textile",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Transit",
+  "brand": "Novatech",
+  "glass_type": "silkscreen",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Verona",
+  "brand": "Trimlite",
+  "glass_type": "wrough iron",
+  "group": "W",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Verso",
+  "brand": "Novatech",
+  "glass_type": "v-groove",
+  "group": "A",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Waterton",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Winchester",
+  "brand": "Novatech",
+  "glass_type": "decorative",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Winslow",
+  "brand": "Trimlite",
+  "glass_type": "stained - welded",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Zen",
+  "brand": "Novatech",
+  "glass_type": "stained - welded",
+  "group": "D",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ },
+ {
+  "name": "Zenith",
+  "brand": "Novatech",
+  "glass_type": "v-groove",
+  "group": "B",
+  "materials": [
+   "fiberglass",
+   "steel"
+  ],
+  "source_pages": {
+   "fiberglass": 4,
+   "steel": 4
+  }
+ }
+]

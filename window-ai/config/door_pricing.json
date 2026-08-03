@@ -1,0 +1,28 @@
+{
+  "_comment": "Edit these to change pricing everywhere. No code changes needed.",
+
+  "discount": 0.38,
+  "_discount": "Dealer cost = list price x this. 0.38 = 62% off list.",
+
+  "markup": 0.30,
+  "_markup": "Sell = (material cost + install) x (1 + markup).",
+
+  "hst": 0.13,
+  "_hst": "Customer total = sell x (1 + hst).",
+
+  "install": {
+    "single_door": 550,
+    "single_1_sidelite": 750,
+    "single_2_sidelites": 950,
+    "double_door": 900,
+    "double_2_sidelites": 1200,
+    "transom_adder": 200
+  },
+  "_install": "FILL THESE IN before quoting. Flat dollars per opening; transom_adder is added on top of the base tier when the opening has a transom.",
+
+  "default_finish": {
+    "fiberglass": "paint_2s_1c",
+    "steel": "factory_white"
+  },
+  "_default_finish": "Used when a quote does not name a finish."
+}
