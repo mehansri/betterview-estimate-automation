@@ -1,0 +1,531 @@
+{
+ "source": {
+  "book": "v18 (2023)"
+ },
+ "pricing_rule": "Book 50 (pdf 54): price a shaped window as a square using the HC-151 fixed window — round W and H up to the next even inch, compute sqft, price off the HC-151 table plus glass options — then add the shape charge for the frame, and a shape charge for each accessory (brickmould, jambs, etc.), whose lineal footage is also priced as the enclosing square.",
+ "architectural": [
+  {
+   "shape_no": 1,
+   "name": "Oval",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 100.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "1 Oval | 400 250 200 N/A 100 150",
+   "source_page_pdf": 55,
+   "width_min": 24.0,
+   "width_max": 36.0,
+   "height_min": 36.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 2,
+   "name": "Round",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 100.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "2 Round | 400 250 200 N/A 100 150",
+   "source_page_pdf": 55,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 3,
+   "name": "Half Round",
+   "charges": {
+    "vinyl_frame": 300.0,
+    "brickmould": 200.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": 150.0,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "3 Half Round | 300 200 200 150 75 150",
+   "source_page_pdf": 55,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 12.0,
+   "height_max": 36.0
+  },
+  {
+   "shape_no": 4,
+   "name": "Extended Half Round",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": 150.0,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "4 Extended Half Round | 400 250 200 150 75 150",
+   "source_page_pdf": 55,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 22.0,
+   "height_max": 80.0
+  },
+  {
+   "shape_no": 5,
+   "name": "Quarter Round",
+   "charges": {
+    "vinyl_frame": 300.0,
+    "brickmould": 200.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "5 Quarter Round | 300 200 200 N/A 75 150",
+   "source_page_pdf": 55,
+   "width_min": 12.0,
+   "width_max": 72.0,
+   "height_min": 12.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 6,
+   "name": "Extended Quarter Round",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "6 Extended Quarter Round | 400 250 200 N/A 75 150",
+   "source_page_pdf": 55,
+   "width_min": 12.0,
+   "width_max": 72.0,
+   "height_min": 20.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 7,
+   "name": "Segment | Eyebrow",
+   "charges": {
+    "vinyl_frame": 350.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Height cannot be less than"
+   ],
+   "raw": "7 Segment | Eyebrow | 350 250 200 N/A 75 150",
+   "source_page_pdf": 56,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 10.0,
+   "height_max": 24.0
+  },
+  {
+   "shape_no": 8,
+   "name": "Extended Segement",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Minimum H1 (Legs) 5”"
+   ],
+   "raw": "8 Extended Segement | 400 250 200 N/A 75 150",
+   "source_page_pdf": 56,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 9,
+   "name": "Quarter Segment",
+   "charges": {
+    "vinyl_frame": 350.0,
+    "brickmould": 200.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "9 Quarter Segment | 350 200 200 N/A 75 150",
+   "source_page_pdf": 56,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 10,
+   "name": "Ext. Quarter Segment",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Template required",
+    "Min/Max Height 24\"-72\" Minimum H1 (Legs) 5”"
+   ],
+   "raw": "10 Ext. Quarter Segment | 400 250 200 N/A 75 150",
+   "source_page_pdf": 56,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 11,
+   "name": "Ellipse",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Template required"
+   ],
+   "raw": "11 Ellipse | 400 250 200 N/A 75 150",
+   "source_page_pdf": 56,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 12,
+   "name": "Extended Ellipse",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Template required",
+    "Min/MaxHeight 24\"-72\" Minimum H1 (Legs) 5”"
+   ],
+   "raw": "12 Extended Ellipse | 400 250 200 N/A 75 150",
+   "source_page_pdf": 56,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 13,
+   "name": "Quarter Ellipse",
+   "charges": {
+    "vinyl_frame": 350.0,
+    "brickmould": 200.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Height 24\"-72\" Template required"
+   ],
+   "raw": "13 Quarter Ellipse | 350 200 200 N/A 75 150",
+   "source_page_pdf": 57,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 14,
+   "name": "Ext. Quarter Ellipse",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Template required",
+    "Min/Max Height 24\"-72\" Minimum H1 (Legs) 5”"
+   ],
+   "raw": "14 Ext. Quarter Ellipse | 400 250 200 N/A 75 150",
+   "source_page_pdf": 57,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 15,
+   "name": "Gothic",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "15 Gothic | 400 250 200 N/A 75 150",
+   "source_page_pdf": 57,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 16,
+   "name": "Extended Gothic",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 250.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Minimum H1 (Legs) 5”"
+   ],
+   "raw": "16 Extended Gothic | 400 250 200 N/A 75 150",
+   "source_page_pdf": 57,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  }
+ ],
+ "polygon": [
+  {
+   "shape_no": 1,
+   "name": "90˚ Triangle",
+   "charges": {
+    "vinyl_frame": 250.0,
+    "brickmould": 150.0,
+    "vinyl_jamb": 100.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 50.0,
+    "wood_jamb": 100.0
+   },
+   "notes": [],
+   "raw": "1 90˚ Triangle | 250 150 100 N/A 50 100",
+   "source_page_pdf": 58,
+   "width_min": 24.0,
+   "width_max": 36.0,
+   "height_min": 36.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 2,
+   "name": "Triangle",
+   "charges": {
+    "vinyl_frame": 250.0,
+    "brickmould": 150.0,
+    "vinyl_jamb": 100.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 50.0,
+    "wood_jamb": 100.0
+   },
+   "notes": [],
+   "raw": "2 Triangle | 250 150 100 N/A 50 100",
+   "source_page_pdf": 58,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 3,
+   "name": "Trapezoid",
+   "charges": {
+    "vinyl_frame": 275.0,
+    "brickmould": 175.0,
+    "vinyl_jamb": 125.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 50.0,
+    "wood_jamb": 125.0
+   },
+   "notes": [],
+   "raw": "3 Trapezoid | 275 175 125 N/A 50 125",
+   "source_page_pdf": 58,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 12.0,
+   "height_max": 36.0
+  },
+  {
+   "shape_no": 4,
+   "name": "Pentagon",
+   "charges": {
+    "vinyl_frame": 300.0,
+    "brickmould": 200.0,
+    "vinyl_jamb": 150.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 50.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "4 Pentagon | 300 200 150 N/A 50 150",
+   "source_page_pdf": 58,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 22.0,
+   "height_max": 80.0
+  },
+  {
+   "shape_no": 5,
+   "name": "Pentagon with flat top",
+   "charges": {
+    "vinyl_frame": 275.0,
+    "brickmould": 175.0,
+    "vinyl_jamb": 125.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 50.0,
+    "wood_jamb": 125.0
+   },
+   "notes": [],
+   "raw": "5 Pentagon with flat top | 275 175 125 N/A 50 125",
+   "source_page_pdf": 58,
+   "width_min": 12.0,
+   "width_max": 72.0,
+   "height_min": 12.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 6,
+   "name": "Hexagon with flat top",
+   "charges": {
+    "vinyl_frame": 300.0,
+    "brickmould": 200.0,
+    "vinyl_jamb": 150.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 50.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "6 Hexagon with flat top | 300 200 150 N/A 50 150",
+   "source_page_pdf": 59,
+   "width_min": 12.0,
+   "width_max": 72.0,
+   "height_min": 20.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 7,
+   "name": "Parallelogram",
+   "charges": {
+    "vinyl_frame": 400.0,
+    "brickmould": 300.0,
+    "vinyl_jamb": 200.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 200.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Height cannot be less than"
+   ],
+   "raw": "7 Parallelogram | 400 300 200 N/A 75 200",
+   "source_page_pdf": 59,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 10.0,
+   "height_max": 24.0
+  },
+  {
+   "shape_no": 8,
+   "name": "Hexagon",
+   "charges": {
+    "vinyl_frame": 300.0,
+    "brickmould": 200.0,
+    "vinyl_jamb": 150.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Minimum H1 (Legs) 5\""
+   ],
+   "raw": "8 Hexagon | 300 200 150 N/A 75 150",
+   "source_page_pdf": 59,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 9,
+   "name": "Octagon",
+   "charges": {
+    "vinyl_frame": 300.0,
+    "brickmould": 200.0,
+    "vinyl_jamb": 150.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [],
+   "raw": "9 Octagon | 300 200 150 N/A 75 150",
+   "source_page_pdf": 59,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  },
+  {
+   "shape_no": 10,
+   "name": "Octagon Non-Standard",
+   "charges": {
+    "vinyl_frame": 300.0,
+    "brickmould": 200.0,
+    "vinyl_jamb": 150.0,
+    "vinyl_casing": null,
+    "nail_fin_or_drywall": 75.0,
+    "wood_jamb": 150.0
+   },
+   "notes": [
+    "Min/Max Width 24\"-72\" Template required",
+    "Min/Max Height 24\"-72\" Minimum H1/B1 (Legs) 5”",
+    "Min/Max Height 24\"-72\" Minimum H1/B1 (Legs) 5”"
+   ],
+   "raw": "10 Octagon Non-Standard | 300 200 150 N/A 75 150",
+   "source_page_pdf": 59,
+   "width_min": 24.0,
+   "width_max": 72.0,
+   "height_min": 24.0,
+   "height_max": 72.0
+  }
+ ]
+}

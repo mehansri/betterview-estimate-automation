@@ -1,0 +1,1567 @@
+{
+ "source": {
+  "book": "v18 (2023)"
+ },
+ "sliding": {
+  "standard": {
+   "code": "WC-500",
+   "columns": [
+    "white_standard",
+    "two_tone_capstock_add",
+    "black_in_out_add",
+    "loe180_add",
+    "loe180_i89_argon_add",
+    "triple_2loe180_argon",
+    "triple_2loe180_50_50",
+    "triple_2loe180_krypton",
+    "grey_bronze_tint_add"
+   ],
+   "rows": [
+    {
+     "nominal_size_ft": 5,
+     "panels": 2,
+     "frame_width": "59 5/8\"",
+     "frame_height": "79 1/2\"",
+     "white_standard": 880.0,
+     "two_tone_capstock_add": 424.0,
+     "black_in_out_add": 636.0,
+     "loe180_add": 126.0,
+     "loe180_i89_argon_add": 318.0,
+     "triple_2loe180_argon": 360.0,
+     "triple_2loe180_50_50": 564.0,
+     "triple_2loe180_krypton": 768.0,
+     "grey_bronze_tint_add": 126.0,
+     "raw": "5' 2 59 5/8\" 79 1/2\" 880.00 424.00 636.00 126.00 318.00 360.00 564.00 768.00 126.00",
+     "source_page_pdf": 130
+    },
+    {
+     "nominal_size_ft": 6,
+     "panels": 2,
+     "frame_width": "71 5/8\"",
+     "frame_height": "79 1/2\"",
+     "white_standard": 920.0,
+     "two_tone_capstock_add": 462.0,
+     "black_in_out_add": 693.0,
+     "loe180_add": 160.0,
+     "loe180_i89_argon_add": 398.0,
+     "triple_2loe180_argon": 440.0,
+     "triple_2loe180_50_50": 680.0,
+     "triple_2loe180_krypton": 920.0,
+     "grey_bronze_tint_add": 160.0,
+     "raw": "6' 2 71 5/8\" 79 1/2\" 920.00 462.00 693.00 160.00 398.00 440.00 680.00 920.00 160.00",
+     "source_page_pdf": 130
+    },
+    {
+     "nominal_size_ft": 8,
+     "panels": 2,
+     "frame_width": "95 5/8\"",
+     "frame_height": "79 1/2\"",
+     "white_standard": 1080.0,
+     "two_tone_capstock_add": 550.0,
+     "black_in_out_add": 825.0,
+     "loe180_add": 210.0,
+     "loe180_i89_argon_add": 536.0,
+     "triple_2loe180_argon": null,
+     "triple_2loe180_50_50": null,
+     "triple_2loe180_krypton": null,
+     "grey_bronze_tint_add": null,
+     "raw": "8' 2 95 5/8\" 79 1/2\" 1,080.00 550.00 825.00 210.00 536.00 N/A N/A N/A N/A",
+     "source_page_pdf": 130
+    },
+    {
+     "nominal_size_ft": 10,
+     "panels": 4,
+     "frame_width": "118 3/8\"",
+     "frame_height": "79 1/2\"",
+     "white_standard": 2060.0,
+     "two_tone_capstock_add": 848.0,
+     "black_in_out_add": 1272.0,
+     "loe180_add": 252.0,
+     "loe180_i89_argon_add": 636.0,
+     "triple_2loe180_argon": 720.0,
+     "triple_2loe180_50_50": 1128.0,
+     "triple_2loe180_krypton": 1536.0,
+     "grey_bronze_tint_add": 252.0,
+     "raw": "10' 4 118 3/8\" 79 1/2\" 2,060.00 848.00 1272.00 252.00 636.00 720.00 1128.00 1536.00 252.00",
+     "source_page_pdf": 130
+    },
+    {
+     "nominal_size_ft": 12,
+     "panels": 4,
+     "frame_width": "142 3/8\"",
+     "frame_height": "79 1/2\"",
+     "white_standard": 2140.0,
+     "two_tone_capstock_add": 924.0,
+     "black_in_out_add": 1386.0,
+     "loe180_add": 320.0,
+     "loe180_i89_argon_add": 796.0,
+     "triple_2loe180_argon": 880.0,
+     "triple_2loe180_50_50": 1360.0,
+     "triple_2loe180_krypton": 1840.0,
+     "grey_bronze_tint_add": 320.0,
+     "raw": "12' 4 142 3/8\" 79 1/2\" 2,140.00 924.00 1386.00 320.00 796.00 880.00 1360.00 1840.00 320.00",
+     "source_page_pdf": 130
+    },
+    {
+     "nominal_size_ft": 16,
+     "panels": 4,
+     "frame_width": "190 3/8\"",
+     "frame_height": "79 1/2\"",
+     "white_standard": 2460.0,
+     "two_tone_capstock_add": 1100.0,
+     "black_in_out_add": 1650.0,
+     "loe180_add": 420.0,
+     "loe180_i89_argon_add": 1072.0,
+     "triple_2loe180_argon": null,
+     "triple_2loe180_50_50": null,
+     "triple_2loe180_krypton": null,
+     "grey_bronze_tint_add": null,
+     "raw": "- 16' 4 190 3/8\" 79 1/2\" 2,460.00 1100.00 1650.00 420.00 1,072.00 N/A N/A N/A N/A",
+     "source_page_pdf": 130
+    }
+   ],
+   "handle_and_other_adders": [
+    {
+     "raw": "Classic 10” Twin-point handle in White or matching finish included in price ($80.00)",
+     "amounts": [
+      80.0
+     ],
+     "source_page_pdf": 130
+    },
+    {
+     "raw": "Classic 10” Twin-point handle in Bright Brass or Satin Nickle ($140.00)",
+     "amounts": [
+      140.0
+     ],
+     "source_page_pdf": 130
+    },
+    {
+     "raw": "Classic 14” Twin-point handle in White or matching finish ($140.00)",
+     "amounts": [
+      140.0
+     ],
+     "source_page_pdf": 130
+    },
+    {
+     "raw": "Classic 14” Twin-point handle in Bright Brass or Satin Nickle ($200.00)",
+     "amounts": [
+      200.0
+     ],
+     "source_page_pdf": 130
+    },
+    {
+     "raw": "Truth Contemporary 13” Twin-point handle in white or black, ($300). Satin Nickle ($450)",
+     "amounts": [
+      300.0,
+      450.0
+     ],
+     "source_page_pdf": 130
+    },
+    {
+     "raw": "Truth Contemporary 13” Three-point handle in white or black, ($500). Satin Nickle ($750)",
+     "amounts": [
+      500.0,
+      750.0
+     ],
+     "source_page_pdf": 130
+    },
+    {
+     "raw": "Roto Modern 10” Twin-point handle in white or black, ($180). Satin Nickle ($280)",
+     "amounts": [
+      180.0,
+      280.0
+     ],
+     "source_page_pdf": 130
+    },
+    {
+     "raw": "Roto Modern 13” Twin-point handle in white or black,($280). Satin Nickle ($380)",
+     "amounts": [
+      280.0,
+      380.0
+     ],
+     "source_page_pdf": 130
+    }
+   ],
+   "notes": [
+    "all uPVC multi chambered 5 3/4 frame",
+    "multi-chambered welded sash –″all vertical stiles are steel reinforced",
+    "doubl″e weather stripping & co-extruded bulb seal on frame",
+    "sash panels styled with interior glazing stops",
+    "sash are co-extruded with a dual durometer flex PVC",
+    "sloped sill for optimal water drainage",
+    "Classic 10” Twin-point Handles hardware are standard-with matching hardware",
+    "stainless steel precision double tandem adjustable rollers on aluminum track",
+    "heavy duty extruded aluminum screen frame with fiberglass mesh and 4 ad-",
+    "anti-lift out security block",
+    "Must SPECIFY operation for blinds and custom height doors as viewed from outside",
+    "Exterior available in Sandalwood, Sandstone, Dark Bronze, and Black Charcoal two-tone capstock colours",
+    "Assembly charge: $80.00 for 2 panel, $160.00 for 4 panel",
+    "Any doors ordered with brickmould or jamb extension MUST be ordered assembled",
+    "Any 4-panel doors or doors with sidelites/transoms, ordered with brickmould or jamb extension, the frame will be",
+    "When ordering two-tone doors, standard hardware is white inside with exterior hardware matching exterior",
+    "For factory pre-finish exterior paint options, see page 17",
+    "On two tone patio doors the screen frame will be a solid colour to match the exterior door colour"
+   ]
+  },
+  "sidelites_transoms": [
+   {
+    "name": "WC-550 fixed sidelite",
+    "columns": [
+     "white_standard",
+     "loe180",
+     "loe180_i89",
+     "argon",
+     "argon_krypton_5050",
+     "krypton",
+     "triple_pane_upcharge"
+    ],
+    "rows": [
+     {
+      "tier": "up to 10",
+      "values": [
+       500.0,
+       20.0,
+       60.0,
+       10.0,
+       60.0,
+       120.0,
+       210.0
+      ],
+      "raw": "up to 10 500.00 20.00 60.00 10.00 60.00 120.00 210.00",
+      "source_page_pdf": 133
+     },
+     {
+      "tier": ">10",
+      "values": [
+       50.0,
+       2.0,
+       6.0,
+       1.0,
+       6.0,
+       12.0,
+       21.0
+      ],
+      "raw": ">10 50.00 2.00 6.00 1.00 6.00 12.00 21.00",
+      "source_page_pdf": 133
+     }
+    ]
+   },
+   {
+    "name": "WC-551 transom",
+    "columns": [
+     "white_standard",
+     "loe180",
+     "loe180_i89",
+     "argon",
+     "argon_krypton_5050",
+     "krypton",
+     "triple_pane_upcharge",
+     "tempered_1_side",
+     "tempered_2_side",
+     "frost_or_tint"
+    ],
+    "rows": [
+     {
+      "tier": "up to 10",
+      "values": [
+       260.0,
+       20.0,
+       60.0,
+       10.0,
+       60.0,
+       120.0,
+       90.0,
+       120.0,
+       240.0,
+       40.0
+      ],
+      "raw": "up to 10 260.00 20.00 60.00 10.00 60.00 120.00 90.00 120.00 240.00 40.00",
+      "source_page_pdf": 133
+     },
+     {
+      "tier": ">10",
+      "values": [
+       26.0,
+       2.0,
+       6.0,
+       1.0,
+       6.0,
+       12.0,
+       9.0,
+       12.0,
+       24.0,
+       4.0
+      ],
+      "raw": ">10 26.00 2.00 6.00 1.00 6.00 12.00 9.00 12.00 24.00 4.00 -",
+      "source_page_pdf": 133
+     }
+    ]
+   }
+  ]
+ },
+ "swing": {
+  "single": {
+   "code": "HC-650/651 single in-swing",
+   "columns": [
+    "white_base",
+    "loe180",
+    "loe180_i89",
+    "argon",
+    "triple_tempered_upcharge"
+   ],
+   "rows": [
+    {
+     "height_band": "7'",
+     "width_from": "18\"",
+     "width_to": "26\"",
+     "height_from": "72\"",
+     "height_to": "84\"",
+     "white_base": 1800.0,
+     "loe180": 30.0,
+     "loe180_i89": 90.0,
+     "argon": 15.0,
+     "triple_tempered_upcharge": 400.0,
+     "raw": "18\" to 26\" 72\" to 84\" 1,800.00 30.00 90.00 15.00 400.00",
+     "source_page_pdf": 144
+    },
+    {
+     "height_band": "7'",
+     "width_from": "26\"",
+     "width_to": "38 1⁄4\"",
+     "height_from": "72\"",
+     "height_to": "84\"",
+     "white_base": 1900.0,
+     "loe180": 44.0,
+     "loe180_i89": 132.0,
+     "argon": 22.0,
+     "triple_tempered_upcharge": 600.0,
+     "raw": "26\" to 38 1⁄4\" 72\" to 84\" 1,900.00 44.00 132.00 22.00 600.00",
+     "source_page_pdf": 144
+    },
+    {
+     "height_band": "8'",
+     "width_from": "18\"",
+     "width_to": "26\"",
+     "height_from": "84\"",
+     "height_to": "98\"",
+     "white_base": 2000.0,
+     "loe180": 36.0,
+     "loe180_i89": 108.0,
+     "argon": 18.0,
+     "triple_tempered_upcharge": 480.0,
+     "raw": "18\" to 26\" 84\" to 98\" 2,000.00 36.00 108.00 18.00 480.00",
+     "source_page_pdf": 144
+    },
+    {
+     "height_band": "8'",
+     "width_from": "26\"",
+     "width_to": "38 1⁄4\"",
+     "height_from": "84\"",
+     "height_to": "98\"",
+     "white_base": 2100.0,
+     "loe180": 52.0,
+     "loe180_i89": 156.0,
+     "argon": 26.0,
+     "triple_tempered_upcharge": 700.0,
+     "raw": "26\" to 38 1⁄4\" 84\" to 98\" 2,100.00 52.00 156.00 26.00 700.00",
+     "source_page_pdf": 144
+    }
+   ],
+   "colour_adders": [
+    {
+     "group": "Available in capstock two-tone",
+     "height_to_84": 285.0,
+     "height_to_98": 315.0,
+     "raw": "Available in capstock two-tone 285.00 315.00 Min / Max height 72\" to 98\"",
+     "source_page_pdf": 144
+    },
+    {
+     "group": "Available in capstock two-tone",
+     "height_to_84": 380.0,
+     "height_to_98": 420.0,
+     "raw": "Available in capstock two-tone 380.00 420.00",
+     "source_page_pdf": 144
+    },
+    {
+     "group": "Available in capstock Black in/out",
+     "height_to_84": 475.0,
+     "height_to_98": 525.0,
+     "raw": "Available in capstock Black in/out 475.00 525.00",
+     "source_page_pdf": 144
+    }
+   ],
+   "notes": [
+    "65⁄8\" x 11⁄2\" all uPVC welded frame including sill with full aluminum reinforcement",
+    "Multi-chambered all uPVC welded sash panel with full aluminum reinforcement",
+    "Fully weeped sill with offset covered drainage channels",
+    "Full foam compression weather strip on frame along with additional fin seal",
+    "Adjustable self-draining sweep with superior multiple bubble fin system and",
+    "8 1/2” in-swing sill with a clear aluminum anodized finish",
+    "4–2D adjustable hinges stainless steel standard on 6’8” height and 5–2D",
+    "Automatic multi-point locking system is standard",
+    "Glazed standard with double pane insulated tempered glass with warm-edge",
+    "HC-650 comes with standard 5” stiles top and bottom rails",
+    "Fully assembled and ready to install",
+    "For any custom height bigger than 98\" contact your account representative for pricing and availability,",
+    "Decorative glass available only with Tempered glass, contact account representative for delivery time & pricing",
+    "When ordering a Triple pane door, all three panes must be tempered, and longer delivery time is required",
+    "When ordering, all viewed from outside",
+    "HC651 is not available with Black capstock in/out"
+   ]
+  },
+  "double": {
+   "code": "HC-652/653 double in-swing",
+   "columns": [
+    "white_base",
+    "loe180",
+    "loe180_i89",
+    "argon",
+    "triple_tempered_upcharge"
+   ],
+   "rows": [
+    {
+     "height_band": "7'",
+     "width_from": "39\"",
+     "width_to": "63\"",
+     "height_from": "72\"",
+     "height_to": "84\"",
+     "white_base": 3800.0,
+     "loe180": 72.0,
+     "loe180_i89": 216.0,
+     "argon": 36.0,
+     "triple_tempered_upcharge": 800.0,
+     "raw": "39\" to 63\" 72\" to 84\" 3,800.00 72.00 216.00 36.00 800.00",
+     "source_page_pdf": 145
+    },
+    {
+     "height_band": "7'",
+     "width_from": "63\"",
+     "width_to": "75\"",
+     "height_from": "72\"",
+     "height_to": "84\"",
+     "white_base": 4000.0,
+     "loe180": 88.0,
+     "loe180_i89": 264.0,
+     "argon": 44.0,
+     "triple_tempered_upcharge": 1200.0,
+     "raw": "63\" to 75\" 72\" to 84\" 4,000.00 88.00 264.00 44.00 1,200.00",
+     "source_page_pdf": 145
+    },
+    {
+     "height_band": "8'",
+     "width_from": "39\"",
+     "width_to": "63\"",
+     "height_from": "84\"",
+     "height_to": "98\"",
+     "white_base": 4200.0,
+     "loe180": 86.0,
+     "loe180_i89": 258.0,
+     "argon": 43.0,
+     "triple_tempered_upcharge": 960.0,
+     "raw": "39\" to 63\" 84\" to 98\" 4,200.00 86.00 258.00 43.00 960.00",
+     "source_page_pdf": 145
+    },
+    {
+     "height_band": "8'",
+     "width_from": "63\"",
+     "width_to": "75\"",
+     "height_from": "84\"",
+     "height_to": "98\"",
+     "white_base": 4400.0,
+     "loe180": 102.0,
+     "loe180_i89": 306.0,
+     "argon": 51.0,
+     "triple_tempered_upcharge": 1400.0,
+     "raw": "63\" to 75\" 84\" to 98\" 4,400.00 102.00 306.00 51.00 1,400.00",
+     "source_page_pdf": 145
+    }
+   ],
+   "colour_adders": [
+    {
+     "group": "Available in capstock two-tone",
+     "height_to_84": 570.0,
+     "height_to_98": 630.0,
+     "raw": "Available in capstock two-tone 570.00 630.00 Min / Max height 72\" to 98\"",
+     "source_page_pdf": 145
+    },
+    {
+     "group": "Available in capstock two-tone",
+     "height_to_84": 760.0,
+     "height_to_98": 840.0,
+     "raw": "Available in capstock two-tone 760.00 840.00",
+     "source_page_pdf": 145
+    },
+    {
+     "group": "Available in capstock Black in/out",
+     "height_to_84": 950.0,
+     "height_to_98": 1050.0,
+     "raw": "Available in capstock Black in/out 950.00 1,050.00",
+     "source_page_pdf": 145
+    }
+   ],
+   "notes": [
+    "65⁄8\" x 11⁄2\" all uPVC welded frame including sill with full aluminum reinforcement",
+    "Multi-chambered all uPVC welded sash panel with full aluminum reinforcement",
+    "Fully weeped sill with offset covered drainage channels",
+    "Full foam compression weather strip on frame along with additional fin seal",
+    "Adjustable self-draining sweep with superior multiple bubble fin system and",
+    "8 1/2” in-swing sill with a clear aluminum anodized finish",
+    "4–2D adjustable hinges stainless steel standard on 6’8” height and 5–2D",
+    "Automatic multi-point locking system is standard",
+    "Mortice locking system in Stainless Steel comes standard on inactive panel 156-CH",
+    "9” Venice trim set handles come standard with a satin nickle finish",
+    "Glazed standard with double pane insulated tempered glass with warm-edge",
+    "HC-650 comes with standard 5” stiles top and bottom rails",
+    "Fully assembled and ready to install",
+    "For any custom height bigger than 98\" contact your account representative for pricing and availability,",
+    "Decorative glass available only with Tempered glass, contact account representative for delivery time & pricing",
+    "When ordering a Triple pane door, all three panes must be tempered, and longer delivery time is required",
+    "When ordering, all hinging viewed from outside",
+    "For factory pre-finish paint options, see pages 174 to 175 -",
+    "HC-651 comes with 5” stiles, 5” top rails and 8” bottom rails DPU",
+    "HC651 is not available with Black capstock in/out"
+   ]
+  },
+  "sidelites_transoms": [
+   {
+    "page_group": "HC-660/661/663/664 sidelite with sash",
+    "rows": [
+     {
+      "width_from": "12\"",
+      "width_to": "22\"",
+      "height_from": "72\"",
+      "height_to": "84\"",
+      "values": [
+       1000.0,
+       1100.0,
+       26.0,
+       78.0,
+       13.0,
+       350.0
+      ],
+      "raw": "12\" to 22\" 72\" to 84\" 1,000.00 1,100.00 26.00 78.00 13.00 350.00",
+      "source_page_pdf": 146
+     },
+     {
+      "width_from": "22\"",
+      "width_to": "38 1⁄4\"",
+      "height_from": "72\"",
+      "height_to": "84\"",
+      "values": [
+       1100.0,
+       1200.0,
+       44.0,
+       132.0,
+       22.0,
+       600.0
+      ],
+      "raw": "22\" to 38 1⁄4\" 72\" to 84\" 1,100.00 1,200.00 44.00 132.00 22.00 600.00",
+      "source_page_pdf": 146
+     },
+     {
+      "width_from": "12\"",
+      "width_to": "22\"",
+      "height_from": "84\"",
+      "height_to": "98\"",
+      "values": [
+       1200.0,
+       1300.0,
+       30.0,
+       90.0,
+       15.0,
+       400.0
+      ],
+      "raw": "12\" to 22\" 84\" to 98\" 1,200.00 1,300.00 30.00 90.00 15.00 400.00",
+      "source_page_pdf": 146
+     },
+     {
+      "width_from": "22\"",
+      "width_to": "38 1⁄4\"",
+      "height_from": "84\"",
+      "height_to": "98\"",
+      "values": [
+       1300.0,
+       1400.0,
+       52.0,
+       156.0,
+       26.0,
+       700.0
+      ],
+      "raw": "22\" to 38 1⁄4\" 84\" to 98\" 1,300.00 1,400.00 52.00 156.00 26.00 700.00",
+      "source_page_pdf": 146
+     }
+    ],
+    "colour_adders": [
+     {
+      "group": "Available in capstock two-tone",
+      "height_to_84": 285.0,
+      "height_to_98": 315.0,
+      "raw": "Available in capstock two-tone 285.00 315.00",
+      "source_page_pdf": 146
+     },
+     {
+      "group": "Available in capstock two-tone",
+      "height_to_84": 380.0,
+      "height_to_98": 420.0,
+      "raw": "Available in capstock two-tone 380.00 420.00",
+      "source_page_pdf": 146
+     },
+     {
+      "group": "Available in capstock Black in/out",
+      "height_to_84": 475.0,
+      "height_to_98": 525.0,
+      "raw": "Available in capstock Black in/out 475.00 525.00",
+      "source_page_pdf": 146
+     }
+    ]
+   },
+   {
+    "page_group": "HC-670/671/673 transom with sash",
+    "rows": [
+     {
+      "width_from": "36\"",
+      "width_to": "72\"",
+      "height_from": "18\"",
+      "height_to": "48\"",
+      "values": [
+       950.0,
+       48.0,
+       144.0,
+       24.0,
+       216.0
+      ],
+      "raw": "36\" to 72\" 18\" to 48\" 950.00 48.00 144.00 24.00 216.00",
+      "source_page_pdf": 148
+     },
+     {
+      "width_from": "72\"",
+      "width_to": "108",
+      "height_from": "18\"",
+      "height_to": "48\"",
+      "values": [
+       1050.0,
+       72.0,
+       216.0,
+       36.0,
+       324.0
+      ],
+      "raw": "72\" to 108 18\" to 48\" 1,050.00 72.00 216.00 36.00 324.00",
+      "source_page_pdf": 148
+     },
+     {
+      "width_from": "12\"",
+      "width_to": "72\"",
+      "height_from": "12\"",
+      "height_to": "48\"",
+      "values": [
+       1050.0,
+       48.0,
+       144.0,
+       24.0,
+       216.0
+      ],
+      "raw": "12\" to 72\" 12\" to 48\" 1,050.00 48.00 144.00 24.00 216.00",
+      "source_page_pdf": 148
+     },
+     {
+      "width_from": "72\"",
+      "width_to": "108",
+      "height_from": "12\"",
+      "height_to": "48\"",
+      "values": [
+       1150.0,
+       72.0,
+       216.0,
+       36.0,
+       324.0
+      ],
+      "raw": "72\" to 108 12\" to 48\" 1,150.00 72.00 216.00 36.00 324.00",
+      "source_page_pdf": 148
+     },
+     {
+      "width_from": "18\"",
+      "width_to": "72\"",
+      "height_from": "12\"",
+      "height_to": "48\"",
+      "values": [
+       1000.0,
+       48.0,
+       144.0,
+       24.0,
+       216.0
+      ],
+      "raw": "18\" to 72\" 12\" to 48\" 1,000.00 48.00 144.00 24.00 216.00",
+      "source_page_pdf": 148
+     },
+     {
+      "width_from": "72\"",
+      "width_to": "108",
+      "height_from": "12\"",
+      "height_to": "48\"",
+      "values": [
+       1100.0,
+       72.0,
+       216.0,
+       36.0,
+       324.0
+      ],
+      "raw": "72\" to 108 12\" to 48\" 1,100.00 72.00 216.00 36.00 324.00",
+      "source_page_pdf": 148
+     }
+    ],
+    "colour_adders": [
+     {
+      "group": "Available in capstock two-tone",
+      "height_to_84": 285.0,
+      "height_to_98": 315.0,
+      "raw": "Available in capstock two-tone 285.00 315.00",
+      "source_page_pdf": 148
+     },
+     {
+      "group": "Available in capstock two-tone",
+      "height_to_84": 380.0,
+      "height_to_98": 420.0,
+      "raw": "Available in capstock two-tone 380.00 420.00",
+      "source_page_pdf": 148
+     },
+     {
+      "group": "Available in capstock Black in/out",
+      "height_to_84": 475.0,
+      "height_to_98": 525.0,
+      "raw": "Available in capstock Black in/out 475.00 525.00",
+      "source_page_pdf": 148
+     }
+    ]
+   },
+   {
+    "page_group": "HC-680/681 direct glazed",
+    "name": "direct glazed sidelite/transom",
+    "columns": [
+     "white_double_pane",
+     "loe180",
+     "loe180_i89",
+     "argon",
+     "triple_pane_upcharge",
+     "tempered_double",
+     "tempered_triple"
+    ],
+    "rows": [
+     {
+      "tier": "up to 10",
+      "values": [
+       360.0,
+       20.0,
+       60.0,
+       10.0,
+       90.0,
+       240.0,
+       450.0
+      ],
+      "raw": "up to 10 360.00 20.00 60.00 10.00 90.00 240.00 450.00",
+      "source_page_pdf": 150
+     },
+     {
+      "tier": ">10",
+      "values": [
+       36.0,
+       2.0,
+       6.0,
+       1.0,
+       9.0,
+       24.0,
+       45.0
+      ],
+      "raw": ">10 36.00 2.00 6.00 1.00 9.00 24.00 45.00",
+      "source_page_pdf": 150
+     }
+    ]
+   }
+  ],
+  "colour_adders_direct_glazed": [
+   {
+    "group": "Available in capstock two-tone colours, Sandalwood & Sandstone",
+    "height_to_84": 285.0,
+    "height_to_98": 315.0,
+    "raw": "Available in capstock two-tone colours, Sandalwood & Sandstone 285.00 315.00",
+    "source_page_pdf": 150
+   },
+   {
+    "group": "Available in capstock two-tone colour, Dark Bronze, Black, Charcoal",
+    "height_to_84": 380.0,
+    "height_to_98": 420.0,
+    "raw": "Available in capstock two-tone colour, Dark Bronze, Black, Charcoal 380.00 420.00",
+    "source_page_pdf": 150
+   },
+   {
+    "group": "Available in capstock Black in/out",
+    "height_to_84": 475.0,
+    "height_to_98": 525.0,
+    "raw": "Available in capstock Black in/out 475.00 525.00",
+    "source_page_pdf": 150
+   }
+  ]
+ },
+ "door_accessories": [
+  {
+   "name": "10’",
+   "values": [
+    576.0,
+    576.0,
+    576.0,
+    720.0,
+    720.0,
+    864.0,
+    792.0,
+    440.0,
+    760.0,
+    2400.0
+   ],
+   "raw": "10’ 576.00 576.00 576.00 720.00 720.00 864.00 792.00 440.00 760.00 2400.00 5 X 6",
+   "source_page_pdf": 134
+  },
+  {
+   "name": "12’",
+   "values": [
+    576.0,
+    576.0,
+    576.0,
+    720.0,
+    720.0,
+    864.0,
+    792.0,
+    480.0,
+    840.0,
+    2600.0
+   ],
+   "raw": "12’ 576.00 576.00 576.00 720.00 720.00 864.00 792.00 480.00 840.00 2600.00 3 X 6",
+   "source_page_pdf": 134
+  },
+  {
+   "name": "16’",
+   "values": [
+    768.0,
+    768.0,
+    768.0,
+    960.0,
+    960.0,
+    1152.0,
+    1056.0
+   ],
+   "raw": "16’ 768.00 768.00 768.00 960.00 960.00 1152.00 1056.00 N/A N/A N/A 4 X 6",
+   "source_page_pdf": 134
+  },
+  {
+   "name": "1” brickmould (classic) EP-226 1” x 1”",
+   "values": [
+    4.0,
+    4.6,
+    4.8
+   ],
+   "raw": "1” brickmould (classic) EP-226 1” x 1” 4.00 4.60 4.80",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "1” brickmould (heritage) EP-228 1” x 1”",
+   "values": [
+    4.0,
+    4.6,
+    4.8
+   ],
+   "raw": "1” brickmould (heritage) EP-228 1” x 1” 4.00 4.60 4.80",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "1 1/2” brickmould (heritage) EP-227 1 1/2” x 1 1/4”",
+   "values": [
+    5.0,
+    5.75,
+    6.0
+   ],
+   "raw": "1 1/2” brickmould (heritage) EP-227 1 1/2” x 1 1/4” 5.00 5.75 6.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "2” brickmould (heritage) EP-223 2” x 1 1/4”",
+   "values": [
+    6.0,
+    6.9,
+    7.2
+   ],
+   "raw": "2” brickmould (heritage) EP-223 2” x 1 1/4” 6.00 6.90 7.20",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "2 1/2” brickmould (heritage) EP-223 2 1/2” x 1 1/4”",
+   "values": [
+    6.0,
+    6.9,
+    7.2
+   ],
+   "raw": "2 1/2” brickmould (heritage) EP-223 2 1/2” x 1 1/4” 6.00 6.90 7.20",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "3” brickmould (heritage) EP-223 3” x 1 1/4”",
+   "values": [
+    7.0,
+    8.05,
+    8.4
+   ],
+   "raw": "3” brickmould (heritage) EP-223 3” x 1 1/4” 7.00 8.05 8.40",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "3 1/2” brickmould (heritage) EP-223 3 1/2” X 1 1/4”",
+   "values": [
+    7.0,
+    8.05,
+    8.4
+   ],
+   "raw": "3 1/2” brickmould (heritage) EP-223 3 1/2” X 1 1/4” 7.00 8.05 8.40",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "4” brickmould (heritage) EP-223 4” X 1 1/4”",
+   "values": [
+    8.0,
+    9.2,
+    9.6
+   ],
+   "raw": "4” brickmould (heritage) EP-223 4” X 1 1/4” 8.00 9.20 9.60",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "custom size (heritage) 1” to 4” x 1 1/4”",
+   "values": [
+    9.0,
+    10.35,
+    10.8
+   ],
+   "raw": "custom size (heritage) 1” to 4” x 1 1/4” 9.00 10.35 10.80",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "PVC",
+   "values": [
+    5.0
+   ],
+   "raw": "PVC 5.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "1 1/4” PVC jamb EP-122 1 1/4” x 3/4”",
+   "values": [
+    5.0
+   ],
+   "raw": "1 1/4” PVC jamb EP-122 1 1/4” x 3/4” 5.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "2 1/2” PVC jamb EP-125 2 1/2” x 3/4”",
+   "values": [
+    5.0
+   ],
+   "raw": "2 1/2” PVC jamb EP-125 2 1/2” x 3/4” 5.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "3 3/8” PVC jamb EP-116 3 3/8” x 3/4”",
+   "values": [
+    6.0
+   ],
+   "raw": "3 3/8” PVC jamb EP-116 3 3/8” x 3/4” 6.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "4 1/2” PVC jamb EP-112 4 1/2” x 3/4”",
+   "values": [
+    7.0
+   ],
+   "raw": "4 1/2” PVC jamb EP-112 4 1/2” x 3/4” 7.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "Wood",
+   "values": [
+    4.0
+   ],
+   "raw": "Wood 4.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "1 1/4” wood jamb 1 1/4” x 3/4”",
+   "values": [
+    4.0
+   ],
+   "raw": "1 1/4” wood jamb 1 1/4” x 3/4” 4.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "2 1/4” wood jamb 2 1/4” x 3/4”",
+   "values": [
+    4.0
+   ],
+   "raw": "2 1/4” wood jamb 2 1/4” x 3/4” 4.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "3 3/8” wood jamb 3 3/8” x 3/4”",
+   "values": [
+    5.0
+   ],
+   "raw": "3 3/8” wood jamb 3 3/8” x 3/4” 5.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "custom size up to 4 1/ ” x 3/4”",
+   "values": [
+    6.0
+   ],
+   "raw": "custom size up to 4 1/ ” x 3/4” 6.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "PVC EP-111 2 3/4” x 3/4”",
+   "values": [
+    2.0
+   ],
+   "raw": "PVC EP-111 2 3/4” x 3/4” 2.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "PVC EP-121 3 3/8” x 3/4”",
+   "values": [
+    3.0
+   ],
+   "raw": "PVC EP-121 3 3/8” x 3/4” 3.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "rosette PVC (each) 3” X 1”",
+   "values": [
+    2.0
+   ],
+   "raw": "rosette PVC (each) 3” X 1” 2.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "rosette PVC (each) 3 3/4” X 1”",
+   "values": [
+    2.0
+   ],
+   "raw": "rosette PVC (each) 3 3/4” X 1” 2.00",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "Nailing Flange PVC EP-106 1 5/16”",
+   "values": [
+    2.0
+   ],
+   "raw": "Nailing Flange PVC EP-106 1 5/16” 2.00 N/A",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "Drywall or Wood Return EP-107 3/4”",
+   "values": [
+    3.0
+   ],
+   "raw": "Drywall or Wood Return EP-107 3/4” 3.00 N/A",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "2” Sill Extension (Aluminum Mill Finish) 2”",
+   "values": [
+    12.0
+   ],
+   "raw": "2” Sill Extension (Aluminum Mill Finish) 2” 12.00 N/A",
+   "source_page_pdf": 135
+  },
+  {
+   "name": "Frame sill",
+   "values": [
+    100.0,
+    110.0,
+    130.0
+   ],
+   "raw": "Frame sill 100.00 N/A 110.00 N/A 130.00 N/A",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "header",
+   "values": [
+    90.0,
+    115.0,
+    100.0,
+    125.0,
+    120.0,
+    150.0
+   ],
+   "raw": "header 90.00 115.00 100.00 125.00 120.00 150.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "jamb (set)",
+   "values": [
+    180.0,
+    225.0,
+    180.0,
+    225.0,
+    180.0,
+    225.0
+   ],
+   "raw": "jamb (set) 180.00 225.00 180.00 225.00 180.00 225.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Complete Frame",
+   "values": [
+    370.0,
+    440.0,
+    390.0,
+    460.0,
+    430.0,
+    505.0
+   ],
+   "raw": "Complete Frame 370.00 440.00 390.00 460.00 430.00 505.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Screen Frame/mesh",
+   "values": [
+    150.0,
+    200.0,
+    160.0,
+    210.0,
+    200.0,
+    250.0
+   ],
+   "raw": "Screen Frame/mesh 150.00 200.00 160.00 210.00 200.00 250.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Single Panel no rollers/glass",
+   "values": [
+    240.0,
+    300.0,
+    260.0,
+    320.0,
+    300.0,
+    360.0
+   ],
+   "raw": "Single Panel no rollers/glass 240.00 300.00 260.00 320.00 300.00 360.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Interlock Rail Set",
+   "values": [
+    50.0,
+    70.0,
+    50.0,
+    70.0,
+    50.0,
+    70.0
+   ],
+   "raw": "Interlock Rail Set 50.00 70.00 50.00 70.00 50.00 70.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Sealed Unit LoE Argon glass",
+   "values": [
+    210.0,
+    210.0,
+    260.0,
+    260.0,
+    360.0,
+    360.0
+   ],
+   "raw": "Sealed Unit LoE Argon glass 210.00 210.00 260.00 260.00 360.00 360.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Re-Mesh WC screen only",
+   "values": [
+    60.0,
+    60.0,
+    70.0,
+    70.0,
+    90.0,
+    90.0
+   ],
+   "raw": "Re-Mesh WC screen only 60.00 60.00 70.00 70.00 90.00 90.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Width: up to 59 5/8”Height: up to 84”",
+   "values": [
+    600.0,
+    1200.0
+   ],
+   "raw": "Width: up to 59 5/8”Height: up to 84” 600.00 1,200.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Width: up to 71 5/8” Height: up to 84”",
+   "values": [
+    700.0,
+    1400.0
+   ],
+   "raw": "Width: up to 71 5/8” Height: up to 84” 700.00 1,400.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Width: up to 95 5/8”Height: up to 84”",
+   "values": [
+    800.0,
+    1600.0
+   ],
+   "raw": "Width: up to 95 5/8”Height: up to 84” 800.00 1,600.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Width: up to 59 5/8”Height: up to 84 to 95.5”",
+   "values": [
+    1100.0,
+    2200.0
+   ],
+   "raw": "Width: up to 59 5/8”Height: up to 84 to 95.5” 1100.00 2,200.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Width: up to 71 5/8” Height: up to 84 to 95.5” 12",
+   "values": [
+    0.0,
+    0.0
+   ],
+   "raw": "Width: up to 71 5/8” Height: up to 84 to 95.5” 12 0.00 24 0.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "Width: up to 95 5/8”Height: up to 84 to 95.5” 1",
+   "values": [
+    0.0,
+    0.0
+   ],
+   "raw": "Width: up to 95 5/8”Height: up to 84 to 95.5” 1 00.00 , 0 0.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "1” Vertical Mullion EP-555 5 3/4” x 1",
+   "values": [
+    30.0
+   ],
+   "raw": "1” Vertical Mullion EP-555 5 3/4” x 1 30.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "2” Horizontal Mullion EP-556 5 3/4” x 2",
+   "values": [
+    40.0
+   ],
+   "raw": "2” Horizontal Mullion EP-556 5 3/4” x 2 40.00",
+   "source_page_pdf": 136
+  },
+  {
+   "name": "g1\"glazedbrickmouldstandard(classic)with doubleEP-226insulated glass with warm-edge1\" x 1\" super spacer",
+   "values": [
+    4.0,
+    4.6,
+    5.0
+   ],
+   "raw": "g1\"glazedbrickmouldstandard(classic)with doubleEP-226insulated glass with warm-edge1\" x 1\" super spacer4.00 S-Class 4.60 5.00",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "1\"fublrlyicwkmeeopueldd (shilelrwitiathgeo)ffEsPe-t2c2o8vered drainage chan1n\"exl1s\"",
+   "values": [
+    4.0,
+    4.6,
+    5.0
+   ],
+   "raw": "1\"fublrlyicwkmeeopueldd (shilelrwitiathgeo)ffEsPe-t2c2o8vered drainage chan1n\"exl1s\" 4.00 4.60 5.00",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "g1F1u/2lly\" barsiscekmmbolueldd&(hreeraitdaygteo) EinPs-t2a2ll7 1 1/2\" x 1 1/4\"",
+   "values": [
+    5.0,
+    5.75,
+    6.25
+   ],
+   "raw": "g1F1u/2lly\" barsiscekmmbolueldd&(hreeraitdaygteo) EinPs-t2a2ll7 1 1/2\" x 1 1/4\" 5.00 5.75 6.25",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "2\" brickmould (heritage) EP-223 2\" x 1 1/4\"",
+   "values": [
+    6.0,
+    6.9,
+    7.5
+   ],
+   "raw": "2\" brickmould (heritage) EP-223 2\" x 1 1/4\" 6.00 6.90 7.50",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "2 1/2\" brickmould (heritage) EP-223 2 1/2\" x 1 1/4\"",
+   "values": [
+    6.0,
+    6.9,
+    7.5
+   ],
+   "raw": "2 1/2\" brickmould (heritage) EP-223 2 1/2\" x 1 1/4\" 6.00 6.90 7.50",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "3\" brickmould (heritage) EP-223 3\" x 1 1/4\"",
+   "values": [
+    7.0,
+    8.05,
+    8.75
+   ],
+   "raw": "3\" brickmould (heritage) EP-223 3\" x 1 1/4\" 7.00 8.05 8.75",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "3 1/2\" brickmould (heritage) EP-223 3 1/2\" x 1 1/4\"",
+   "values": [
+    7.0,
+    8.05,
+    8.75
+   ],
+   "raw": "3 1/2\" brickmould (heritage) EP-223 3 1/2\" x 1 1/4\" 7.00 8.05 8.75",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "4\" brickmould (heritage) EP-223* 4\" x 1 1/4\"",
+   "values": [
+    8.0,
+    9.2,
+    10.0
+   ],
+   "raw": "4\" brickmould (heritage) EP-223* 4\" x 1 1/4\" 8.00 9.20 10.00",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "custom size (heritage) 1\" to 4\" x 1 1/4\"",
+   "values": [
+    9.0,
+    10.35,
+    11.25
+   ],
+   "raw": "custom size (heritage) 1\" to 4\" x 1 1/4\" 9.00 10.35 11.25",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "up to 10",
+   "values": [
+    360.0,
+    60.0,
+    210.0,
+    270.0,
+    330.0,
+    90.0,
+    180.0,
+    30.0
+   ],
+   "raw": "up to 10 360.00 60.00 linear210.00ft price 270.00 330.00 90.00 180.00linear ft30.00price",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "11⁄ \" >PV10C jamb",
+   "values": [
+    36.0,
+    27.0,
+    18.0,
+    4.0,
+    3.0
+   ],
+   "raw": "11⁄ \" >PV10C jamb 36.00 1 1/4\"6.x030/4\" 251..0000 27.0011⁄ \" wood ja3m3.b00 1 1/49\".0x03/4\" 18.00 4.003.00",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "2g1⁄2A\"vPaVilCabjaleminb tEwPo-1-2to5ne capst2o1c/k2c\"oxl3o/u4r\"s Sandalwo5o.0d0& Sandstone 21⁄4\" woAodddja$m30b0 2 1/4\" x 3/4\"",
+   "values": [
+    4.0
+   ],
+   "raw": "2g1⁄2A\"vPaVilCabjaleminb tEwPo-1-2to5ne capst2o1c/k2c\"oxl3o/u4r\"s Sandalwo5o.0d0& Sandstone 21⁄4\" woAodddja$m30b0 2 1/4\" x 3/4\" 4.00",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "3g3⁄8A\"vPaVilCabjaleminb cEaPp-s1t1o6ck two-t3o3n/e8c\"oxlo3/u4r,\" Dark Bron5z.0e0,Black & Charco3a3⁄l8\" woAodddj$a4m0b0 3 3/8\" x 3/4\"",
+   "values": [
+    4.0
+   ],
+   "raw": "3g3⁄8A\"vPaVilCabjaleminb cEaPp-s1t1o6ck two-t3o3n/e8c\"oxlo3/u4r,\" Dark Bron5z.0e0,Black & Charco3a3⁄l8\" woAodddj$a4m0b0 3 3/8\" x 3/4\" 4.00",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "4g1⁄2A\"vPaVilCabjaleminb cEaPp-s1t1o2ck colou4r 1B/l2ac\"kx i3n//4o\"ut",
+   "values": [
+    6.0,
+    5.0
+   ],
+   "raw": "4g1⁄2A\"vPaVilCabjaleminb cEaPp-s1t1o2ck colou4r 1B/l2ac\"kx i3n//4o\"ut 6.00 4g1⁄2\" wood Jamb 4 1/2\" x 3/4\" 5.00",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "custom size PVC jamb up to 4 1/2\" x 3/4\"",
+   "values": [
+    7.0,
+    6.0
+   ],
+   "raw": "custom size PVC jamb up to 4 1/2\" x 3/4\" 7.00 custom size up to 4 1/2\" x 3/4\" 6.00",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "rogsForettepricingPVC (each)of Architectural3\" xShaped1\" Transoms,",
+   "values": [
+    2.0
+   ],
+   "raw": "rogsForettepricingPVC (each)of Architectural3\" xShaped1\" Transoms,2.00calculate the squareN/Aprice (p. 50) then refer to page 51 for additional labour and",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "rosettePVC(each)bending charges 3 3/4\" x 1\"",
+   "values": [
+    2.0
+   ],
+   "raw": "rosettePVC(each)bending charges 3 3/4\" x 1\" 2.00 N/A",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "Mgi1” X 6 5/8” PVC mullion with steel reinforcement EP-657 (",
+   "values": [
+    50.0
+   ],
+   "raw": "Mgi1” X 6 5/8” PVC mullion with steel reinforcement EP-657 (50.00/Lin.Ft)",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "Nailing Flange PVC EP-106 1 5/16\"",
+   "values": [
+    2.0
+   ],
+   "raw": "Nailing Flange PVC EP-106 1 5/16\" 2.00 N/A",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "straight - 0 degrees (outside) EP-109 3/4\"",
+   "values": [
+    2.0,
+    2.3
+   ],
+   "raw": "straight - 0 degrees (outside) EP-109 3/4\" 2.00 2.30",
+   "source_page_pdf": 151
+  },
+  {
+   "name": "colonial flat bar 5/8\" x 1/4\"",
+   "values": [
+    4.0,
+    8.0,
+    6.0,
+    6.0
+   ],
+   "raw": "colonial flat bar 5/8\" x 1/4\" 4.00 / sq unit 8.00 / sq unit 6.00 / sq unit 6.00 / sq unit",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "georgian 11/16\" x 1/4\"",
+   "values": [
+    6.0,
+    8.0,
+    8.0
+   ],
+   "raw": "georgian 11/16\" x 1/4\" 6.00 / sq unit N/A 8.00 / sq unit 8.00 / sq unit",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "georgian 1\" x 1/4\"",
+   "values": [
+    8.0,
+    10.0,
+    10.0
+   ],
+   "raw": "georgian 1\" x 1/4\" 8.00 / sq unit N/A 10.00 / sq unit 10.00 / sq unit",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "pencil 5/16\"",
+   "values": [
+    9.0,
+    12.0,
+    12.0
+   ],
+   "raw": "pencil 5/16\" 9.00 / sq unit 12.00 / sq unit 12.00 / sq unit N/A",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "simulated (heritage) 3/4\" x 1/4\"",
+   "values": [
+    30.0,
+    34.5
+   ],
+   "raw": "simulated (heritage) 3/4\" x 1/4\" 30.00 / sq unit N/A N/A 34.50 / sq unit",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "& pencil (S1) 5/16\"",
+   "values": [
+    128.0,
+    128.0
+   ],
+   "raw": "& pencil (S1) 5/16\" 128.00 / seal unit 128.00 / seal unit",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "1 sill option 10\" clear aluminum or dark bronze",
+   "values": [
+    40.0,
+    80.0
+   ],
+   "raw": "1 sill option 10\" clear aluminum or dark bronze 40.00 80.00",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "2 horizontal 5\" wide mullion on HC-650, HC-651",
+   "values": [
+    400.0,
+    800.0
+   ],
+   "raw": "2 horizontal 5\" wide mullion on HC-650, HC-651 400.00 800.00",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "mullion 5\" wide mullion on HC-660, HC-663",
+   "values": [
+    400.0,
+    800.0
+   ],
+   "raw": "mullion 5\" wide mullion on HC-660, HC-663 400.00 800.00",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "3 insulated kick panel smooth panel 12\" height",
+   "values": [
+    150.0,
+    300.0
+   ],
+   "raw": "3 insulated kick panel smooth panel 12\" height 150.00 300.00",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "1” Vertical Mullion EP-657 6 5/8\" x 1\"",
+   "values": [
+    40.0
+   ],
+   "raw": "1” Vertical Mullion EP-657 6 5/8\" x 1\" 40.00",
+   "source_page_pdf": 152
+  },
+  {
+   "name": "GNIWS 2\" Horizontal Mullion EP-658 6 5/8\" x 2\"",
+   "values": [
+    50.0
+   ],
+   "raw": "GNIWS 2\" Horizontal Mullion EP-658 6 5/8\" x 2\" 50.00",
+   "source_page_pdf": 152
+  }
+ ]
+}

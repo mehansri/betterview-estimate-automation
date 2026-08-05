@@ -5,12 +5,11 @@ export default function HomePage() {
     <div>
       <div className="mb-8 max-w-2xl">
         <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Build a window quote in seconds
+          Build a catalog-backed quote
         </h2>
         <p className="mt-2 text-slate-600">
-          Estimates use historical similarity from imported manufacturer orders
-          (with optional ML fallback). Import more PDFs under Admin → Estimates
-          to improve coverage.
+          Window City v18 is the pricing authority. Historical PDFs remain
+          available under Estimates for audit, learning, and future calibration.
         </p>
       </div>
       <QuoteBuilder />

@@ -1,49 +1,64 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  BatchResponse,
-  WindowSpec,
-  quoteBatch,
+  DeterministicQuoteResponse,
+  QuoteCatalog,
+  QuoteLineInput,
+  QuoteLineType,
+  PresentationMode,
+  SalesPreset,
+  fetchQuoteCatalog,
+  fetchSalesPresets,
+  priceDeterministicQuote,
 } from "@/lib/api";
 
-const WINDOW_TYPES = [
-  "Casement",
-  "Awning",
-  "Fixed",
-  "Slider",
-  "Double Hung",
-  "Picture",
-  "Patio Door",
-];
-const FRAMES = ["Vinyl", "Aluminum", "Fiberglass", "Wood"];
-const GLASS = ["Single", "Double", "Triple"];
-const COLORS = ["White", "Black", "Dark Bronze", "Brown", "Beige", "Gray"];
-const GRIDS = ["None", "Colonial", "Prairie", "Diamond"];
-const SHAPES = ["Rectangular", "Arched", "Custom"];
-const INSTALLATIONS = ["New Construction", "Replacement", "Retrofit"];
-const GAS_FILLS = ["Argon", "Krypton", "None"];
+const COLORS = ["white", "black", "dark bronze", "charcoal", "sandstone"];
+const GAS = ["argon", "50/50", "krypton"];
 
-const emptyForm = (): WindowSpec => ({
-  type: "Casement",
-  width: 48,
-  height: 60,
-  frame: "Vinyl",
-  glass: "Double",
-  color: "White",
-  tempered: false,
-  grid: "None",
-  shape: "Rectangular",
-  installation: "Replacement",
-  quantity: 1,
-  brickmould: true,
-  wood_jamb: true,
-  screen: true,
-  mulled: false,
-  nailing_flange: false,
-  gas_fill: "Argon",
-  color_upcharge: false,
-});
+type Draft = {
+  type: QuoteLineType;
+  style: string;
+  width: number;
+  height: number;
+  qty: number;
+  colour_ext: string;
+  loe180: boolean;
+  i89: boolean;
+  gas: string;
+  triple: boolean;
+  tri_pane_lami: boolean;
+  frost_tint: boolean;
+  brickmould: boolean;
+  wood_jamb: boolean;
+  sliding_ft: number;
+  swing_kind: string;
+  head_seat: string;
+  lite_count: number;
+};
+
+function emptyDraft(style = "WC-100", type: QuoteLineType = "window"): Draft {
+  return {
+    type,
+    style,
+    width: 30,
+    height: 60,
+    qty: 1,
+    colour_ext: "white",
+    loe180: true,
+    i89: false,
+    gas: "argon",
+    triple: false,
+    tri_pane_lami: false,
+    frost_tint: false,
+    brickmould: false,
+    wood_jamb: false,
+    sliding_ft: 6,
+    swing_kind: "single",
+    head_seat: "up to 8ft wide",
+    lite_count: 3,
+  };
+}
 
 function money(n: number, currency = "CAD") {
   return new Intl.NumberFormat("en-CA", {
@@ -53,477 +68,112 @@ function money(n: number, currency = "CAD") {
   }).format(n);
 }
 
-function confidenceTone(c: number) {
-  if (c >= 95) return "bg-emerald-100 text-emerald-800";
-  if (c >= 85) return "bg-amber-100 text-amber-900";
-  return "bg-rose-100 text-rose-800";
+function windowLine(draft: Draft, qty = 1): QuoteLineInput {
+  const accessories: Array<{ kind: string; name: string }> = [];
+  return {
+    type: "window",
+    style: draft.style,
+    width: draft.width,
+    height: draft.height,
+    qty,
+    colour_ext: draft.colour_ext,
+    glazing: {
+      loe180: draft.loe180,
+      i89: draft.i89,
+      gas: draft.gas,
+      triple: draft.triple,
+      tri_pane_lami: draft.tri_pane_lami,
+      frost_tint: draft.frost_tint,
+    },
+    accessories,
+  };
 }
 
-function specsEqual(a: WindowSpec, b: WindowSpec): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function validateLines(windows: WindowSpec[]): string | null {
-  for (const w of windows) {
-    if (!w.width || !w.height || w.width <= 0 || w.height <= 0) {
-      return "Width and height must be greater than 0 for every line.";
+function toQuoteLine(draft: Draft, catalog: QuoteCatalog | null): QuoteLineInput {
+  if (draft.type === "window") {
+    const line = windowLine(draft, draft.qty);
+    const accessories: Array<{ kind: string; name: string }> = [];
+    if (draft.brickmould) {
+      const name = catalog?.accessories.brickmould?.[0]?.name;
+      if (name) accessories.push({ kind: "brickmould", name });
     }
-    if (!w.quantity || w.quantity < 1) {
-      return "Quantity must be at least 1 for every line.";
+    if (draft.wood_jamb) {
+      const name = catalog?.accessories.wood_jamb?.[0]?.name;
+      if (name) accessories.push({ kind: "wood_jamb", name });
     }
+    return { ...line, accessories };
   }
-  return null;
-}
 
-/**
- * Build the list of lines to price.
- * - No lines yet → price the current form.
- * - Lines exist and form still matches the last line → re-price existing lines only
- *   (user clicked Generate again without changing specs).
- * - Lines exist and form differs (e.g. switched Awning → Patio Door) → append form
- *   as a new line so the quote updates and line count goes up.
- */
-function buildQuotePayload(
-  lines: WindowSpec[],
-  form: WindowSpec
-): WindowSpec[] {
-  if (!lines.length) {
-    return [{ ...form }];
+  if (draft.type === "combination") {
+    const first = windowLine(draft);
+    const second = windowLine({ ...draft, style: catalog?.styles[1]?.code || draft.style });
+    return {
+      type: "combination",
+      qty: draft.qty,
+      layout: { cols: 2, rows: 1 },
+      lites: [first, second],
+    };
   }
-  const last = lines[lines.length - 1];
-  if (specsEqual(last, form)) {
-    return lines;
+
+  if (draft.type === "patio_sliding") {
+    return {
+      type: "patio_sliding",
+      qty: draft.qty,
+      nominal_ft: draft.sliding_ft,
+      colour_ext: draft.colour_ext,
+      glazing: {
+        loe180: draft.loe180,
+        i89: draft.i89,
+        gas: draft.gas,
+        triple: draft.triple,
+        frost_tint: draft.frost_tint,
+      },
+      assembled: true,
+    };
   }
-  return [...lines, { ...form }];
-}
 
-export default function QuoteBuilder() {
-  const [form, setForm] = useState<WindowSpec>(emptyForm());
-  const [lines, setLines] = useState<WindowSpec[]>([]);
-  const [result, setResult] = useState<BatchResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  if (draft.type === "patio_swing") {
+    return {
+      type: "patio_swing",
+      qty: draft.qty,
+      kind: draft.swing_kind,
+      width: draft.width,
+      height: draft.height,
+      colour_ext: draft.colour_ext,
+      glazing: {
+        loe180: draft.loe180,
+        i89: draft.i89,
+        gas: draft.gas,
+        triple: draft.triple,
+      },
+    };
+  }
 
-  const area = useMemo(
-    () => (form.width * form.height) / 144,
-    [form.width, form.height]
+  const lites = Array.from({ length: draft.lite_count }, (_, index) =>
+    windowLine({
+      ...draft,
+      width: draft.width / Math.max(draft.lite_count, 1),
+      style: catalog?.styles[index % Math.max(catalog.styles.length, 1)]?.code || draft.style,
+    })
   );
-
-  const formIsNewLine = useMemo(() => {
-    if (!lines.length) return false;
-    return !specsEqual(lines[lines.length - 1], form);
-  }, [lines, form]);
-
-  function update<K extends keyof WindowSpec>(key: K, value: WindowSpec[K]) {
-    setForm((f) => {
-      const next = { ...f, [key]: value };
-      // Exterior non-white colors usually carry a color upcharge on Window City
-      if (key === "color") {
-        const c = String(value);
-        next.color_upcharge = !["White", "Beige"].includes(c);
-      }
-      if (key === "nailing_flange" && value === true) {
-        next.installation = "New Construction";
-      }
-      if (key === "installation" && value === "New Construction") {
-        next.nailing_flange = true;
-      }
-      return next;
-    });
-  }
-
-  function addLine() {
-    setLines((prev) => {
-      // Avoid duplicate consecutive lines if user double-clicks Add
-      if (prev.length && specsEqual(prev[prev.length - 1], form)) {
-        return prev;
-      }
-      return [...prev, { ...form }];
-    });
-    setResult(null);
-  }
-
-  function removeLine(idx: number) {
-    setLines((prev) => prev.filter((_, i) => i !== idx));
-    setResult(null);
-  }
-
-  async function generateQuote() {
-    const payload = buildQuotePayload(lines, form);
-    const validationError = validateLines(payload);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    try {
-      const res = await quoteBatch(payload);
-      setLines(payload);
-      setResult(res);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Prediction failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="grid gap-8 lg:grid-cols-5">
-      <section className="lg:col-span-3 space-y-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">
-            Window specifications
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Fields match drivers seen on Window City / Keystone order PDFs.
-            Size and type dominate price; options below refine the estimate.
-          </p>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <Field label="Window type">
-              <select
-                className="input"
-                value={form.type}
-                onChange={(e) => update("type", e.target.value)}
-              >
-                {WINDOW_TYPES.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Frame">
-              <select
-                className="input"
-                value={form.frame}
-                onChange={(e) => update("frame", e.target.value)}
-              >
-                {FRAMES.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Width (in)">
-              <input
-                type="number"
-                min={1}
-                step={0.1}
-                className="input"
-                value={form.width}
-                onChange={(e) => update("width", Number(e.target.value))}
-              />
-            </Field>
-            <Field label="Height (in)">
-              <input
-                type="number"
-                min={1}
-                step={0.1}
-                className="input"
-                value={form.height}
-                onChange={(e) => update("height", Number(e.target.value))}
-              />
-            </Field>
-            <Field label="Glass">
-              <select
-                className="input"
-                value={form.glass}
-                onChange={(e) => update("glass", e.target.value)}
-              >
-                {GLASS.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Exterior color">
-              <select
-                className="input"
-                value={form.color}
-                onChange={(e) => update("color", e.target.value)}
-              >
-                {COLORS.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Gas fill">
-              <select
-                className="input"
-                value={form.gas_fill}
-                onChange={(e) => update("gas_fill", e.target.value)}
-              >
-                {GAS_FILLS.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Grid">
-              <select
-                className="input"
-                value={form.grid}
-                onChange={(e) => update("grid", e.target.value)}
-              >
-                {GRIDS.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Shape">
-              <select
-                className="input"
-                value={form.shape}
-                onChange={(e) => update("shape", e.target.value)}
-              >
-                {SHAPES.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Installation">
-              <select
-                className="input"
-                value={form.installation}
-                onChange={(e) => update("installation", e.target.value)}
-              >
-                {INSTALLATIONS.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Quantity">
-              <input
-                type="number"
-                min={1}
-                className="input"
-                value={form.quantity}
-                onChange={(e) => update("quantity", Number(e.target.value))}
-              />
-            </Field>
-          </div>
-
-          <div className="mt-6">
-            <p className="mb-2 text-sm font-medium text-slate-700">
-              Options (common on manufacturer PDFs)
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Check
-                label="Tempered glass"
-                checked={form.tempered}
-                onChange={(v) => update("tempered", v)}
-              />
-              <Check
-                label="Brickmould"
-                checked={form.brickmould}
-                onChange={(v) => update("brickmould", v)}
-              />
-              <Check
-                label="Wood jamb extension"
-                checked={form.wood_jamb}
-                onChange={(v) => update("wood_jamb", v)}
-              />
-              <Check
-                label="Full screen"
-                checked={form.screen}
-                onChange={(v) => update("screen", v)}
-              />
-              <Check
-                label="Mulled / multi-unit"
-                checked={form.mulled}
-                onChange={(v) => update("mulled", v)}
-              />
-              <Check
-                label="Nailing flange (new construction)"
-                checked={form.nailing_flange}
-                onChange={(v) => update("nailing_flange", v)}
-              />
-              <Check
-                label="Color upcharge (exterior)"
-                checked={form.color_upcharge}
-                onChange={(v) => update("color_upcharge", v)}
-              />
-            </div>
-          </div>
-
-          <p className="mt-4 text-xs text-slate-500">
-            Area ≈ {area.toFixed(2)} sq ft ({form.width}″ × {form.height}″) —
-            size is the strongest price driver in your PDFs (area corr ≈ 0.95).
-          </p>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={addLine}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Add to quote
-            </button>
-            <button
-              type="button"
-              onClick={generateQuote}
-              disabled={loading}
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60"
-            >
-              {loading
-                ? "Predicting…"
-                : formIsNewLine
-                  ? "Add & generate quote"
-                  : "Generate quote"}
-            </button>
-          </div>
-          {formIsNewLine && (
-            <p className="mt-3 text-xs text-slate-500">
-              Form specs differ from the last quote line (
-              {lines[lines.length - 1]?.type}). Generate will add{" "}
-              <strong>{form.type}</strong> as line {lines.length + 1} and
-              re-price the full quote.
-            </p>
-          )}
-          {error && (
-            <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {error}
-            </p>
-          )}
-        </div>
-
-        {lines.length > 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Quote lines ({lines.length})
-            </h3>
-            <ul className="mt-4 divide-y divide-slate-100">
-              {lines.map((line, idx) => (
-                <li
-                  key={idx}
-                  className="flex items-start justify-between gap-4 py-3 text-sm"
-                >
-                  <div>
-                    <p className="font-medium text-slate-900">
-                      {line.quantity}× {line.type} · {line.width}″ × {line.height}″
-                    </p>
-                    <p className="text-slate-500">
-                      {line.frame} · {line.glass} · {line.color}
-                      {line.tempered ? " · Tempered" : ""}
-                      {line.mulled ? " · Mulled" : ""}
-                      {line.brickmould ? " · BM" : ""}
-                      {line.wood_jamb ? " · Jamb" : ""}
-                      {line.screen ? " · Screen" : ""}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeLine(idx)}
-                    className="text-xs font-medium text-rose-600 hover:underline"
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </section>
-
-      <aside className="lg:col-span-2">
-        <div className="sticky top-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">
-            Estimated quote
-          </h2>
-          {!result ? (
-            <p className="mt-3 text-sm text-slate-500">
-              Click <strong>Generate quote</strong> for a historical similarity estimate
-              (with optional ML fallback) and confidence bands.
-            </p>
-          ) : (
-            <div className="mt-4 space-y-4">
-              {result.lines.map((line, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-xl border border-slate-100 bg-slate-50 p-4"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-slate-800">
-                      Line {idx + 1}
-                    </p>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${confidenceTone(
-                        line.confidence
-                      )}`}
-                    >
-                      {line.confidence}% conf.
-                    </span>
-                  </div>
-                  <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                    {money(line.line_total, line.currency)}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Unit {money(line.predicted_price, line.currency)} × {line.quantity}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Range{" "}
-                    {money(line.low * (line.quantity || 1), line.currency)} –{" "}
-                    {money(line.high * (line.quantity || 1), line.currency)}
-                  </p>
-                  {line.historical_average != null && (
-                    <p className="mt-1 text-xs text-slate-500">
-                      Historical avg{" "}
-                      {money(line.historical_average, line.currency)}
-                      {line.neighbor_count != null
-                        ? ` · ${line.neighbor_count} similar`
-                        : ""}
-                    </p>
-                  )}
-                  {line.method && (
-                    <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                      Method: {line.method.replace(/_/g, " ")}
-                    </p>
-                  )}
-                  {line.reason && (
-                    <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                      {line.reason}
-                    </p>
-                  )}
-                </div>
-              ))}
-              <div className="border-t border-slate-200 pt-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Quote subtotal
-                </p>
-                <p className="mt-1 text-3xl font-bold text-brand-700">
-                  {money(result.quote_subtotal, result.currency)}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </aside>
-
-      <style jsx global>{`
-        .input {
-          width: 100%;
-          border-radius: 0.5rem;
-          border: 1px solid #e2e8f0;
-          background: #fff;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          color: #0f172a;
-        }
-        .input:focus {
-          outline: 2px solid #93c5fd;
-          outline-offset: 0;
-          border-color: #3b82f6;
-        }
-      `}</style>
-    </div>
-  );
+  return {
+    type: "bay_bow",
+    qty: draft.qty,
+    lites,
+    head_seat: draft.head_seat,
+  };
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function lineLabel(line: QuoteLineInput) {
+  const lites = Array.isArray(line.lites) ? line.lites.length : 0;
+  if (line.type === "window") return `${line.style} ${line.width}×${line.height}`;
+  if (line.type === "patio_sliding") return `WC-500 ${line.nominal_ft}' sliding patio door`;
+  if (line.type === "patio_swing") return `${line.kind} swing patio door ${line.width}×${line.height}`;
+  if (line.type === "combination") return `2×1 combination (${lites} lites)`;
+  return `Bay/bow (${lites} lites)`;
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block text-sm">
       <span className="mb-1 block font-medium text-slate-700">{label}</span>
@@ -532,24 +182,586 @@ function Field({
   );
 }
 
-function Check({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
+function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (value: boolean) => void }) {
   return (
-    <label className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-slate-300 text-brand-600"
-      />
+    <label className="flex items-center gap-2 text-sm text-slate-700">
+      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>
+  );
+}
+
+function QuoteTotals({ result, mode = result.presentation_mode }: { result: DeterministicQuoteResponse; mode?: PresentationMode }) {
+  const totals = result.totals;
+  const internal = mode === "internal";
+  return (
+    <div className="rounded-2xl border border-brand-200 bg-brand-50 p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Customer total</p>
+      <p className="mt-1 text-3xl font-bold text-brand-800">{money(totals.customer_total, result.currency)}</p>
+      <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-700">
+        {internal ? <>
+          <Metric label="List" value={totals.list} />
+          <Metric label="Dealer cost" value={totals.dealer_cost} />
+          <Metric label="Installation" value={totals.install} />
+          <Metric label="Profit" value={totals.markup} />
+        </> : null}
+        <Metric label="Sell before HST" value={totals.sell} />
+        <Metric label="HST" value={totals.hst} />
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, format = "money" }: { label: string; value?: number | null; format?: "money" | "percent" }) {
+  return (
+    <div className="rounded-lg bg-white/70 px-3 py-2">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="font-semibold">{typeof value === "number" ? (format === "percent" ? `${value.toFixed(2)}%` : money(value)) : "—"}</p>
+    </div>
+  );
+}
+
+function SalesResult({ result, mode = result.presentation_mode }: { result: DeterministicQuoteResponse; mode?: PresentationMode }) {
+  const sales = result.sales_pricing;
+  const customer = result.customer_presentation;
+  const internal = mode === "internal";
+  return (
+    <div className="space-y-4">
+      {internal ? (
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Sales strategy</h2>
+            <p className="mt-1 text-sm text-slate-500">{sales.preset_name || "Selected preset"} · {sales.markup_percent ?? 0}% markup on cost</p>
+          </div>
+          {internal ? <span className={`rounded-full px-2 py-1 text-xs font-semibold ${sales.floor_status === "manager_override" ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800"}`}>
+            {sales.floor_status === "manager_override" ? "Manager override" : "Within floor"}
+          </span> : null}
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <Metric label="Negotiated discount" value={sales.negotiated_discount_percent} format="percent" />
+          {internal ? <>
+            <Metric label="Minimum markup" value={sales.minimum_markup_percent} format="percent" />
+            <Metric label="Gross margin" value={sales.gross_margin_percent} format="percent" />
+            <Metric label="Maximum discount" value={sales.maximum_allowed_discount_percent} format="percent" />
+            <Metric label="Remaining discount" value={sales.remaining_discount_percent} format="percent" />
+            <Metric label="Floor price" value={sales.minimum_floor_sell} />
+            <Metric label="Floor headroom" value={result.internal_presentation?.floor_headroom as number | undefined} />
+          </> : null}
+          <Metric label="Merchandise discount" value={sales.merchandise_discount_amount} />
+        </div>
+        {sales.floor_status === "manager_override" ? <p className="mt-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-800">This quote used a manager-approved concession. The reason is retained in the audit record.</p> : null}
+      </div>
+      ) : null}
+
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Customer presentation</p>
+        <p className="mt-1 text-2xl font-bold text-emerald-900">{money(customer.total, result.currency)}</p>
+        <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-emerald-950">
+          <Metric label="Negotiated discount" value={customer.negotiated_discount_percent} format="percent" />
+          <Metric label="Merchandise discount" value={customer.merchandise_discount} />
+          <Metric label="Subtotal" value={customer.subtotal} />
+          <Metric label="HST" value={customer.hst} />
+        </div>
+        <div className="mt-4 space-y-1 text-sm text-emerald-950">
+          {customer.lines.map((line) => <div key={line.line} className="flex justify-between gap-3"><span>Line {line.line} · {line.qty}×</span><span className="font-semibold">{money(line.line_total, result.currency)}</span></div>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function QuoteBuilder() {
+  const [catalog, setCatalog] = useState<QuoteCatalog | null>(null);
+  const [salesPresets, setSalesPresets] = useState<SalesPreset[]>([]);
+  const [draft, setDraft] = useState<Draft>(emptyDraft());
+  const [lines, setLines] = useState<QuoteLineInput[]>([]);
+  const [result, setResult] = useState<DeterministicQuoteResponse | null>(null);
+  const [selectedPresetId, setSelectedPresetId] = useState("standard");
+  const [negotiatedDiscount, setNegotiatedDiscount] = useState(0);
+  const [negotiationMode, setNegotiationMode] = useState<"percent" | "dollars" | "price">("percent");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [discountText, setDiscountText] = useState("0");
+  const [presentationMode, setPresentationMode] = useState<PresentationMode>("internal");
+  const [loading, setLoading] = useState(true);
+  const [pricing, setPricing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([fetchQuoteCatalog(), fetchSalesPresets()])
+      .then(([catalogPayload, salesPayload]) => {
+        setCatalog(catalogPayload);
+        setSalesPresets(salesPayload.presets);
+        setDraft((current) => ({ ...current, style: catalogPayload.styles[0]?.code || current.style }));
+        const standard = salesPayload.presets.find((preset) => preset.id === "standard") || salesPayload.presets[0];
+        if (standard) {
+          setSelectedPresetId(standard.id);
+          setNegotiatedDiscount(standard.default_discount_percent);
+        }
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "Could not load the price-book catalog."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const currentLine = useMemo(() => toQuoteLine(draft, catalog), [draft, catalog]);
+  const selectedPreset = useMemo(
+    () => salesPresets.find((preset) => preset.id === selectedPresetId) || salesPresets[0],
+    [salesPresets, selectedPresetId]
+  );
+
+  function update<K extends keyof Draft>(key: K, value: Draft[K]) {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setResult(null);
+  }
+
+  function addLine() {
+    setLines((current) => [...current, currentLine]);
+    setResult(null);
+  }
+
+  function removeLine(index: number) {
+    setLines((current) => current.filter((_, lineIndex) => lineIndex !== index));
+    setResult(null);
+  }
+
+  async function generateQuote() {
+    const payload = lines.length ? lines : [currentLine];
+    if (!payload.length) return;
+    const requested = Math.max(0, negotiatedDiscount);
+    // Avoid surfacing a hard server error for an over-limit discount with no reason.
+    if (requested > allowedMax + 1e-9 && !overrideReason.trim()) {
+      setError(
+        `This discount (${requested.toFixed(1)}%) exceeds your authorized limit (${allowedMax.toFixed(1)}%). ` +
+          "Enter a manager approval reason to proceed, or reduce the discount."
+      );
+      return;
+    }
+    setPricing(true);
+    setError(null);
+    try {
+      const priced = await priceDeterministicQuote({
+        lines: payload,
+        commercial: {
+          preset_id: selectedPreset?.id || selectedPresetId,
+          negotiated_discount_percent: requested,
+          manager_override_reason: requested > allowedMax + 1e-9 ? overrideReason.trim() : undefined,
+          // Keep the complete calculation available to the salesperson so
+          // switching between internal and customer display never loses data.
+          // The API still supports presentation_mode="customer" for external
+          // callers and redacts protected fields there.
+          presentation_mode: "internal",
+        },
+      });
+      setLines(payload);
+      setResult(priced);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not price the quote.");
+    } finally {
+      setPricing(false);
+    }
+  }
+
+  const accessories = catalog?.accessories || {};
+
+  // --- Sales strategy: live negotiation preview (recomputed from the last price) ---
+  const sp = result?.sales_pricing;
+  const isPriced = Boolean(sp && sp.base_merchandise_sell != null);
+  const baseMerch = sp?.base_merchandise_sell ?? 0;
+  const protectedInstall = sp?.protected_install_sell ?? 0;
+  const hstRate = result?.totals?.sell_before_tax ? result.totals.hst / result.totals.sell_before_tax : 0.13;
+  const configuredCap = sp?.configured_max_discount_percent ?? (selectedPreset?.max_discount_percent ?? 0);
+  const floorCap = sp?.floor_derived_max_discount_percent ?? 0;
+  const allowedMax = sp?.maximum_allowed_discount_percent ?? configuredCap;
+  const requestedPct = Math.max(0, negotiatedDiscount);
+  const overLimit = requestedPct > allowedMax + 1e-9;
+  const remainingPct = Math.max(0, allowedMax - requestedPct);
+  const sliderMax = Math.max(allowedMax, negotiatedDiscount, 5) + 0.5;
+  const frac = requestedPct / 100;
+  const previewDiscount = baseMerch * frac;
+  const previewPreTax = baseMerch * (1 - frac) + protectedInstall;
+  const previewTotal = previewPreTax * (1 + hstRate);
+  const maximumDiscountDollars = baseMerch * (allowedMax / 100);
+  const minimumCustomerTotal = (baseMerch * (1 - allowedMax / 100) + protectedInstall) * (1 + hstRate);
+  function capToAllowedDiscount(value: number) {
+    return Math.max(0, Math.min(allowedMax, value));
+  }
+  function pctFromDollars(dollars: number) {
+    return baseMerch > 0 ? capToAllowedDiscount((dollars / baseMerch) * 100) : 0;
+  }
+  function pctFromPrice(targetTotal: number) {
+    if (baseMerch <= 0) return 0;
+    const targetPreTax = targetTotal / (1 + hstRate);
+    return capToAllowedDiscount(((baseMerch + protectedInstall - targetPreTax) / baseMerch) * 100);
+  }
+  const cp: Record<string, any> = result?.customer_presentation ?? {};
+  const customerLines = Array.isArray(cp.lines)
+    ? (cp.lines as Array<{ line: number; type: string; qty: number; unit_price: number; line_total: number }>)
+    : [];
+  // A discount that no longer matches the generated quote → quote is stale, needs regenerating.
+  const stale = isPriced && Math.abs(requestedPct - (sp?.negotiated_discount_percent ?? -1)) > 1e-9;
+  // Keep the visible discount field freely editable without clearing the quote on each keystroke.
+  useEffect(() => {
+    if (negotiationMode === "percent") setDiscountText(String(negotiatedDiscount));
+    else if (negotiationMode === "dollars") setDiscountText(String(Number(previewDiscount.toFixed(2))));
+    else setDiscountText(String(Number(previewTotal.toFixed(2))));
+  }, [negotiationMode, negotiatedDiscount, previewDiscount, previewTotal]);
+  // --------------------------------------------------------------------------------
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Workflow</p>
+          <p className="text-base font-semibold text-slate-900">{presentationMode === "internal" ? "Internal pricing workspace" : "Customer presentation"}</p>
+        </div>
+        <div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
+          <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "internal" ? "bg-brand-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("internal")}>Internal view</button>
+          <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "customer" ? "bg-emerald-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("customer")}>Customer view</button>
+        </div>
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-5">
+        {presentationMode === "internal" ? (
+        <section className="space-y-6 lg:col-span-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900">Build a catalog-backed quote</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Prices come from Window City v18 with component traceability. Unsupported options are flagged for review.
+            </p>
+
+          {loading ? <p className="mt-6 text-sm text-slate-500">Loading price-book catalog…</p> : null}
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <Field label="Line type">
+              <select className="input" value={draft.type} onChange={(e) => update("type", e.target.value as QuoteLineType)}>
+                <option value="window">Window</option>
+                <option value="combination">Combination</option>
+                <option value="patio_sliding">Sliding patio door</option>
+                <option value="patio_swing">Swing patio door</option>
+                <option value="bay_bow">Bay / bow assembly</option>
+              </select>
+            </Field>
+
+            {(draft.type === "window" || draft.type === "combination" || draft.type === "bay_bow") && (
+              <Field label="Window style">
+                <select className="input" value={draft.style} onChange={(e) => update("style", e.target.value)}>
+                  {catalog?.styles.map((style) => <option key={style.code} value={style.code}>{style.code} · {style.name}</option>)}
+                </select>
+              </Field>
+            )}
+
+            {draft.type === "patio_sliding" ? (
+              <Field label="Nominal size">
+                <select className="input" value={draft.sliding_ft} onChange={(e) => update("sliding_ft", Number(e.target.value))}>
+                  {catalog?.patio_sliding_sizes.map((size) => <option key={size} value={size}>{size}'</option>)}
+                </select>
+              </Field>
+            ) : null}
+
+            {draft.type === "patio_swing" ? (
+              <Field label="Door family">
+                <select className="input" value={draft.swing_kind} onChange={(e) => update("swing_kind", e.target.value)}>
+                  {catalog?.patio_swing_kinds.map((kind) => <option key={kind} value={kind}>{kind}</option>)}
+                </select>
+              </Field>
+            ) : null}
+
+            {draft.type !== "patio_sliding" && (
+              <>
+                <Field label="Width (in)"><input className="input" type="number" min={1} step={0.125} value={draft.width} onChange={(e) => update("width", Number(e.target.value))} /></Field>
+                <Field label="Height (in)"><input className="input" type="number" min={1} step={0.125} value={draft.height} onChange={(e) => update("height", Number(e.target.value))} /></Field>
+              </>
+            )}
+
+            <Field label="Quantity"><input className="input" type="number" min={1} step={1} value={draft.qty} onChange={(e) => update("qty", Math.max(1, Number(e.target.value)))} /></Field>
+            <Field label="Exterior colour">
+              <select className="input" value={draft.colour_ext} onChange={(e) => update("colour_ext", e.target.value)}>
+                {COLORS.map((color) => <option key={color} value={color}>{color}</option>)}
+              </select>
+            </Field>
+          </div>
+
+          {draft.type !== "bay_bow" ? (
+            <div className="mt-6 rounded-xl bg-slate-50 p-4">
+              <p className="mb-3 text-sm font-semibold text-slate-800">Glazing</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Toggle label="LoE 180" value={draft.loe180} onChange={(value) => update("loe180", value)} />
+                <Toggle label="i89" value={draft.i89} onChange={(value) => update("i89", value)} />
+                <Toggle label="Triple pane" value={draft.triple} onChange={(value) => update("triple", value)} />
+                <Toggle label="Tri-pane laminated" value={draft.tri_pane_lami} onChange={(value) => update("tri_pane_lami", value)} />
+                <Toggle label="Frost / tint" value={draft.frost_tint} onChange={(value) => update("frost_tint", value)} />
+                <Field label="Gas"><select className="input" value={draft.gas} onChange={(e) => update("gas", e.target.value)}>{GAS.map((gas) => <option key={gas} value={gas}>{gas}</option>)}</select></Field>
+              </div>
+            </div>
+          ) : null}
+
+          {draft.type === "window" ? (
+            <div className="mt-6 rounded-xl bg-slate-50 p-4">
+              <p className="mb-3 text-sm font-semibold text-slate-800">Catalog accessories</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Toggle label="Brickmould" value={draft.brickmould} onChange={(value) => update("brickmould", value)} />
+                <Toggle label="Wood jamb" value={draft.wood_jamb} onChange={(value) => update("wood_jamb", value)} />
+              </div>
+              <p className="mt-3 text-xs text-slate-500">{accessories.brickmould?.[0]?.name || "Catalog accessory rows load with the price book."}</p>
+            </div>
+          ) : null}
+
+          {draft.type === "bay_bow" ? (
+            <div className="mt-6 grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-2">
+              <Field label="Lite count"><input className="input" type="number" min={3} max={6} value={draft.lite_count} onChange={(e) => update("lite_count", Math.min(6, Math.max(3, Number(e.target.value))))} /></Field>
+              <Field label="Head / seat"><select className="input" value={draft.head_seat} onChange={(e) => update("head_seat", e.target.value)}>{catalog?.baybow.head_seat_sizes.map((size) => <option key={size} value={size}>{size}</option>)}</select></Field>
+            </div>
+          ) : null}
+
+          <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Sales strategy</p>
+                <p className="mt-1 text-xs text-slate-600">
+                  Set the markup approach and how much room to give the customer. Your discount applies to the
+                  product only — installation is never discounted — and the configured floor controls the minimum
+                  markup. A manager can intentionally configure a negative floor for approved loss-making sales.
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-brand-700">Manager-controlled floors</span>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Preset">
+                <select
+                  className="input"
+                  value={selectedPreset?.id || selectedPresetId}
+                  onChange={(e) => {
+                    const next = salesPresets.find((preset) => preset.id === e.target.value);
+                    setSelectedPresetId(e.target.value);
+                    setNegotiatedDiscount(next?.default_discount_percent || 0);
+                    setResult(null);
+                  }}
+                >
+                  {salesPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name} · {preset.markup_percent}% markup</option>)}
+                </select>
+                {selectedPreset?.description ? <p className="mt-1 text-xs text-slate-500">{selectedPreset.description}</p> : null}
+              </Field>
+
+              <div>
+                <p className="mb-1 block text-sm font-medium text-slate-700">Negotiated discount</p>
+                <p className="mb-2 text-xs text-slate-500">How do you want to enter the room you give the customer?</p>
+                <div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
+                  {([["percent", "% off"], ["dollars", "$ off"], ["price", "Total price"]] as const).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`flex-1 rounded-md px-2 py-1 ${negotiationMode === key ? "bg-brand-600 text-white" : "text-slate-600"}`}
+                      onClick={() => {
+                        setNegotiationMode(key);
+                        if (key !== "percent") {
+                          setNegotiatedDiscount((current) => capToAllowedDiscount(current));
+                        }
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Negotiation control with live preview */}
+            <div className="mt-5 rounded-lg border border-brand-200/70 bg-white p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {negotiationMode === "percent" ? "Discount off product price" : negotiationMode === "dollars" ? "Dollars off total" : "Customer price (incl. tax)"}
+                </p>
+                {isPriced ? (
+                  <span className="text-sm font-semibold text-brand-700">
+                    {negotiationMode === "percent" ? `${requestedPct.toFixed(1)}%` : negotiationMode === "dollars" ? money(previewDiscount) : money(previewTotal)}
+                  </span>
+                ) : null}
+              </div>
+
+              {!isPriced && negotiationMode !== "percent" ? (
+                <p className="mt-3 text-xs text-slate-500">Generate a quote first, then enter the discount in dollars or as a total customer price.</p>
+              ) : negotiationMode === "percent" ? (
+                <>
+                  <input type="range" min={0} max={sliderMax} step={0.5} value={negotiatedDiscount} onChange={(e) => { setNegotiatedDiscount(Number(e.target.value)); }} className="mt-3 w-full" />
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    className="input mt-2 w-32"
+                    value={discountText}
+                    onChange={(e) => setDiscountText(e.target.value)}
+                    onBlur={() => { const v = Math.max(0, parseFloat(discountText) || 0); setNegotiatedDiscount(v); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                  />
+                </>
+              ) : negotiationMode === "dollars" ? (
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  className="input mt-3 w-40"
+                  value={discountText}
+                  onChange={(e) => setDiscountText(e.target.value)}
+                  onBlur={() => { setNegotiatedDiscount(pctFromDollars(parseFloat(discountText) || 0)); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                />
+              ) : (
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  className="input mt-3 w-40"
+                  value={discountText}
+                  onChange={(e) => setDiscountText(e.target.value)}
+                  onBlur={() => { setNegotiatedDiscount(pctFromPrice(parseFloat(discountText) || 0)); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                />
+              )}
+
+              {isPriced && negotiationMode === "dollars" ? <p className="mt-2 text-xs text-slate-500">Capped at {money(maximumDiscountDollars)} off ({allowedMax.toFixed(1)}%).</p> : null}
+              {isPriced && negotiationMode === "price" ? <p className="mt-2 text-xs text-slate-500">Customer total cannot go below {money(minimumCustomerTotal)} without switching to % off and requesting manager approval.</p> : null}
+
+              {isPriced ? (
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-700 sm:grid-cols-4">
+                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Discount</span><b>{money(previewDiscount)} ({requestedPct.toFixed(1)}%)</b></div>
+                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Pre-tax total</span><b>{money(previewPreTax)}</b></div>
+                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Customer total</span><b>{money(previewTotal)}</b></div>
+                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Remaining room</span><b>{remainingPct.toFixed(1)}%</b></div>
+                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Markup</span><b>{sp?.markup_percent ?? selectedPreset?.markup_percent}%</b></div>
+                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Minimum markup</span><b>{sp?.minimum_markup_percent ?? selectedPreset?.minimum_markup_percent}%</b></div>
+                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Floor price</span><b>{money(sp?.minimum_floor_sell ?? 0)}</b></div>
+                  <div className={`rounded-lg px-3 py-2 ${overLimit ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}><span className="block text-slate-500">Status</span><b>{overLimit ? (overrideReason.trim() ? "Awaiting manager" : "Over limit") : "Within floor"}</b></div>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-slate-500">Generate a quote to see the dollar totals, the floor, your remaining room, and the binding limit.</p>
+              )}
+
+              {stale ? (
+                <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  Discount changed since the quote was generated — select <b>Generate quote</b> to refresh the pricing.
+                </p>
+              ) : null}
+            </div>
+            {/* Which limit is binding */}
+            {isPriced ? (
+              <p className="mt-3 text-xs text-slate-600">
+                {floorCap < configuredCap - 1e-9
+                  ? `Allowed discount capped at ${allowedMax.toFixed(1)}% by the minimum-markup floor (${floorCap.toFixed(1)}%), which is tighter than the preset cap of ${configuredCap.toFixed(1)}%.`
+                  : `Allowed discount is the preset cap of ${configuredCap.toFixed(1)}%; the floor would permit up to ${floorCap.toFixed(1)}%.`}
+              </p>
+            ) : null}
+
+            {/* Guided manager approval */}
+            {overLimit ? (
+              <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3">
+                <p className="text-xs font-semibold text-rose-800">This discount exceeds your authorized limit of {allowedMax.toFixed(1)}%.</p>
+                <p className="mt-1 text-xs text-rose-700">A manager approval reason is required. The override, the reason, and the resulting price are recorded in the audit log.</p>
+                <input type="text" className="input mt-2 w-full" placeholder="Manager approval reason (required)" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" onClick={addLine}>Add line</button>
+            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading}>{pricing ? "Pricing…" : "Generate quote"}</button>
+          </div>
+        </div>
+
+        {lines.length ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between"><h2 className="text-base font-semibold text-slate-900">Quote lines</h2><span className="text-sm text-slate-500">{lines.length} line{lines.length === 1 ? "" : "s"}</span></div>
+            <div className="mt-4 space-y-2">
+              {lines.map((line, index) => <div key={`${line.type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm"><span className="font-medium text-slate-800">{lineLabel(line)}</span><button type="button" className="text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)}>Remove</button></div>)}
+            </div>
+          </div>
+        ) : null}
+
+          {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div> : null}
+          </section>
+        ) : (
+          <section className="space-y-6 lg:col-span-3">
+            {result ? (
+              <div className="rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-base font-semibold text-emerald-900">Customer estimate</h2>
+                    <p className="mt-1 text-xs text-emerald-800">
+                      A clean, shareable quote with sell prices, the negotiated discount, and tax. Costs, margins,
+                      floors, and sales strategy are not shown here.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">Customer view</span>
+                </div>
+
+                <div className="mt-5 overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="text-xs uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-2 py-2">Item</th>
+                        <th className="px-2 py-2 text-right">Qty</th>
+                        <th className="px-2 py-2 text-right">Unit price</th>
+                        <th className="px-2 py-2 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {customerLines.map((c) => (
+                        <tr key={c.line}>
+                          <td className="px-2 py-2 font-medium capitalize text-slate-900">{c.type.replace(/_/g, " ")}</td>
+                          <td className="px-2 py-2 text-right text-slate-700">{c.qty}</td>
+                          <td className="px-2 py-2 text-right text-slate-700">{money(c.unit_price, result.currency)}</td>
+                          <td className="px-2 py-2 text-right font-semibold text-slate-900">{money(c.line_total, result.currency)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 ml-auto w-full max-w-xs space-y-1 border-t border-slate-200 pt-3 text-sm">
+                  <div className="flex justify-between text-slate-600"><span>Subtotal</span><span>{money(cp.subtotal, result.currency)}</span></div>
+                  <div className="flex justify-between text-slate-600"><span>Discount</span><span>−{money(cp.merchandise_discount, result.currency)}</span></div>
+                  <div className="flex justify-between text-slate-700"><span>HST</span><span>{money(cp.hst, result.currency)}</span></div>
+                  <div className="flex justify-between text-base font-bold text-emerald-900"><span>Total</span><span>{money(cp.total, result.currency)}</span></div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+                <h2 className="text-base font-semibold text-emerald-900">Customer presentation</h2>
+                <p className="mt-1 text-sm text-emerald-800">
+                  This read-only view shows the priced quote for sharing with the customer. Switch back to{" "}
+                  <b>Internal view</b> to build or edit the quote.
+                </p>
+              </div>
+            )}
+          </section>
+        )}
+
+      <aside className="space-y-6 lg:col-span-2">
+        {result ? (
+          <>
+            <div className={`rounded-2xl border p-4 ${presentationMode === "internal" ? "border-brand-200 bg-brand-50" : "border-emerald-200 bg-emerald-50"}`}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current presentation</p>
+              <p className="mt-1 text-lg font-bold text-slate-900">{presentationMode === "internal" ? "Internal pricing view" : "Customer-facing view"}</p>
+              <p className="mt-1 text-xs text-slate-600">{presentationMode === "internal" ? "Shows protected dealer cost, profit, margin, floor, and bargaining room." : "Shows sell prices, the negotiated merchandise discount, HST, and total only."}</p>
+            </div>
+            <QuoteTotals result={result} mode={presentationMode} />
+            <SalesResult result={result} mode={presentationMode} />
+            {presentationMode === "internal" ? <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3"><h2 className="text-base font-semibold text-slate-900">Price-book audit</h2><span className={`rounded-full px-2 py-1 text-xs font-semibold ${result.review_required ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>{result.review_required ? "Review required" : "Catalog priced"}</span></div>
+              <p className="mt-2 text-xs text-slate-500">{result.price_book_version} · config {result.config_version}</p>
+              {result.warnings.length ? <div className="mt-4 space-y-2">{result.warnings.map((warning, index) => <div key={`${warning.code}-${index}`} className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{warning.message}</div>)}</div> : <p className="mt-4 text-sm text-emerald-700">All requested components matched supported catalog rules.</p>}
+            </div> : null}
+            {presentationMode === "internal" ? <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-base font-semibold text-slate-900">Line breakdown</h2>
+              <div className="mt-4 space-y-4">
+                {result.lines.map((line) => <div key={line.line} className="rounded-xl bg-slate-50 p-4"><div className="flex justify-between gap-3 text-sm font-semibold"><span>Line {line.line} · {line.type} × {line.qty}</span><span>{money(line.customer_total, result.currency)}</span></div><div className="mt-3 space-y-1 text-xs text-slate-600">{line.components.map((component, index) => <div key={`${component.label}-${index}`} className="flex justify-between gap-3"><span>{component.label}</span><span>{money(component.dealer)}</span></div>)}</div>{line.source_refs.length ? <p className="mt-3 text-[11px] text-slate-500">Sources: {line.source_refs.join("; ")}</p> : null}</div>)}
+              </div>
+            </div> : null}
+          </>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 shadow-sm">Add a line and generate a quote to see the deterministic component breakdown, review warnings, and customer total.</div>
+        )}
+      </aside>
+      </div>
+    </div>
   );
 }

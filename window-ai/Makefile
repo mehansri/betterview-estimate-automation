@@ -1,4 +1,4 @@
-.PHONY: help install up down db-init seed train api test parse nightly frontend-install frontend-dev bootstrap
+.PHONY: help install up down db-init seed train api test catalog-verify parse nightly frontend-install frontend-dev bootstrap
 
 export PYTHONPATH := $(CURDIR)
 export DATABASE_URL ?= postgresql://windowai:windowai@localhost:5432/windowai
@@ -15,6 +15,7 @@ help:
 	@echo "  parse             - parse data/raw into processed (+ --import-db)"
 	@echo "  nightly           - retrain + promote"
 	@echo "  test              - pytest"
+	@echo "  catalog-verify    - deterministic Window City catalog tests"
 	@echo "  bootstrap         - sqlite seed + train (no Docker)"
 	@echo "  frontend-install  - npm install in frontend/"
 	@echo "  frontend-dev      - next dev"
@@ -51,6 +52,9 @@ nightly:
 
 test:
 	python3 -m pytest tests/ -q
+
+catalog-verify:
+	python3 -m pytest tests/test_windowcity_engine.py -q
 
 bootstrap:
 	@mkdir -p data models uploads exports

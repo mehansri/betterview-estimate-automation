@@ -1,0 +1,10 @@
+ Image window-ai-api Building 
+ Image window-ai-api Built 
+ Network window-ai_default Creating 
+ Network window-ai_default Error Error response from daemon: network with name window-ai_default already exists
+ Volume window-ai_pgdata Creating 
+ Volume window-ai_pgdata Created 
+ Container window-ai-db-1 Creating 
+ service:db:1 Error response from daemon: Conflict. The container name "/window-ai-db-1" is already in use by container "6982092a63a425251ba1444d71192b960d20344cb507dc211346416d9f01af16". You have to remove (or rename) that container to be able to reuse that name. 
+ Container window-ai-api-1 Creating 
+Error response from daemon: Conflict. The container name "/window-ai-db-1" is already in use by container "6982092a63a425251ba1444d71192b960d20344cb507dc211346416d9f01af16". You have to remove (or rename) that container to be able to reuse that name.

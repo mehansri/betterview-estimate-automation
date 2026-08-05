@@ -3,9 +3,8 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Window AI Pricing Platform",
-  description:
-    "Historical pricing, similarity search, and quote estimates from manufacturer data",
+  title: "Window City Deterministic Quoting",
+  description: "Auditable Window City price-book quotes with historical PDF learning",
 };
 
 const nav = [
@@ -15,6 +14,7 @@ const nav = [
   { href: "/admin/windows", label: "Windows" },
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/similar", label: "Similar" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 export default function RootLayout({
@@ -30,10 +30,10 @@ export default function RootLayout({
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
-                  Betterview · Window AI
+                  Betterview · Window City
                 </p>
                 <h1 className="text-lg font-semibold text-slate-900">
-                  Pricing Platform
+                  Deterministic Quoting
                 </h1>
               </div>
               <nav className="flex flex-wrap gap-1 text-sm">

@@ -1,12 +1,16 @@
-# Window AI Quote Prediction
+# Window City deterministic quoting
 
-Predict manufacturer window quote prices within **MAPE ≤ 4%** so sales reps get instant estimates without remoting into manufacturer software.
+This application prices supported Window City products from the v18 (2023)
+price book. Historical PDFs remain available for parsing, audit, similarity,
+and future calibration; the legacy ML predictor is not the source of customer
+quote totals.
 
 ```
-PDF estimates → parser → Postgres → feature engineering → ML models → FastAPI → Next.js quote builder
+structured quote → catalog engine → component breakdown → install/markup/HST → customer total
+historical PDFs → parser/database → audit and calibration data
 ```
 
-## Quick start (no Docker)
+## Quick start
 
 ```bash
 cd window-ai
@@ -14,123 +18,130 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Seed synthetic history + train model (SQLite)
-make bootstrap
-
-# API
+DATABASE_URL=sqlite:///data/local.db python -m db.init_db
 DATABASE_URL=sqlite:///data/local.db uvicorn api.main:app --reload --port 8000
-
-# Quote UI (separate terminal)
-cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:3000 for the quote builder and http://localhost:8000/docs for the API.
-
-## Quick start (Postgres + Docker)
+In another terminal:
 
 ```bash
-cp .env.example .env
-make up          # Postgres + API
-# in another shell with venv:
-export DATABASE_URL=postgresql://windowai:windowai@localhost:5432/windowai
-make seed
-make train
-# restart API or POST /api/reload-model
+cd frontend
+npm install
+npm run dev
 ```
 
-## Drop real PDF estimates
+Open http://localhost:3000 for the guided quote builder and
+http://localhost:8000/docs for the API.
 
-1. Copy manufacturer estimate PDFs into `data/raw/`
-2. Parse and import:
+## Deterministic quote API
+
+`GET /api/quotes/catalog` returns the supported styles, accessories, shapes,
+patio-door sizes, and bay/bow choices used by the UI.
+
+`POST /api/quotes/price` accepts canonical Window City lines:
+
+```json
+{
+  "lines": [
+    {
+      "type": "window",
+      "style": "WC-100",
+      "width": 30,
+      "height": 60,
+      "qty": 1,
+      "colour_ext": "white",
+      "glazing": {"loe180": true, "gas": "argon"}
+    }
+  ]
+}
+```
+
+Supported line types are `window`, `combination`, `patio_sliding`,
+`patio_swing`, and `bay_bow`. Responses include component list/dealer values,
+installation, markup, HST, customer total, catalog source pages, configuration
+version, and review warnings.
+
+### Protected sales pricing
+
+`GET /api/quotes/sales-presets` returns the active manager-configured strategies:
+Standard (30% markup), Competitive (25%), and Floor (20%). Add commercial
+settings to a quote request:
+
+```json
+{
+  "commercial": {
+    "preset_id": "competitive",
+    "negotiated_discount_percent": 3.0,
+    "presentation_mode": "internal"
+  }
+}
+```
+
+Markup is applied to dealer cost and installation. Negotiated discounts reduce
+merchandise sell price only; installation remains protected. The server rejects
+concessions below the configured 20% minimum markup floor and reports the
+maximum permitted discount. Internal responses include cost, profit, margin,
+floor, and headroom. Customer responses include sell prices, the negotiated
+discount, HST, and the final total without dealer cost or margin.
+
+Manager-only preset changes use `PUT /api/admin/sales-presets` with the
+`X-Pricing-Admin-Token` header. A floor override also requires that token and a
+reason. Set `PRICING_ADMIN_TOKEN` in the server environment; all commercial
+inputs and calculated values remain in the quote audit record.
+
+The canonical glazing option accepts `90/5` gas and preserves the configured
+price-book deal for the 90/5 mix when selected.
+
+Quotes are recorded in `quote_records`. Approved or actual amounts are recorded
+separately with `POST /api/quotes/{quote_id}/outcome`, so training labels never
+overwrite the original deterministic result.
+
+## Historical PDF workflow
+
+1. Copy manufacturer PDFs into `data/raw/` or upload them through the import API.
+2. Parse and import them:
+
    ```bash
    python -m parser data/raw --import-db
    ```
-3. Retrain:
-   ```bash
-   make train
-   # or nightly gate:
-   make nightly
-   ```
 
-The default PDF layout profile lives in `parser/layout_profiles/default.py`. After you add 1–3 real PDFs, tweak regexes there (or add a manufacturer-specific profile).
+3. Use the resulting estimates and windows for audit, similarity, and future
+   held-out calibration. Do not treat every parsed line as an independent
+   training label when a PDF contains parent/child assembly rows.
 
-## API
+The old `/api/predict`, `/api/quote`, and `/api/quote/batch` endpoints remain
+available for historical/admin compatibility. New customer quoting should use
+`/api/quotes/price`.
 
-### `POST /api/predict`
-
-```json
-{
-  "type": "Casement",
-  "width": 48,
-  "height": 60,
-  "frame": "Aluminum",
-  "glass": "Triple",
-  "color": "Black",
-  "tempered": true,
-  "grid": "None",
-  "quantity": 1
-}
-```
-
-Response:
-
-```json
-{
-  "predicted_price": 1485.24,
-  "confidence": 96.8,
-  "low": 1440.0,
-  "high": 1522.0,
-  "currency": "CAD",
-  "model_version": "...",
-  "line_total": 1485.24
-}
-```
-
-Also available: `POST /api/predict/batch`, `GET /health`, `GET /api/metrics`, `POST /api/reload-model`.
-
-## Training
-
-Models compared: Ridge, Random Forest, XGBoost, LightGBM, CatBoost.  
-Best model selected by validation **MAPE**, exported to `models/quote_predictor.joblib`.
+## Verification
 
 ```bash
-make train
-python -m training.tune --trials 40   # optional Optuna
-python -m training.nightly_retrain    # import raw → train → promote if better
+make catalog-verify
+make test
 ```
 
-Primary target: **test MAPE ≤ 4%**.
+The catalog tests cover source metadata, tier pricing, installation, sample
+golden totals, fail-closed invalid lookups, and unsupported-option review flags.
+The source catalog data lives under `services/windowcity/data/`; price-book
+business knobs live in `services/windowcity/config.json`, while protected sales
+presets live in `services/windowcity/sales_config.json`.
 
 ## Project layout
 
 ```
 window-ai/
-  api/           FastAPI service
-  services/      import, rules, similarity, pricing, analytics
-  parser/        PDF/JSON estimate parser
-  training/      clean, features, train, tune, nightly (optional ML)
-  db/            SQLAlchemy models + synthetic seed
-  frontend/      Next.js quote builder + admin
-  uploads/       PDF drop zone for import API
-  exports/       CSV/JSON exports
-  config/        pricing rules YAML
-  data/raw/      historical PDFs
-  data/processed/ parsed JSON
-  models/        optional ML artifacts
-  tests/
+  api/                 FastAPI service and quote contracts
+  services/windowcity/ deterministic catalog engine and v18 data
+  parser/              PDF/JSON normalization pipeline
+  training/            optional historical ML pipeline
+  db/                  estimates, quote audit records, and outcomes
+  frontend/            Next.js quote builder and admin screens
+  data/raw/            historical PDF inputs
+  data/processed/      parsed estimate JSON
+  models/              optional ML artifacts
+  tests/               deterministic, API, parser, and legacy service tests
 ```
 
-## Notes
-
-- Synthetic seed data uses a noisy pricing function so the full pipeline works before real PDFs arrive. Replace with historical estimates ASAP for production accuracy.
-- Currency defaults to **CAD**.
-- Never trains on future estimates (time-based split).
-- On macOS, XGBoost/LightGBM need OpenMP: `brew install libomp`. Training still runs with Ridge, Random Forest, and CatBoost without it.
-
-## Example training results (synthetic)
-
-| Model | Test MAPE |
-|-------|-----------|
-| Ridge | ~12% |
-| Random Forest | ~9% |
-| **CatBoost** | **~3.5%** (meets ≤4% target) |
+Unsupported grille, paint, sealed-unit, and bay/bow projection options produce
+manual-review warnings. The engine never silently substitutes a historical ML
+guess for an exact catalog price.

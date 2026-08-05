@@ -23,12 +23,13 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title="Window AI Pricing Platform",
+    title="Window City Deterministic Quoting Platform",
     description=(
-        "Import estimates, search historical windows, and quote using "
-        "similarity (primary) with optional ML fallback."
+        "Price supported Window City products from the v18 catalog with "
+        "component traceability; retain historical PDF and ML services for "
+        "learning, confidence, and review assistance."
     ),
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 

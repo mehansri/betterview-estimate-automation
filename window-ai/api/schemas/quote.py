@@ -1,9 +1,180 @@
 """Schemas for Phase 1 quote / import / admin APIs."""
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+QUOTE_LINE_TYPES = Literal[
+    "window",
+    "combination",
+    "patio_sliding",
+    "patio_swing",
+    "bay_bow",
+]
+PresentationMode = Literal["internal", "customer"]
+
+
+class CommercialSettings(BaseModel):
+    """Sales controls; catalog cost and price-book rules are never accepted here."""
+
+    preset_id: str = "standard"
+    negotiated_discount_percent: float = Field(default=0.0, ge=0)
+    presentation_mode: PresentationMode = "internal"
+    manager_override_reason: Optional[str] = None
+
+
+class SalesPreset(BaseModel):
+    id: str
+    name: str
+    description: str = ""
+    markup_percent: float = Field(ge=0)
+    default_discount_percent: float = Field(default=0.0, ge=0)
+    max_discount_percent: float = Field(default=0.0, ge=0)
+    # A negative floor is an intentional, manager-controlled loss allowance.
+    # It is bounded at -99% so the configured floor can never create a
+    # negative selling price on cost-bearing lines.
+    minimum_markup_percent: float = Field(default=20.0, ge=-99)
+    active: bool = True
+
+
+class SalesPresetConfig(BaseModel):
+    currency: str = "CAD"
+    minimum_markup_percent: float = Field(default=20.0, ge=-99)
+    presets: list[SalesPreset] = Field(min_length=1)
+
+
+class QuoteLineInput(BaseModel):
+    """Canonical price-book line; subtype fields remain catalog-specific."""
+
+    type: QUOTE_LINE_TYPES = "window"
+    model_config = ConfigDict(extra="allow")
+
+
+class DeterministicQuoteRequest(BaseModel):
+    """Structured Window City quote request."""
+
+    defaults: dict[str, Any] = Field(default_factory=dict)
+    lines: list[QuoteLineInput] = Field(min_length=1)
+    commercial: CommercialSettings = Field(default_factory=CommercialSettings)
+    # Retained for backwards-compatible validation, but the API rejects it.
+    # Server-side calibration is intentionally not part of a salesperson quote.
+    config_overrides: dict[str, Any] = Field(default_factory=dict)
+
+
+class QuoteWarning(BaseModel):
+    code: str
+    severity: Literal["info", "warning", "review"] = "review"
+    message: str
+
+
+class QuoteComponent(BaseModel):
+    label: str
+    list: float
+    dealer: float
+    discount_key: Optional[str] = None
+    source_pages: list[int] = Field(default_factory=list)
+    source_refs: list[str] = Field(default_factory=list)
+
+
+class DeterministicQuoteLine(BaseModel):
+    line: int
+    type: str
+    qty: int
+    components: list[QuoteComponent]
+    list_each: Optional[float] = None
+    dealer_each: Optional[float] = None
+    install_each: Optional[float] = None
+    sell_each: float
+    markup_each: Optional[float] = None
+    hst_each: float
+    customer_total: float
+    list_total: Optional[float] = None
+    dealer_total: Optional[float] = None
+    install_total: Optional[float] = None
+    base_sell_each: Optional[float] = None
+    merchandise_discount_each: Optional[float] = None
+    protected_install_sell_each: Optional[float] = None
+    source_pages: list[int] = Field(default_factory=list)
+    source_refs: list[str] = Field(default_factory=list)
+
+
+class DeterministicQuoteTotals(BaseModel):
+    list: Optional[float] = None
+    dealer_cost: Optional[float] = None
+    install: Optional[float] = None
+    markup: Optional[float] = None
+    sell: float
+    sell_before_tax: float
+    hst: float
+    customer_total: float
+    base_sell_before_discount: Optional[float] = None
+    merchandise_sell_before_discount: Optional[float] = None
+    merchandise_discount: Optional[float] = None
+    protected_install_sell: Optional[float] = None
+    minimum_floor_sell: Optional[float] = None
+
+
+class SalesPricingSummary(BaseModel):
+    preset_id: Optional[str] = None
+    preset_name: Optional[str] = None
+    preset_description: Optional[str] = None
+    markup_percent: Optional[float] = None
+    minimum_markup_percent: Optional[float] = None
+    negotiated_discount_percent: float
+    configured_max_discount_percent: Optional[float] = None
+    floor_derived_max_discount_percent: Optional[float] = None
+    maximum_allowed_discount_percent: Optional[float] = None
+    remaining_discount_percent: Optional[float] = None
+    merchandise_discount_amount: float
+    dealer_cost: Optional[float] = None
+    install_cost: Optional[float] = None
+    base_merchandise_sell: Optional[float] = None
+    protected_install_sell: Optional[float] = None
+    minimum_floor_sell: Optional[float] = None
+    effective_markup_percent: Optional[float] = None
+    gross_margin_percent: Optional[float] = None
+    floor_status: Optional[Literal["within_floor", "manager_override"]] = None
+    manager_override_reason: Optional[str] = None
+    sales_config_version: str
+    override_applied: Optional[bool] = False
+
+
+class DeterministicQuoteResponse(BaseModel):
+    quote_id: Optional[str] = None
+    status: Literal["priced", "review_required"]
+    method: str
+    price_book_version: str
+    config_version: str
+    currency: str = "CAD"
+    review_required: bool = False
+    warnings: list[QuoteWarning] = Field(default_factory=list)
+    lines: list[DeterministicQuoteLine]
+    totals: DeterministicQuoteTotals
+    sales_pricing: SalesPricingSummary
+    customer_presentation: dict[str, Any] = Field(default_factory=dict)
+    internal_presentation: Optional[dict[str, Any]] = None
+    sales_config_version: Optional[str] = None
+    presentation_mode: PresentationMode = "internal"
+    ml_assist: dict[str, Any] = Field(default_factory=dict)
+
+
+class QuoteOutcomeRequest(BaseModel):
+    actual_total: float = Field(gt=0)
+    actual_material: Optional[float] = Field(default=None, ge=0)
+    actual_install: Optional[float] = Field(default=None, ge=0)
+    actual_sell: Optional[float] = Field(default=None, ge=0)
+    actual_hst: Optional[float] = Field(default=None, ge=0)
+    source_estimate_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class QuoteOutcomeResponse(BaseModel):
+    quote_id: str
+    outcome_id: str
+    actual_total: float
+    recorded_at: str
 
 
 class WindowSpec(BaseModel):

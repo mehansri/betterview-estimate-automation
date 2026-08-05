@@ -1,0 +1,38 @@
+{
+  "_comment": "Business pricing knobs. Edit these; never the data/ files. TODO markers must be filled in before quoting real customers.",
+
+  "discount": 0.77,
+  "_discount": "Dealer cost = book list x this. 0.77 = 23% off list — confirmed to the cent against Cantor test order 125401135 (21 windows, 2026-08-04).",
+
+  "price_multiplier": 1.0,
+  "_price_multiplier": "Book-year drift knob. Confirmed 1.0 on 2026-08-04: the 2023 v18 book prices still match Cantor exactly.",
+
+  "item_discounts": {
+    "triple_pane_upcharge": 0.61616,
+    "argon_krypton_5050": 0.0
+  },
+  "_item_discounts": "Per-item multipliers on top of 'discount'. Calibrated from Cantor order 125401159 (triple test, 2026-08-04): the full triple package (both LoE panes billed + triple upcharge x 0.6162 + free 90/5 gas) nets to exactly $7.35/sqft-tier. 0.6162 = ~38.4% off the triple upcharge column. argon_krypton_5050 = 0.0: 90/5 mix free (confirmed).",
+
+  "markup": 0.30,
+  "_markup": "Sell = (dealer cost + install) x (1 + markup).",
+
+  "hst": 0.13,
+  "_hst": "Customer total = sell x (1 + hst).",
+
+  "install": {
+    "rate_per_sqft": 23.0,
+    "min_sqft_per_window": 10.0
+  },
+  "_install": "User rule 2026-08-04: installation = $23 x window sqft (W x H in inches / 144), minimum 10 sqft per window. Applied per lite on combinations/bay-bow; patio doors use their frame area. Install is not discounted (own labour) and is marked up with the windows at 'markup'.",
+
+  "engine": {
+    "sqft_rounding": "none",
+    "accessory_footage": "perimeter",
+    "accessory_footage_allowance_in": 0,
+    "colour": {"base": "base_only", "pct_scale": 0.75},
+    "triple_loe_panes": 2,
+    "brickmould_override": {"code": "EP326", "rate_white_lf": 5.0, "rate_colour_lf": 5.6},
+    "oversize_glass": {"threshold_sqft": 35, "rate_sqft": 8.0}
+  },
+  "_engine": "Rules the book leaves ambiguous, calibrated to the cent against Cantor orders 125401135 + 125401159 (2026-08-04). Without brickmould: accessory footage = exact perimeter. With brickmould: billed window size = BM outer dims (W+2x width) and footage = 2(W+H)+8x width — handled automatically. colour: capstock % billed on the base column only at 3/4 of the book pct (Jet Black 20% -> 15%; only black verified). brickmould_override: Cantor's installed 1-inch Classic BM is EP326 at 5.00/5.60 per lf, not the book's EP-226 4.00 row. oversize_glass: 6mm at $8.00/sqft list past 35 sqft (double)."
+}

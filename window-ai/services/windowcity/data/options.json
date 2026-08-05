@@ -1,0 +1,1651 @@
+{
+ "source": {
+  "book": "v18 (2023)"
+ },
+ "glass_options": [
+  {
+   "item": 1,
+   "name": "No glass",
+   "section": "glass",
+   "min6_price": -4.0,
+   "per_sqft_over_6": null,
+   "raw": "1 No glass -4.00 * see Notes",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 2,
+   "name": "Customer supplied glass",
+   "section": "glass",
+   "min6_price": -4.0,
+   "per_sqft_over_6": null,
+   "raw": "2 Customer supplied glass -4.00 * see Notes",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 3,
+   "name": "Loe 180 or Loe2272",
+   "section": "glass",
+   "min6_price": 12.0,
+   "per_sqft_over_6": 2.0,
+   "raw": "3 Loe 180 or Loe2272 12.00 2.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 4,
+   "name": "Loe180 Neat®",
+   "section": "glass",
+   "min6_price": 24.0,
+   "per_sqft_over_6": 4.0,
+   "raw": "4 Loe180 Neat® 24.00 4.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 5,
+   "name": "Loe180 with i89",
+   "section": "glass",
+   "min6_price": 36.0,
+   "per_sqft_over_6": 6.0,
+   "raw": "5 Loe180 with i89 36.00 6.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 6,
+   "name": "Loe366",
+   "section": "glass",
+   "min6_price": 36.0,
+   "per_sqft_over_6": 6.0,
+   "raw": "6 Loe366 36.00 6.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 7,
+   "name": "Triple Pane Up charge",
+   "section": "glass",
+   "min6_price": 54.0,
+   "per_sqft_over_6": 9.0,
+   "raw": "7 Triple Pane Up charge 9.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 8,
+   "name": "Laminated 1 side (Tri-Pane)",
+   "section": "glass",
+   "min6_price": 66.0,
+   "per_sqft_over_6": 11.0,
+   "raw": "8 Laminated 1 side (Tri-Pane) 66.00 11.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 9,
+   "name": "Laminated 2 sides",
+   "section": "glass",
+   "min6_price": 132.0,
+   "per_sqft_over_6": 22.0,
+   "raw": "9 Laminated 2 sides 132.00 22.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 10,
+   "name": "Tempered 1 side",
+   "section": "glass",
+   "min6_price": 72.0,
+   "per_sqft_over_6": 12.0,
+   "raw": "10 Tempered 1 side 72.00 12.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 11,
+   "name": "Tempered 2 sides",
+   "section": "glass",
+   "min6_price": 144.0,
+   "per_sqft_over_6": 24.0,
+   "raw": "11 Tempered 2 sides 144.00 24.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 12,
+   "name": "4mm / 4mm double glazing",
+   "section": "glass",
+   "min6_price": 18.0,
+   "per_sqft_over_6": 3.0,
+   "raw": "12 4mm / 4mm double glazing ** 18.00 3.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 13,
+   "name": "5mm / 5mm double glazing",
+   "section": "glass",
+   "min6_price": 36.0,
+   "per_sqft_over_6": 6.0,
+   "raw": "13 5mm / 5mm double glazing ** 36.00 6.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 14,
+   "name": "Frosted (pinhead)",
+   "section": "glass",
+   "min6_price": 24.0,
+   "per_sqft_over_6": 4.0,
+   "raw": "14 Frosted (pinhead) 24.00 4.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 15,
+   "name": "Bronze Tinted",
+   "section": "glass",
+   "min6_price": 24.0,
+   "per_sqft_over_6": 4.0,
+   "raw": "15 Bronze Tinted 24.00 4.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 16,
+   "name": "grey Tinted",
+   "section": "glass",
+   "min6_price": 24.0,
+   "per_sqft_over_6": 4.0,
+   "raw": "16 grey Tinted 24.00 4.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 17,
+   "name": "glue Chip",
+   "section": "glass",
+   "min6_price": 48.0,
+   "per_sqft_over_6": 8.0,
+   "raw": "17 glue Chip 48.00 8.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 18,
+   "name": "Sandblast (acid edge)",
+   "section": "glass",
+   "min6_price": 60.0,
+   "per_sqft_over_6": 10.0,
+   "raw": "18 Sandblast (acid edge) 60.00 10.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 19,
+   "name": "Delta",
+   "section": "glass",
+   "min6_price": 114.0,
+   "per_sqft_over_6": 19.0,
+   "raw": "19 Delta 114.00 19.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 20,
+   "name": "argon",
+   "section": "glass",
+   "min6_price": 6.0,
+   "per_sqft_over_6": 1.0,
+   "raw": "20 argon 6.00 1.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 21,
+   "name": "argon, Krypton (50% argon, 50% Krypton)",
+   "section": "glass",
+   "min6_price": 36.0,
+   "per_sqft_over_6": 6.0,
+   "raw": "21 argon, Krypton (50% argon, 50% Krypton) 36.00 6.00",
+   "source_page_pdf": 19
+  },
+  {
+   "item": 22,
+   "name": "Krypton",
+   "section": "glass",
+   "min6_price": 72.0,
+   "per_sqft_over_6": 12.0,
+   "raw": "22 Krypton 72.00 12.00",
+   "source_page_pdf": 19
+  }
+ ],
+ "sealed_units": [
+  {
+   "glazing": "double",
+   "glass_mm": 3,
+   "overall_thickness": "1/2”",
+   "air_space": "1/4”",
+   "max_sqft": 15,
+   "price_sqft": 15.0,
+   "raw": "3mm 1/2” white S-class 1/4” 15 sq ft max 15.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 3,
+   "overall_thickness": "9/16”",
+   "air_space": "5/16”",
+   "max_sqft": 15,
+   "price_sqft": 15.0,
+   "raw": "9/16” white S-class 5/16” 15 sq ft max 15.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 3,
+   "overall_thickness": "5/8”",
+   "air_space": "3/8”",
+   "max_sqft": 15,
+   "price_sqft": 15.0,
+   "raw": "5/8” white S-class 3/8” 15 sq ft max 15.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 3,
+   "overall_thickness": "STINU 11/16”",
+   "air_space": "7/16”",
+   "max_sqft": 15,
+   "price_sqft": 15.0,
+   "raw": "STINU 11/16” white S-class 7/16” 15 sq ft max 15.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 3,
+   "overall_thickness": "3/4”",
+   "air_space": "1/2”",
+   "max_sqft": 15,
+   "price_sqft": 15.0,
+   "raw": "3/4” white S-class 1/2” 15 sq ft max 15.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 3,
+   "overall_thickness": "13/16”",
+   "air_space": "9/16”",
+   "max_sqft": 15,
+   "price_sqft": 15.0,
+   "raw": "13/16” white S-class 9/16” 15 sq ft max 15.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 3,
+   "overall_thickness": "7/8”",
+   "air_space": "5/8”",
+   "max_sqft": 15,
+   "price_sqft": 15.0,
+   "raw": "7/8” white S-class 5/8” 15 sq ft max 15.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 3,
+   "overall_thickness": "1”",
+   "air_space": "3/4”",
+   "max_sqft": 15,
+   "price_sqft": 15.0,
+   "raw": "1” white S-class 3/4” 15 sq ft max 15.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 4,
+   "overall_thickness": "5/8”",
+   "air_space": "1/4”",
+   "max_sqft": 25,
+   "price_sqft": 18.0,
+   "raw": "4mm 5/8” white S-class 1/4” 25 sq ft max 18.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 4,
+   "overall_thickness": "11/16”",
+   "air_space": "5/16”",
+   "max_sqft": 25,
+   "price_sqft": 18.0,
+   "raw": "11/16” white S-class 5/16” 25 sq ft max 18.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 4,
+   "overall_thickness": "3/4”",
+   "air_space": "3/8”",
+   "max_sqft": 25,
+   "price_sqft": 18.0,
+   "raw": "3/4” white S-class 3/8” 25 sq ft max 18.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 4,
+   "overall_thickness": "13/16”",
+   "air_space": "7/16”",
+   "max_sqft": 25,
+   "price_sqft": 18.0,
+   "raw": "13/16” white S-class 7/16” 25 sq ft max 18.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 4,
+   "overall_thickness": "7/8”",
+   "air_space": "1/2”",
+   "max_sqft": 25,
+   "price_sqft": 18.0,
+   "raw": "7/8” white S-class 1/2” 25 sq ft max 18.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 4,
+   "overall_thickness": "15/16”",
+   "air_space": "9/16”",
+   "max_sqft": 25,
+   "price_sqft": 18.0,
+   "raw": "15/16” white S-class 9/16” 25 sq ft max 18.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 4,
+   "overall_thickness": "SSALG 1”",
+   "air_space": "5/8”",
+   "max_sqft": 25,
+   "price_sqft": 18.0,
+   "raw": "SSALG 1” white S-class 5/8” 25 sq ft max 18.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 4,
+   "overall_thickness": "1 1/8”",
+   "air_space": "3/4”",
+   "max_sqft": 25,
+   "price_sqft": 18.0,
+   "raw": "1 1/8” white S-class 3/4” 25 sq ft max 18.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 5,
+   "overall_thickness": "11/16”",
+   "air_space": "1/4”",
+   "max_sqft": 35,
+   "price_sqft": 21.0,
+   "raw": "5mm 11/16” white S-class 1/4” 35 sq ft max 21.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 5,
+   "overall_thickness": "3/4”",
+   "air_space": "5/16”",
+   "max_sqft": 35,
+   "price_sqft": 21.0,
+   "raw": "3/4” white S-class 5/16” 35 sq ft max 21.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 5,
+   "overall_thickness": "13/16”",
+   "air_space": "3/8”",
+   "max_sqft": 35,
+   "price_sqft": 21.0,
+   "raw": "13/16” white S-class 3/8” 35 sq ft max 21.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 5,
+   "overall_thickness": "7/8”",
+   "air_space": "7/16”",
+   "max_sqft": 35,
+   "price_sqft": 21.0,
+   "raw": "7/8” white S-class 7/16” 35 sq ft max 21.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 5,
+   "overall_thickness": "15/16”",
+   "air_space": "1/2”",
+   "max_sqft": 35,
+   "price_sqft": 21.0,
+   "raw": "15/16” white S-class 1/2” 35 sq ft max 21.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 5,
+   "overall_thickness": "1”",
+   "air_space": "9/16”",
+   "max_sqft": 35,
+   "price_sqft": 21.0,
+   "raw": "1” white S-class 9/16” 35 sq ft max 21.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 5,
+   "overall_thickness": "1 1/8”",
+   "air_space": "5/8”",
+   "max_sqft": 35,
+   "price_sqft": 21.0,
+   "raw": "1 1/8” white S-class 5/8” 35 sq ft max 21.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "double",
+   "glass_mm": 5,
+   "overall_thickness": "1 3/16”",
+   "air_space": "3/4”",
+   "max_sqft": 35,
+   "price_sqft": 21.0,
+   "raw": "1 3/16” white S-class 3/4” 35 sq ft max 21.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 3,
+   "overall_thickness": "7/8”",
+   "air_space": "1/4”",
+   "max_sqft": 15,
+   "price_sqft": 24.0,
+   "raw": "3mm 7/8” white S-class 1/4” 15 sq ft max 24.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 3,
+   "overall_thickness": "1”",
+   "air_space": "5/16”",
+   "max_sqft": 15,
+   "price_sqft": 24.0,
+   "raw": "1” white S-class 5/16” 15 sq ft max 24.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 3,
+   "overall_thickness": "1 1/8”",
+   "air_space": "3/8”",
+   "max_sqft": 15,
+   "price_sqft": 24.0,
+   "raw": "1 1/8” white S-class 3/8” 15 sq ft max 24.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 3,
+   "overall_thickness": "1 1/4”",
+   "air_space": "7/16”",
+   "max_sqft": 15,
+   "price_sqft": 24.0,
+   "raw": "1 1/4” white S-class 7/16” 15 sq ft max 24.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 3,
+   "overall_thickness": "1 3/8”",
+   "air_space": "1/2”",
+   "max_sqft": 15,
+   "price_sqft": 24.0,
+   "raw": "1 3/8” white S-class 1/2” 15 sq ft max 24.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 3,
+   "overall_thickness": "1 1/2”",
+   "air_space": "9/16”",
+   "max_sqft": 15,
+   "price_sqft": 24.0,
+   "raw": "1 1/2” white S-class 9/16” 15 sq ft max 24.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 3,
+   "overall_thickness": "1 5/8”",
+   "air_space": "5/8”",
+   "max_sqft": 15,
+   "price_sqft": 24.0,
+   "raw": "1 5/8” white S-class 5/8” 15 sq ft max 24.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 4,
+   "overall_thickness": "1”",
+   "air_space": "1/4”",
+   "max_sqft": 25,
+   "price_sqft": 27.0,
+   "raw": "4mm 1” white S-class 1/4” 25 sq ft max 27.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 4,
+   "overall_thickness": "1 1/8”",
+   "air_space": "5/16”",
+   "max_sqft": 25,
+   "price_sqft": 27.0,
+   "raw": "1 1/8” white S-class 5/16” 25 sq ft max 27.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 4,
+   "overall_thickness": "1 1/4”",
+   "air_space": "3/8”",
+   "max_sqft": 25,
+   "price_sqft": 27.0,
+   "raw": "1 1/4” white S-class 3/8” 25 sq ft max 27.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 4,
+   "overall_thickness": "1 3/8”",
+   "air_space": "7/16”",
+   "max_sqft": 25,
+   "price_sqft": 27.0,
+   "raw": "1 3/8” white S-class 7/16” 25 sq ft max 27.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 4,
+   "overall_thickness": "1 1/2”",
+   "air_space": "1/2”",
+   "max_sqft": 25,
+   "price_sqft": 27.0,
+   "raw": "1 1/2” white S-class 1/2” 25 sq ft max 27.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 4,
+   "overall_thickness": "1 5/8”",
+   "air_space": "9/16”",
+   "max_sqft": 25,
+   "price_sqft": 27.0,
+   "raw": "1 5/8” white S-class 9/16” 25 sq ft max 27.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 4,
+   "overall_thickness": "1 3/4”",
+   "air_space": "5/8”",
+   "max_sqft": 25,
+   "price_sqft": 27.0,
+   "raw": "1 3/4” white S-class 5/8” 25 sq ft max 27.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 5,
+   "overall_thickness": "1 1/8”",
+   "air_space": "1/4",
+   "max_sqft": 35,
+   "price_sqft": 30.0,
+   "raw": "5mm 1 1/8” white S-class 1/4 35 sq ft max 30.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 5,
+   "overall_thickness": "1 1/4”",
+   "air_space": "5/16”",
+   "max_sqft": 35,
+   "price_sqft": 30.0,
+   "raw": "1 1/4” white S-class 5/16” 35 sq ft max 30.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 5,
+   "overall_thickness": "1 3/8”",
+   "air_space": "3/8”",
+   "max_sqft": 35,
+   "price_sqft": 30.0,
+   "raw": "1 3/8” white S-class 3/8” 35 sq ft max 30.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 5,
+   "overall_thickness": "1 1/2”",
+   "air_space": "7/16”",
+   "max_sqft": 35,
+   "price_sqft": 30.0,
+   "raw": "1 1/2” white S-class 7/16” 35 sq ft max 30.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 5,
+   "overall_thickness": "1 5/8”",
+   "air_space": "1/2”",
+   "max_sqft": 35,
+   "price_sqft": 30.0,
+   "raw": "1 5/8” white S-class 1/2” 35 sq ft max 30.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 5,
+   "overall_thickness": "1 3/4”",
+   "air_space": "9/16”",
+   "max_sqft": 35,
+   "price_sqft": 30.0,
+   "raw": "1 3/4” white S-class 9/16” 35 sq ft max 30.00",
+   "source_page_pdf": 20
+  },
+  {
+   "glazing": "triple",
+   "glass_mm": 5,
+   "overall_thickness": "1 7/8”",
+   "air_space": "5/8”",
+   "max_sqft": 35,
+   "price_sqft": 30.0,
+   "raw": "1 7/8” white S-class 5/8” 35 sq ft max 30.00",
+   "source_page_pdf": 20
+  }
+ ],
+ "paint": {
+  "window_paint": [
+   {
+    "styles": "casement_awning",
+    "exterior": {
+     "0-12 sqft": 120.0,
+     "12-18 sqft": 180.0,
+     "over 18 sqft": 240.0
+    },
+    "interior": {
+     "0-12 sqft": 180.0,
+     "12-18 sqft": 270.0,
+     "over 18 sqft": 360.0
+    },
+    "source_page_pdf": 21
+   },
+   {
+    "styles": "slim_fixed_casement_fixed_shaped",
+    "exterior": {
+     "0-12 sqft": 100.0,
+     "12-18 sqft": 150.0,
+     "over 18 sqft": 200.0
+    },
+    "interior": {
+     "0-12 sqft": 100.0,
+     "12-18 sqft": 150.0,
+     "over 18 sqft": 200.0
+    },
+    "source_page_pdf": 21
+   }
+  ],
+  "patio_door_paint": [
+   {
+    "size_ft": 5,
+    "panels": 2,
+    "exterior_price": 600.0,
+    "raw": "5 2 600.00",
+    "source_page_pdf": 21
+   },
+   {
+    "size_ft": 6,
+    "panels": 2,
+    "exterior_price": 640.0,
+    "raw": "6 2 640.00",
+    "source_page_pdf": 21
+   },
+   {
+    "size_ft": 8,
+    "panels": 2,
+    "exterior_price": 700.0,
+    "raw": "8 2 700.00",
+    "source_page_pdf": 21
+   },
+   {
+    "size_ft": 10,
+    "panels": 4,
+    "exterior_price": 1200.0,
+    "raw": "10 4 1200.00",
+    "source_page_pdf": 21
+   },
+   {
+    "size_ft": 12,
+    "panels": 4,
+    "exterior_price": 1280.0,
+    "raw": "12 4 1280.00",
+    "source_page_pdf": 21
+   },
+   {
+    "size_ft": 16,
+    "panels": 4,
+    "exterior_price": 1400.0,
+    "raw": "16 4 1400.00",
+    "source_page_pdf": 21
+   }
+  ],
+  "extras": [
+   "g Brickmoulds or vinyl jambs can be painted, add $100.00 per box",
+   "g SDL can be painted, add $30.00 per square"
+  ]
+ },
+ "grilles_flat": {
+  "per_sq_unit": [
+   {
+    "style": "colonial flat bar",
+    "size": "5/8\" x 1/4\"",
+    "values": [
+     "6.00 / sq unit",
+     "8.00 / sq unit",
+     "8.00 / sq unit",
+     "12.00 / sq unit"
+    ],
+    "raw": "colonial flat bar 5/8\" x 1/4\" 6.00 / sq unit 8.00 / sq unit 8.00 / sq unit 12.00 / sq unit",
+    "source_page_pdf": 24,
+    "columns": [
+     "white",
+     "pewter_or_black",
+     "two_tone_out_white_in",
+     "solid_brass"
+    ]
+   },
+   {
+    "style": "georgian",
+    "size": "11/16\" x 1/4\"",
+    "values": [
+     "8.00 / sq unit",
+     "10.00 / sq unit",
+     "10.00 / sq unit",
+     "N/a"
+    ],
+    "raw": "georgian 11/16\" x 1/4\" 8.00 / sq unit 10.00 / sq unit 10.00 / sq unit N/a",
+    "source_page_pdf": 24,
+    "columns": [
+     "white",
+     "pewter_or_black",
+     "two_tone_out_white_in",
+     "solid_brass"
+    ]
+   },
+   {
+    "style": "georgian",
+    "size": "1\" x 1/4\"",
+    "values": [
+     "10.00 / sq unit",
+     "12.00 / sq unit",
+     "12.00 / sq unit",
+     "N/a"
+    ],
+    "raw": "georgian 1\" x 1/4\" 10.00 / sq unit 12.00 / sq unit 12.00 / sq unit N/a",
+    "source_page_pdf": 24,
+    "columns": [
+     "white",
+     "pewter_or_black",
+     "two_tone_out_white_in",
+     "solid_brass"
+    ]
+   },
+   {
+    "style": "pencil",
+    "size": "5/16\"",
+    "values": [
+     "11.00 / sq unit",
+     "14.00 / sq unit",
+     "N/a",
+     "20.00 / sq unit"
+    ],
+    "raw": "pencil 5/16\" 11.00 / sq unit 14.00 / sq unit N/a 20.00 / sq unit",
+    "source_page_pdf": 24,
+    "columns": [
+     "white",
+     "pewter_or_black",
+     "two_tone_out_white_in",
+     "solid_brass"
+    ]
+   },
+   {
+    "style": "simulated (heritage)",
+    "size": "3/4\" x 1/4\"",
+    "values": [
+     "30.00 / sq unit",
+     "N/a",
+     "34.50 / sq unit",
+     "N/a"
+    ],
+    "raw": "simulated (heritage) 3/4\" x 1/4\" 30.00 / sq unit N/a 34.50 / sq unit N/a",
+    "source_page_pdf": 24,
+    "columns": [
+     "white",
+     "pewter_or_black",
+     "two_tone_out_white_in",
+     "solid_brass"
+    ]
+   },
+   {
+    "style": "simulated (heritage)",
+    "size": "1\" x 3/8\"",
+    "values": [
+     "40.00 / sq unit",
+     "N/a",
+     "46.00 / sq unit",
+     "N/a"
+    ],
+    "raw": "simulated (heritage) 1\" x 3/8\" 40.00 / sq unit N/a 46.00 / sq unit N/a",
+    "source_page_pdf": 24,
+    "columns": [
+     "white",
+     "pewter_or_black",
+     "two_tone_out_white_in",
+     "solid_brass"
+    ]
+   },
+   {
+    "style": "simulated (classic)",
+    "size": "1 1/4\" x 1/4\"",
+    "values": [
+     "50.00 / sq unit",
+     "N/a",
+     "57.50 / sq unit",
+     "N/a"
+    ],
+    "raw": "simulated (classic) 1 1/4\" x 1/4\" 50.00 / sq unit N/a 57.50 / sq unit N/a",
+    "source_page_pdf": 24,
+    "columns": [
+     "white",
+     "pewter_or_black",
+     "two_tone_out_white_in",
+     "solid_brass"
+    ]
+   }
+  ],
+  "pencil_prairie_diamond": [
+   {
+    "style": "pencil (S1)",
+    "size": "5/16\"",
+    "values": [
+     "128.00 / seal unit",
+     "160.00 / seal unit"
+    ],
+    "raw": "pencil (S1) 5/16\" 128.00 / seal unit 160.00 / seal unit",
+    "source_page_pdf": 24,
+    "columns": [
+     "white",
+     "solid_brass_pewter_or_black"
+    ]
+   }
+  ],
+  "european": [
+   {
+    "style": "Ferro – z1",
+    "size": "2 5/8” x 2 5/8”",
+    "values": [
+     "14.00 / sq unit",
+     "30.00 each"
+    ],
+    "raw": "Ferro – z1 2 5/8” x 2 5/8” 14.00 / sq unit 30.00 each",
+    "source_page_pdf": 24,
+    "columns": [
+     "black",
+     "solid_brass_style_each"
+    ]
+   },
+   {
+    "style": "Infinito – z2",
+    "size": "4 1/4” x 7 1/8”",
+    "values": [
+     "14.00 / sq unit",
+     "30.00 each"
+    ],
+    "raw": "Infinito – z2 4 1/4” x 7 1/8” 14.00 / sq unit 30.00 each",
+    "source_page_pdf": 24,
+    "columns": [
+     "black",
+     "solid_brass_style_each"
+    ]
+   }
+  ]
+ },
+ "grilles_shaped": [
+  {
+   "shape_no": 1,
+   "shape_name": "Oval",
+   "codes": [
+    "g1",
+    "g2",
+    "g3",
+    "g4",
+    "g5"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     60.0,
+     135.0,
+     160.0,
+     220.0,
+     280.0
+    ],
+    "georgian Bar": [
+     60.0,
+     135.0,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     60.0,
+     135.0,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     120.0,
+     270.0,
+     320.0,
+     380.0,
+     420.0
+    ]
+   },
+   "source_page_pdf": 26
+  },
+  {
+   "shape_no": 2,
+   "shape_name": "Round",
+   "codes": [
+    "g6",
+    "g7",
+    "g8",
+    "g9",
+    "g10"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     60.0,
+     135.0,
+     160.0,
+     220.0,
+     280.0
+    ],
+    "georgian Bar": [
+     60.0,
+     135.0,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     60.0,
+     135.0,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     120.0,
+     270.0,
+     320.0,
+     380.0,
+     420.0
+    ]
+   },
+   "source_page_pdf": 26
+  },
+  {
+   "shape_no": 3,
+   "shape_name": "Half Round",
+   "codes": [
+    "g11",
+    "g12",
+    "g13",
+    "g14",
+    "g15"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     60.0,
+     80.0,
+     100.0,
+     160.0,
+     175.0
+    ],
+    "georgian Bar": [
+     60.0,
+     80.0,
+     100.0,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     60.0,
+     80.0,
+     100.0,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     180.0,
+     240.0,
+     300.0,
+     340.0,
+     400.0
+    ]
+   },
+   "source_page_pdf": 26
+  },
+  {
+   "shape_no": 4,
+   "shape_name": "Half Round",
+   "codes": [
+    "g16",
+    "g17",
+    "g18",
+    "g19",
+    "g20"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     160.0,
+     180.0,
+     200.0,
+     300.0,
+     320.0
+    ],
+    "georgian Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     280.0,
+     340.0,
+     400.0,
+     500.0,
+     520.0
+    ]
+   },
+   "source_page_pdf": 26
+  },
+  {
+   "shape_no": 5,
+   "shape_name": "Half Round",
+   "codes": [
+    "g21",
+    "g22",
+    "g23",
+    "g24",
+    "g25"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     250.0,
+     300.0,
+     350.0,
+     350.0,
+     200.0
+    ],
+    "georgian Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     450.0,
+     500.0,
+     550.0,
+     550.0,
+     400.0
+    ]
+   },
+   "source_page_pdf": 27
+  },
+  {
+   "shape_no": 6,
+   "shape_name": "Half Round",
+   "codes": [
+    "g26",
+    "g27",
+    "g28",
+    "g29",
+    "g30"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     160.0,
+     180.0,
+     250.0,
+     275.0,
+     320.0
+    ],
+    "georgian Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     260.0,
+     340.0,
+     450.0,
+     475.0,
+     520.0
+    ]
+   },
+   "source_page_pdf": 27
+  },
+  {
+   "shape_no": 7,
+   "shape_name": "Half Round",
+   "codes": [
+    "g31",
+    "g32",
+    "g33",
+    "g34",
+    "g35"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     250.0,
+     275.0,
+     300.0,
+     350.0,
+     450.0
+    ],
+    "georgian Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     350.0,
+     375.0,
+     400.0,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     500.0,
+     550.0,
+     600.0,
+     700.0,
+     900.0
+    ]
+   },
+   "source_page_pdf": 27
+  },
+  {
+   "shape_no": 8,
+   "shape_name": "extended Half Round",
+   "codes": [
+    "g36",
+    "g37",
+    "g38",
+    "g39",
+    "g40"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     650.0,
+     500.0,
+     750.0,
+     750.0,
+     400.0
+    ],
+    "georgian Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     null,
+     null,
+     null,
+     null,
+     500.0
+    ],
+    "Simulated (SDL)": [
+     1300.0,
+     1000.0,
+     1500.0,
+     1500.0,
+     800.0
+    ]
+   },
+   "source_page_pdf": 27
+  },
+  {
+   "shape_no": 9,
+   "shape_name": "SNOITPO Quarter Round",
+   "codes": [
+    "g41",
+    "g42",
+    "g43",
+    "g44",
+    "g45"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     25.0,
+     50.0,
+     75.0,
+     125.0,
+     150.0
+    ],
+    "georgian Bar": [
+     25.0,
+     50.0,
+     75.0,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     25.0,
+     50.0,
+     75.0,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     60.0,
+     90.0,
+     120.0,
+     225.0,
+     275.0
+    ]
+   },
+   "source_page_pdf": 28
+  },
+  {
+   "shape_no": 10,
+   "shape_name": "Quarter Round",
+   "codes": [
+    "g46",
+    "g47",
+    "g48",
+    "g49",
+    "g50"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     175.0,
+     200.0,
+     225.0,
+     250.0,
+     100.0
+    ],
+    "georgian Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     300.0,
+     350.0,
+     400.0,
+     450.0,
+     200.0
+    ]
+   },
+   "source_page_pdf": 28
+  },
+  {
+   "shape_no": 11,
+   "shape_name": "Quarter Round",
+   "codes": [
+    "g51",
+    "g52",
+    "g53",
+    "g54",
+    "g55"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     135.0,
+     250.0,
+     250.0,
+     225.0,
+     225.0
+    ],
+    "georgian Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     250.0,
+     450.0,
+     500.0,
+     425.0,
+     425.0
+    ]
+   },
+   "source_page_pdf": 28
+  },
+  {
+   "shape_no": 12,
+   "shape_name": "extended Quarter Round",
+   "codes": [
+    "g56",
+    "g57",
+    "g58",
+    "g59",
+    "g60"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     400.0,
+     350.0,
+     500.0,
+     550.0,
+     350.0
+    ],
+    "georgian Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     700.0,
+     650.0,
+     800.0,
+     850.0,
+     700.0
+    ]
+   },
+   "source_page_pdf": 28
+  },
+  {
+   "shape_no": 13,
+   "shape_name": "SNOITPO Segment eyebrow",
+   "codes": [
+    "g61",
+    "g62",
+    "g63",
+    "g64",
+    "g65"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     100.0,
+     150.0,
+     175.0,
+     200.0,
+     225.0
+    ],
+    "georgian Bar": [
+     100.0,
+     150.0,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     100.0,
+     150.0,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     200.0,
+     300.0,
+     350.0,
+     400.0,
+     450.0
+    ]
+   },
+   "source_page_pdf": 29
+  },
+  {
+   "shape_no": 14,
+   "shape_name": "extended Segment",
+   "codes": [
+    "g66",
+    "g67",
+    "g68",
+    "g69",
+    "g70"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     100.0,
+     150.0,
+     175.0,
+     200.0,
+     225.0
+    ],
+    "georgian Bar": [
+     100.0,
+     150.0,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     100.0,
+     150.0,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     200.0,
+     300.0,
+     350.0,
+     400.0,
+     450.0
+    ]
+   },
+   "source_page_pdf": 29
+  },
+  {
+   "shape_no": 15,
+   "shape_name": "ellipse",
+   "codes": [
+    "g71",
+    "g72",
+    "g73",
+    "g74",
+    "g75"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     100.0,
+     150.0,
+     175.0,
+     200.0,
+     225.0
+    ],
+    "georgian Bar": [
+     100.0,
+     150.0,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     100.0,
+     150.0,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     200.0,
+     300.0,
+     350.0,
+     400.0,
+     450.0
+    ]
+   },
+   "source_page_pdf": 29
+  },
+  {
+   "shape_no": 16,
+   "shape_name": "gothic",
+   "codes": [
+    "g76",
+    "g77",
+    "g78",
+    "g79",
+    "g80"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     125.0,
+     175.0,
+     225.0,
+     350.0,
+     475.0
+    ],
+    "georgian Bar": [
+     125.0,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Pencil Bar": [
+     125.0,
+     null,
+     null,
+     null,
+     null
+    ],
+    "Simulated (SDL)": [
+     250.0,
+     325.0,
+     475.0,
+     700.0,
+     850.0
+    ]
+   },
+   "source_page_pdf": 29
+  },
+  {
+   "shape_no": 17,
+   "shape_name": "SNOITPO Hexagon",
+   "codes": [
+    "g81",
+    "g82",
+    "g83"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     60.0,
+     120.0,
+     150.0
+    ],
+    "georgian Bar": [
+     60.0,
+     120.0,
+     150.0
+    ],
+    "Pencil Bar": [
+     60.0,
+     120.0,
+     150.0
+    ],
+    "Simulated (SDL)": [
+     120.0,
+     250.0,
+     300.0
+    ]
+   },
+   "source_page_pdf": 30
+  },
+  {
+   "shape_no": 18,
+   "shape_name": "Octagon",
+   "codes": [
+    "g84",
+    "g85",
+    "g86"
+   ],
+   "bars": {
+    "Colonial Flat Bar": [
+     60.0,
+     120.0,
+     250.0
+    ],
+    "georgian Bar": [
+     60.0,
+     120.0,
+     null
+    ],
+    "Pencil Bar": [
+     60.0,
+     120.0,
+     null
+    ],
+    "Simulated (SDL)": [
+     120.0,
+     250.0,
+     500.0
+    ]
+   },
+   "source_page_pdf": 30
+  }
+ ]
+}

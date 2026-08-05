@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Version control
+.git/
+.gitignore
+.github/
+
+# Model artifacts (provided via volume mounts at runtime)
+models/
+data/
+uploads/
+exports/
+
+# Optuna
+optuna.db
+*.db
+
+# Frontend (separately deployed; not part of the backend image)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+app/node_modules/
+app/.next/
+
+# Docs / local notes
+docs/
+README.md
+Makefile

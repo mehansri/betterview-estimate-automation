@@ -59,6 +59,178 @@ export type BatchResponse = {
   currency: string;
 };
 
+export type QuoteLineType =
+  | "window"
+  | "combination"
+  | "patio_sliding"
+  | "patio_swing"
+  | "bay_bow";
+
+export type QuoteLineInput = {
+  type: QuoteLineType;
+  [key: string]: unknown;
+};
+
+export type PresentationMode = "internal" | "customer";
+
+export type CommercialSettings = {
+  preset_id: string;
+  negotiated_discount_percent: number;
+  presentation_mode?: PresentationMode;
+  manager_override_reason?: string | null;
+};
+
+export type SalesPreset = {
+  id: string;
+  name: string;
+  description: string;
+  markup_percent: number;
+  default_discount_percent: number;
+  max_discount_percent: number;
+  minimum_markup_percent: number;
+  active: boolean;
+};
+
+export type SalesPresetResponse = {
+  sales_config_version: string;
+  presets: SalesPreset[];
+  currency?: string;
+  minimum_markup_percent?: number;
+};
+
+export type SalesPresetConfig = {
+  currency: string;
+  minimum_markup_percent: number;
+  presets: SalesPreset[];
+};
+
+export type DeterministicQuoteRequest = {
+  defaults?: Record<string, unknown>;
+  lines: QuoteLineInput[];
+  commercial?: CommercialSettings;
+  config_overrides?: Record<string, unknown>;
+};
+
+export type QuoteWarning = {
+  code: string;
+  severity: "info" | "warning" | "review";
+  message: string;
+};
+
+export type QuoteComponent = {
+  label: string;
+  list: number;
+  dealer: number;
+  discount_key?: string | null;
+  source_pages: number[];
+  source_refs: string[];
+};
+
+export type DeterministicQuoteLine = {
+  line: number;
+  type: string;
+  qty: number;
+  components: QuoteComponent[];
+  list_each?: number | null;
+  dealer_each?: number | null;
+  install_each?: number | null;
+  sell_each: number;
+  markup_each?: number | null;
+  hst_each: number;
+  customer_total: number;
+  list_total?: number | null;
+  dealer_total?: number | null;
+  install_total?: number | null;
+  base_sell_each?: number | null;
+  merchandise_discount_each?: number | null;
+  protected_install_sell_each?: number | null;
+  source_pages: number[];
+  source_refs: string[];
+};
+
+export type DeterministicQuoteResponse = {
+  quote_id?: string;
+  status: "priced" | "review_required";
+  method: string;
+  price_book_version: string;
+  config_version: string;
+  currency: string;
+  review_required: boolean;
+  warnings: QuoteWarning[];
+  lines: DeterministicQuoteLine[];
+  totals: {
+    list?: number | null;
+    dealer_cost?: number | null;
+    install?: number | null;
+    markup?: number | null;
+    sell: number;
+    sell_before_tax: number;
+    hst: number;
+    customer_total: number;
+    base_sell_before_discount?: number | null;
+    merchandise_sell_before_discount?: number | null;
+    merchandise_discount?: number | null;
+    protected_install_sell?: number | null;
+    minimum_floor_sell?: number | null;
+  };
+  sales_pricing: {
+    preset_id?: string | null;
+    preset_name?: string | null;
+    preset_description?: string | null;
+    markup_percent?: number | null;
+    minimum_markup_percent?: number | null;
+    negotiated_discount_percent: number;
+    configured_max_discount_percent?: number | null;
+    floor_derived_max_discount_percent?: number | null;
+    maximum_allowed_discount_percent?: number | null;
+    remaining_discount_percent?: number | null;
+    merchandise_discount_amount: number;
+    dealer_cost?: number | null;
+    install_cost?: number | null;
+    base_merchandise_sell?: number | null;
+    protected_install_sell?: number | null;
+    minimum_floor_sell?: number | null;
+    effective_markup_percent?: number | null;
+    gross_margin_percent?: number | null;
+    floor_status?: "within_floor" | "manager_override" | null;
+    manager_override_reason?: string | null;
+    sales_config_version: string;
+    override_applied?: boolean | null;
+  };
+  customer_presentation: {
+    preset_name?: string | null;
+    negotiated_discount_percent: number;
+    merchandise_discount: number;
+    lines: Array<{ line: number; type: string; qty: number; unit_price: number; line_total: number }>;
+    subtotal: number;
+    hst: number;
+    total: number;
+  };
+  internal_presentation?: Record<string, unknown> | null;
+  sales_config_version?: string;
+  presentation_mode: PresentationMode;
+  ml_assist: Record<string, unknown>;
+};
+
+export type QuoteCatalog = {
+  price_book_version: string;
+  config_version: string;
+  styles: Array<{
+    code: string;
+    name: string;
+    collection: string;
+    source_page_pdf?: number;
+  }>;
+  accessories: Record<string, Array<{ name: string; item_code?: string; source_page_pdf?: number }>>;
+  shapes: Record<string, Array<{ name: string; source_page_pdf?: number }>>;
+  patio_sliding_sizes: number[];
+  patio_swing_kinds: string[];
+  baybow: {
+    head_seat_sizes: string[];
+    welded_brickmould_lites: number[];
+  };
+};
+
 export type DoorPartSpec = {
   series?: string;
   glass?: string;
@@ -236,7 +408,10 @@ function formatApiError(status: number, body: string): string {
   }
   try {
     const parsed = JSON.parse(trimmed) as {
-      detail?: string | Array<{ msg?: string; loc?: unknown }>;
+      detail?:
+        | string
+        | Array<{ msg?: string; loc?: unknown }>
+        | { message?: string; reasons?: string[]; maximum_allowed_discount_percent?: number };
     };
     if (typeof parsed.detail === "string") {
       return parsed.detail;
@@ -246,6 +421,13 @@ function formatApiError(status: number, body: string): string {
         .map((d) => d.msg || JSON.stringify(d))
         .filter(Boolean)
         .join("; ");
+    }
+    if (parsed.detail && typeof parsed.detail === "object") {
+      if (parsed.detail.message) return parsed.detail.message;
+      if (parsed.detail.reasons?.length) return parsed.detail.reasons.join("; ");
+      if (parsed.detail.maximum_allowed_discount_percent !== undefined) {
+        return `Negotiation exceeds the permitted discount. Maximum allowed: ${parsed.detail.maximum_allowed_discount_percent.toFixed(2)}%.`;
+      }
     }
   } catch {
     // not JSON
@@ -271,6 +453,91 @@ export async function quoteBatch(windows: WindowSpec[]): Promise<BatchResponse> 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ windows }),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(formatApiError(res.status, detail));
+  }
+  return res.json();
+}
+
+export async function fetchQuoteCatalog(): Promise<QuoteCatalog> {
+  const res = await apiFetch("/api/quotes/catalog");
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(formatApiError(res.status, detail));
+  }
+  return res.json();
+}
+
+export async function fetchSalesPresets(): Promise<SalesPresetResponse> {
+  const res = await apiFetch("/api/quotes/sales-presets");
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(formatApiError(res.status, detail));
+  }
+  return res.json();
+}
+
+export async function fetchAdminSalesPresets(): Promise<SalesPresetResponse> {
+  const res = await apiFetch("/api/admin/sales-presets");
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(formatApiError(res.status, detail));
+  }
+  return res.json();
+}
+
+export async function saveAdminSalesPresets(
+  config: SalesPresetConfig,
+  pricingAdminToken: string
+): Promise<SalesPresetResponse> {
+  const res = await apiFetch("/api/admin/sales-presets", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Pricing-Admin-Token": pricingAdminToken,
+    },
+    body: JSON.stringify(config),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(formatApiError(res.status, detail));
+  }
+  return res.json();
+}
+
+export async function priceDeterministicQuote(
+  request: DeterministicQuoteRequest
+): Promise<DeterministicQuoteResponse> {
+  const res = await apiFetch("/api/quotes/price", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(formatApiError(res.status, detail));
+  }
+  return res.json();
+}
+
+export async function recordQuoteOutcome(
+  quoteId: string,
+  outcome: {
+    actual_total: number;
+    actual_material?: number;
+    actual_install?: number;
+    actual_sell?: number;
+    actual_hst?: number;
+    source_estimate_id?: string;
+    notes?: string;
+  }
+) {
+  const res = await apiFetch(`/api/quotes/${quoteId}/outcome`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(outcome),
   });
   if (!res.ok) {
     const detail = await res.text();

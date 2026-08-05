@@ -149,3 +149,56 @@ class ImportLog(Base):
         Index("ix_import_logs_status", "status"),
         Index("ix_import_logs_created_at", "created_at"),
     )
+
+
+class QuoteRecord(Base):
+    """Immutable deterministic quote request/result audit record."""
+
+    __tablename__ = "quote_records"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    price_book_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    config_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), default="CAD", nullable=False)
+    review_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    input_spec: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    result_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    outcome: Mapped[Optional["QuoteOutcome"]] = relationship(
+        "QuoteOutcome", back_populates="quote", uselist=False, cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (Index("ix_quote_records_created_at", "created_at"),)
+
+
+class QuoteOutcome(Base):
+    """Approved/actual amounts captured separately from predicted quote data."""
+
+    __tablename__ = "quote_outcomes"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    quote_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("quote_records.id", ondelete="CASCADE"), nullable=False
+    )
+    actual_total: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    actual_material: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
+    actual_install: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
+    actual_sell: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
+    actual_hst: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
+    source_estimate_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("estimates.id", ondelete="SET NULL"), nullable=True
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    quote: Mapped["QuoteRecord"] = relationship("QuoteRecord", back_populates="outcome")

@@ -3,21 +3,67 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import FileResponse
 
-from api.schemas.quote import EstimateSummary, WindowRow
+from api.schemas.quote import EstimateSummary, SalesPresetConfig, WindowRow
 from db.models import Estimate, ImportLog, Window
 from db.session import get_session
 from services.analytics import compute_analytics
+from services.windowcity.sales import (
+    SalesPricingError,
+    list_all_presets,
+    load_sales_config,
+    save_sales_config,
+    sales_config_version,
+)
 from utils.paths import EXPORTS_DIR, ensure_dirs
 
 router = APIRouter(prefix="/api", tags=["admin"])
+
+
+def _require_pricing_admin(token: str | None) -> None:
+    expected_token = os.getenv("PRICING_ADMIN_TOKEN")
+    if not expected_token or token != expected_token:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "manager_authorization_required",
+                "message": "A manager/admin token is required for sales-pricing configuration changes.",
+            },
+        )
+
+
+@router.get("/admin/sales-presets")
+def get_sales_presets() -> dict:
+    """Return all manager-configured sales strategies, including inactive ones."""
+    config = load_sales_config()
+    return {
+        "sales_config_version": sales_config_version(),
+        "currency": config.get("currency", "CAD"),
+        "minimum_markup_percent": config.get("minimum_markup_percent", 20.0),
+        "presets": list_all_presets(),
+    }
+
+
+@router.put("/admin/sales-presets")
+def update_sales_presets(
+    body: SalesPresetConfig,
+    pricing_admin_token: str | None = Header(default=None, alias="X-Pricing-Admin-Token"),
+) -> dict:
+    """Replace sales presets; the price book itself remains immutable here."""
+    _require_pricing_admin(pricing_admin_token)
+    try:
+        saved = save_sales_config(body.model_dump())
+    except (SalesPricingError, TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail={"code": "invalid_sales_config", "message": str(exc)}) from exc
+    return {"sales_config_version": sales_config_version(), **saved}
 
 
 def _f(v: Any) -> Optional[float]:

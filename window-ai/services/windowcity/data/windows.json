@@ -1,0 +1,5060 @@
+{
+ "source": {
+  "book": "v18 (2023)",
+  "columns": [
+   "base_white",
+   "loe180",
+   "loe180_i89",
+   "argon",
+   "argon_krypton_5050",
+   "krypton",
+   "triple_pane_upcharge",
+   "tri_pane_lami",
+   "frost_or_tint"
+  ]
+ },
+ "aliases": {
+  "WC-350": [
+   "WC-325 DOUBLE SLIDER LIFT OUT (TOC typo)"
+  ]
+ },
+ "styles": [
+  {
+   "code": "HC-101",
+   "name": "CASEMENT",
+   "collection": "heritage",
+   "source_page_pdf": 73,
+   "source_page_book": 69,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 284.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 284.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 295.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 295.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 304.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 304.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 315.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 315.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 324.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 324.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 334.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 334.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 339.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 339.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 28.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 28.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Sash not Reinforced Sash is Reinforced"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 13.75,
+       "max": 32.0
+      },
+      {
+       "min": 13.75,
+       "max": 72.0
+      },
+      {
+       "min": 32.0,
+       "max": 36.0
+      },
+      {
+       "min": 72.0,
+       "max": 78.0
+      }
+     ],
+     "raw": "*Double 13 ¾\" to 32\" 13 ¾\" to 72\" 32\" to 36\" 72\" to 78\""
+    },
+    {
+     "label": "Triple Pane or Tri-Pane",
+     "ranges": [
+      {
+       "min": 13.75,
+       "max": 32.0
+      },
+      {
+       "min": 13.75,
+       "max": 66.0
+      },
+      {
+       "min": 32.0,
+       "max": 32.0
+      },
+      {
+       "min": 66.0,
+       "max": 78.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-Pane 13 ¾\" to 32\" 13 ¾\" to 66\" 32\" to 32\" 66\" to 78\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "dark Bronze",
+      "Charcoal",
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Dark Bronze, Black, and Charcoal (Add 20%)"
+    }
+   ],
+   "adders": [
+    {
+     "name": "Hardware Finish Options (multi-point lock & Premium hardware)",
+     "amount": 60.0,
+     "raw": "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)"
+    },
+    {
+     "name": "Limit Lock",
+     "amount": 30.0,
+     "raw": "Limit Lock (Add $30.00)"
+    },
+    {
+     "name": "Egress Hardware",
+     "amount": 40.0,
+     "raw": "Egress Hardware (Add $40.00)"
+    },
+    {
+     "name": "Sash Reinforcement",
+     "amount": 70.0,
+     "raw": "Sash Reinforcement: (Add $70.00)"
+    }
+   ],
+   "pct_adders": [],
+   "notes": [
+    "Specify right or left hinge looking from outside",
+    "Exterior Capstock colour available in Sandstone (Add 15%)",
+    "Exterior Capstock colour available in: Dark Bronze, Black, and Charcoal (Add 20%)",
+    "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)",
+    "(Brushed Chrome, Western Pewter, Coppertone, Antique Brass, Bright Brass, Bright Chrome,",
+    "Brushed Brass, Black)",
+    "Neat®Naturally clean glass only available on LoE 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with LoE 180",
+    "Limit Lock (Add $30.00)",
+    "Egress Hardware (Add $40.00)",
+    "Sash Reinforcement: (Add $70.00)",
+    "Casement sash requires to be reinforced on exterior white or light colour. When the height",
+    "exceeds 72”",
+    "Casement sash requires to be reinforced on exterior Dark Bronze, Black, Charcoal, and dark",
+    "paint. When the height exceeds 66”"
+   ]
+  },
+  {
+   "code": "HC-126",
+   "name": "AWNING",
+   "collection": "heritage",
+   "source_page_pdf": 75,
+   "source_page_book": 71,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 284.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 284.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 295.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 295.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 304.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 304.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 315.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 315.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 324.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 324.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 334.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 334.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 339.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 339.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 28.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 28.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 15.0,
+       "max": 48.0
+      },
+      {
+       "min": 13.75,
+       "max": 40.0
+      }
+     ],
+     "raw": "*Double 15 \" to 48\" 13 ¾\" to 40\""
+    },
+    {
+     "label": "Triple Pane or Tri-Pane",
+     "ranges": [
+      {
+       "min": 15.625,
+       "max": 48.0
+      },
+      {
+       "min": 13.75,
+       "max": 40.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-Pane 15⅝\" to 48\" 13 3/4\" to 40\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions⅝may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "dark Bronze",
+      "Charcoal",
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Dark Bronze, Black, and Charcoal (Add 20%)"
+    }
+   ],
+   "adders": [
+    {
+     "name": "Hardware Finish Options (multi-point lock & Premium hardware",
+     "amount": 60.0,
+     "raw": "Hardware Finish Options (multi-point lock & Premium hardware: (Add $60.00)"
+    },
+    {
+     "name": "Sash Reinforcement",
+     "amount": 70.0,
+     "raw": "Sash Reinforcement: (Add $70.00)"
+    }
+   ],
+   "pct_adders": [],
+   "notes": [
+    "Exterior Capstock colour available in: Sandstone (Add 15%)",
+    "Exterior Capstock colour available in: Dark Bronze, Black, and Charcoal (Add 20%)",
+    "Hardware Finish Options (multi-point lock & Premium hardware: (Add $60.00)",
+    "Brushed Chrome, Western Pewter, Coppertone, Antique Brass, Bright",
+    "Brass, Bright Chrome, Brushed Brass, Black)",
+    "Neat®Naturally clean glass only available on LoE 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with LoE 180",
+    "Sash Reinforcement: (Add $70.00)",
+    "Awning sash requires to be reinforced when the height exceeds 48”"
+   ]
+  },
+  {
+   "code": "HC-151",
+   "name": "SLIM FIXED",
+   "collection": "heritage",
+   "source_page_pdf": 77,
+   "source_page_book": 73,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 128.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 128.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 140.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 140.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 158.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 158.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 176.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 176.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 194.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 194.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 212.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 212.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 230.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 230.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 19.20 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 19.2,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 11.0,
+       "max": 72.0
+      },
+      {
+       "min": 11.0,
+       "max": 72.0
+      }
+     ],
+     "raw": "*Double 11\" to 72\" 11\" to 72\""
+    },
+    {
+     "label": "Triple Pane or Tri-Pane",
+     "ranges": [
+      {
+       "min": 11.0,
+       "max": 72.0
+      },
+      {
+       "min": 11.0,
+       "max": 72.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-Pane 11\" to 72\" 11\" to 72\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Sandstone, and Sandalwood (Add 15%)"
+    },
+    {
+     "colours": [
+      "dark Bronze",
+      "Charcoal",
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Dark Bronze, Black and Charcoal (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [],
+   "notes": [
+    "Exterior Capstock colour available in: Sandstone, and Sandalwood (Add 15%)",
+    "Exterior Capstock colour available in: Dark Bronze, Black and Charcoal (Add 20%)",
+    "Neat®Naturally clean glass only available on LoE 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with LoE 180"
+   ]
+  },
+  {
+   "code": "HC-176",
+   "name": "CASEMENT FIXED",
+   "collection": "heritage",
+   "source_page_pdf": 79,
+   "source_page_book": 75,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 176.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 176.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 181.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 181.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 187.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 187.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 200.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 200.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 224.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 224.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 246.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 246.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 269.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 269.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 22.10 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 22.1,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 80.0
+      },
+      {
+       "min": 12.0,
+       "max": 80.0
+      }
+     ],
+     "raw": "*Double 12\" to 80\" 12\" to 80\""
+    },
+    {
+     "label": "Triple Pane or Tri-Pane",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 80.0
+      },
+      {
+       "min": 12.0,
+       "max": 80.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-Pane 12\" to 80\" 12\" to 80\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "dark Bronze",
+      "Charcoal",
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Dark Bronze, Black and Charcoal (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [],
+   "notes": [
+    "Exterior Capstock colour available in: Sandstone (Add 15%)",
+    "Exterior Capstock colour available in: Dark Bronze, Black and Charcoal (Add 20%)",
+    "Neat®Naturally clean glass only available on LoE 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with LoE 180"
+   ]
+  },
+  {
+   "code": "HC-401",
+   "name": "CASEMENT",
+   "collection": "heritage_maximum",
+   "source_page_pdf": 84,
+   "source_page_book": 80,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 322.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 322.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 335.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 335.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 345.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 345.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 358.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 358.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 368.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 368.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 378.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 378.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 385.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 385.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 32.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 32.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Sash not Reinforced Sash is Reinforced"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 12.5,
+       "max": 32.0
+      },
+      {
+       "min": 13.0,
+       "max": 72.0
+      },
+      {
+       "min": 32.0,
+       "max": 36.0
+      },
+      {
+       "min": 72.0,
+       "max": 78.0
+      }
+     ],
+     "raw": "*Double 12 ½\" to 32\" 13\" to 72\" 32\" to 36\" 72\" to 78\""
+    },
+    {
+     "label": "Triple Pane or Tri-Pane",
+     "ranges": [
+      {
+       "min": 12.5,
+       "max": 32.0
+      },
+      {
+       "min": 13.0,
+       "max": 66.0
+      },
+      {
+       "min": 32.0,
+       "max": 32.0
+      },
+      {
+       "min": 66.0,
+       "max": 78.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-Pane 12 ½\" to 32\" 13\" to 66\" 32\" to 32\" 66\" to 78\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "dark Bronze",
+      "Charcoal",
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Black, Dark Bronze, Charcoal (Add 20%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 40,
+     "interior_and_exterior": true,
+     "raw": "Exterior/Interior capstock colour available in Black (Add 40%)"
+    }
+   ],
+   "adders": [
+    {
+     "name": "Hardware Finish Options (multi-point lock & Premium hardware)",
+     "amount": 60.0,
+     "raw": "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)"
+    },
+    {
+     "name": "Limit Lock",
+     "amount": 30.0,
+     "raw": "Limit Lock (Add $30.00)"
+    },
+    {
+     "name": "Egress Hardware",
+     "amount": 40.0,
+     "raw": "Egress Hardware (Add $40.00)"
+    },
+    {
+     "name": "Sash Reinforcement",
+     "amount": 70.0,
+     "raw": "Sash Reinforcement: (Add $70.00)"
+    }
+   ],
+   "pct_adders": [],
+   "notes": [
+    "Specify right or left hinge looking from outside",
+    "Exterior Capstock colour available in: Sandstone (Add 15%)",
+    "Exterior Capstock colour available in: Black, Dark Bronze, Charcoal (Add 20%)",
+    "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)",
+    "(Brushed Chrome, Western Pewter, Coppertone, Antique",
+    "Premium Brass, Bright Brass, Bright Chrome, Brushed Brass, Black)",
+    "Neat®Naturally clean glass only available on LoE 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with LoE 180",
+    "Limit Lock (Add $30.00)",
+    "Egress Hardware (Add $40.00)",
+    "Sash Reinforcement: (Add $70.00)",
+    "Casement sash requires to be reinforced on exterior white or light",
+    "colour. When the height exceeds 72”",
+    "Casement sash requires to be reinforced on exterior Dark Bronze,",
+    "Black and dark paint. When the height exceeds 66”",
+    "Exterior/Interior capstock colour available in Black (Add 40%)"
+   ]
+  },
+  {
+   "code": "HC-426",
+   "name": "AWNING",
+   "collection": "heritage_maximum",
+   "source_page_pdf": 86,
+   "source_page_book": 82,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 322.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 322.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 335.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 335.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 345.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 345.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 358.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 358.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 368.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 368.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 378.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 378.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 385.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 385.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 32.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 32.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 15.75,
+       "max": 48.0
+      },
+      {
+       "min": 12.0,
+       "max": 48.0
+      }
+     ],
+     "raw": "*Double 15¾\" to 48\" 12\" to 48\""
+    },
+    {
+     "label": "Triple Pane or Tri-Pane",
+     "ranges": [
+      {
+       "min": 15.75,
+       "max": 48.0
+      },
+      {
+       "min": 12.0,
+       "max": 48.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-Pane 15¾\" to 48\" 12\" to 48\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "dark Bronze",
+      "Charcoal",
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Black, Dark Bronze, Charcoal (Add 20%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 40,
+     "interior_and_exterior": true,
+     "raw": "Exterior/Interior capstock colour available in Black (Add 40%)"
+    }
+   ],
+   "adders": [
+    {
+     "name": "Hardware Finish Options (multi-point lock & Premium hardware)",
+     "amount": 60.0,
+     "raw": "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)"
+    },
+    {
+     "name": "Sash Reinforcement",
+     "amount": 70.0,
+     "raw": "Sash Reinforcement: (Add $70.00)"
+    }
+   ],
+   "pct_adders": [],
+   "notes": [
+    "Exterior Capstock colour available in: Sandstone (Add 15%)",
+    "Exterior Capstock colour available in: Black, Dark Bronze, Charcoal (Add 20%)",
+    "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)",
+    "(Brushed Chrome, Western Pewter, Coppertone, Antique",
+    "Premium Brass, Bright Brass, Bright Chrome, Brushed Brass, Black)",
+    "Neat®Naturally clean glass only available on LoE 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with LoE 180",
+    "Sash Reinforcement: (Add $70.00)",
+    "Awning sash requires to be reinforced when the height exceeds 48”",
+    "Exterior/Interior capstock colour available in Black (Add 40%)"
+   ]
+  },
+  {
+   "code": "HC-451",
+   "name": "SLIM FIXED",
+   "collection": "heritage_maximum",
+   "source_page_pdf": 88,
+   "source_page_book": 84,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 182.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 182.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 198.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 198.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 210.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 210.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 225.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 225.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 250.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 250.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 275.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 275.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 298.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 298.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 25.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 25.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 11.0,
+       "max": 72.0
+      },
+      {
+       "min": 11.0,
+       "max": 84.0
+      }
+     ],
+     "raw": "*Double 11\" to 72\" 11\" to 84\""
+    },
+    {
+     "label": "Triple Pane or Tri-Pane",
+     "ranges": [
+      {
+       "min": 11.0,
+       "max": 72.0
+      },
+      {
+       "min": 11.0,
+       "max": 84.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-Pane 11\" to 72\" 11\" to 84\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "patched: Exterior Capstock colour available in: Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "Black",
+      "dark Bronze",
+      "Charcoal"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "patched: Exterior Capstock colour available in: Black, Dark Bronze, Charcoal (Add 20%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 40,
+     "interior_and_exterior": true,
+     "raw": "Exterior/Interior capstock colour available in Black (Add 40%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [],
+   "notes": [
+    "Exterior Capstock colour available in: Sandstone",
+    "Exterior Capstock colour available in: Black, Dark Bronze, Charcoal (Add 15%)",
+    "(Add 20%)",
+    "Hardware Finish Options (multi-point lock & Premium hardware)",
+    "(Brushed Chrome, Western Pewter, Coppertone, Antique",
+    "Premium Brass, Bright Brass, Bright Chrome, Brushed Brass, Black)",
+    "Neat®Naturally clean glass only available on LoE 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with LoE 180",
+    "Exterior/Interior capstock colour available in Black (Add 40%)"
+   ]
+  },
+  {
+   "code": "HC-476",
+   "name": "CASEMENT FIXED",
+   "collection": "heritage_maximum",
+   "source_page_pdf": 90,
+   "source_page_book": 86,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 200.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 200.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 206.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 206.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 212.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 212.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 228.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 228.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 255.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 255.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 280.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 280.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 306.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 306.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 25.50 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 25.5,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 84.0
+      },
+      {
+       "min": 12.0,
+       "max": 90.0
+      }
+     ],
+     "raw": "*Double 12\" to 84\" 12\" to 90\""
+    },
+    {
+     "label": "Triple Pane or Tri-Pane",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 84.0
+      },
+      {
+       "min": 12.0,
+       "max": 90.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-Pane 12\" to 84\" 12\" to 90\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "dark Bronze",
+      "Charcoal",
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: Black, Dark Bronze, Charcoal (Add 20%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 40,
+     "interior_and_exterior": true,
+     "raw": "Exterior/Interior capstock colour available in Black (Add 40%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [],
+   "notes": [
+    "Exterior Capstock colour available in: Sandstone (Add 15%)",
+    "Exterior Capstock colour available in: Black, Dark Bronze, Charcoal (Add 20%)",
+    "Hardware Finish Options (multi-point lock & Premium hardware)",
+    "(Brushed Chrome, Western Pewter, Coppertone, Antique",
+    "Premium Brass, Bright Brass, Bright Chrome, Brushed Brass, Black)",
+    "Neat®Naturally clean glass only available on LoE 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with LoE 180",
+    "Exterior/Interior capstock colour available in Black (Add 40%)"
+   ]
+  },
+  {
+   "code": "WC-100",
+   "name": "CASEMENT",
+   "collection": "classic",
+   "source_page_pdf": 94,
+   "source_page_book": 90,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 258.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 258.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 268.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 268.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 276.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 276.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 286.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 286.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 294.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 294.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 302.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 302.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 308.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 308.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 27.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 27.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Sash not Reinforced Sash is Reinforced"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 12.5,
+       "max": 32.0
+      },
+      {
+       "min": 13.0,
+       "max": 72.0
+      },
+      {
+       "min": 32.0,
+       "max": 36.0
+      },
+      {
+       "min": 72.0,
+       "max": 78.0
+      }
+     ],
+     "raw": "*Double 121/2” to 32” 13” to 72” 32” to 36” 72” to 78”"
+    },
+    {
+     "label": "Triple Pane or Tri-pane",
+     "ranges": [
+      {
+       "min": 12.5,
+       "max": 32.0
+      },
+      {
+       "min": 13.0,
+       "max": 66.0
+      },
+      {
+       "min": 32.0,
+       "max": 32.0
+      },
+      {
+       "min": 66.0,
+       "max": 78.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-pane 121/2” to 32” 13” to 66” 32” to 32” 66” to 78”"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colours available in: Sandalwood, Sandstone. (Add 15%)"
+    },
+    {
+     "colours": [
+      "dark Bronze",
+      "Charcoal",
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: dark Bronze, Black and Charcoal (Add 20%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 40,
+     "interior_and_exterior": true,
+     "raw": "Exterior/Interior capstock colour available in Black (Add 40%)"
+    }
+   ],
+   "adders": [
+    {
+     "name": "Hardware Finish Options (multi-point lock & Premium hardware)",
+     "amount": 60.0,
+     "raw": "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)"
+    },
+    {
+     "name": "Limit Lock",
+     "amount": 30.0,
+     "raw": "Limit Lock (Add $30.00)"
+    },
+    {
+     "name": "Egress hardware",
+     "amount": 40.0,
+     "raw": "Egress hardware (Add $40.00)"
+    },
+    {
+     "name": "Sash Reinforcement",
+     "amount": 70.0,
+     "raw": "Sash Reinforcement: (Add $70.00)"
+    }
+   ],
+   "pct_adders": [],
+   "notes": [
+    "Specify right or left hinge looking from outside",
+    "Exterior Capstock colours available in: Sandalwood, Sandstone. (Add 15%)",
+    "Exterior Capstock colour available in: dark Bronze, Black and Charcoal (Add 20%)",
+    "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)",
+    "(Brushed Chrome, Western Pewter, Coppertone, Antique Brass, Bright Brass,",
+    "Bright Chrome, Brushed Brass, Black)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "For paint options and pricing, see page 17",
+    "i89 available with Loe 180 Neat",
+    "Limit Lock (Add $30.00)",
+    "Egress hardware (Add $40.00)",
+    "Sash Reinforcement: (Add $70.00)",
+    "Casement sash requires to be reinforced on exterior white or light colour.",
+    "When the height exceeds 72”",
+    "Casement sash requires to be reinforced on exterior dark Bronze, Black,",
+    "Charcoal and dark paint. When the height exceeds 66”",
+    "Exterior/Interior capstock colour available in Black (Add 40%)"
+   ]
+  },
+  {
+   "code": "WC-125",
+   "name": "AWNING",
+   "collection": "classic",
+   "source_page_pdf": 96,
+   "source_page_book": 92,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 258.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 258.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 268.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 268.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 276.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 276.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 286.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 286.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 294.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 294.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 302.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 302.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 308.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 308.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 27.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 27.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 15.75,
+       "max": 48.0
+      },
+      {
+       "min": 12.0,
+       "max": 40.0
+      }
+     ],
+     "raw": "*Double 153/4” to 48” 12” to 40”"
+    },
+    {
+     "label": "Triple Pane or Tri-pane",
+     "ranges": [
+      {
+       "min": 15.75,
+       "max": 48.0
+      },
+      {
+       "min": 12.0,
+       "max": 40.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-pane 153/4” to 48” 12” to 40”"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colours available in: Sandalwood, Sandstone. (Add 15%)"
+    },
+    {
+     "colours": [
+      "dark Bronze",
+      "Charcoal",
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colour available in: dark Bronze, Charcoal, Black (Add 20%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 40,
+     "interior_and_exterior": true,
+     "raw": "Exterior/Interior capstock colour available in Black (Add 40%)"
+    }
+   ],
+   "adders": [
+    {
+     "name": "Hardware Finish Options (multi-point lock & Premium hardware)",
+     "amount": 60.0,
+     "raw": "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)"
+    },
+    {
+     "name": "Sash Reinforcement",
+     "amount": 70.0,
+     "raw": "Sash Reinforcement: (Add $70.00)"
+    }
+   ],
+   "pct_adders": [],
+   "notes": [
+    "Exterior Capstock colours available in: Sandalwood, Sandstone. (Add 15%)",
+    "Exterior Capstock colour available in: dark Bronze, Charcoal, Black (Add 20%)",
+    "Hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)",
+    "(Brushed Chrome, Western Pewter, Coppertone, Antique Brass, Bright",
+    "Brass, Bright Chrome, Brushed Brass, Black)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with Loe 180",
+    "Sash Reinforcement: (Add $70.00)",
+    "Awning sash requires to be reinforced when the height exceeds 48”",
+    "Exterior/Interior capstock colour available in Black (Add 40%)"
+   ]
+  },
+  {
+   "code": "WC-150",
+   "name": "SLIM FIXED",
+   "collection": "classic",
+   "source_page_pdf": 98,
+   "source_page_book": 94,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 146.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 146.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 158.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 158.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 168.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 168.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 180.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 180.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 200.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 200.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 220.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 220.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 238.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 238.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 19.80 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 19.8,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 11.0,
+       "max": 72.0
+      },
+      {
+       "min": 11.0,
+       "max": 84.0
+      }
+     ],
+     "raw": "*double 11\" to 72\" 11\" to 84\""
+    },
+    {
+     "label": "tri-Pane",
+     "ranges": [
+      {
+       "min": 11.0,
+       "max": 72.0
+      },
+      {
+       "min": 11.0,
+       "max": 84.0
+      }
+     ],
+     "raw": "*tri-Pane 11\" to 72\" 11\" to 84\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colours available in: Black (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [],
+   "notes": [
+    "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)",
+    "exterior Capstock colours available in: Black (Add 20%)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with Loe 180"
+   ]
+  },
+  {
+   "code": "WC-175",
+   "name": "FIXED CASEMENT",
+   "collection": "classic",
+   "source_page_pdf": 100,
+   "source_page_book": 96,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 160.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 160.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 165.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 165.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 170.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 170.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 182.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 182.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 204.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 204.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 224.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 224.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 245.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 245.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 20.10 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 20.1,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "WIDTH HEIGHT"
+    },
+    {
+     "label": "Double",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 84.0
+      },
+      {
+       "min": 12.0,
+       "max": 90.0
+      }
+     ],
+     "raw": "*Double 12” to 84” 12” to 90”"
+    },
+    {
+     "label": "Triple Pane or Tri-pane",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 84.0
+      },
+      {
+       "min": 12.0,
+       "max": 90.0
+      }
+     ],
+     "raw": "*Triple Pane or Tri-pane 12” to 84” 12” to 90”"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "Exterior Capstock colours available in: Black (Add 20%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 40,
+     "interior_and_exterior": true,
+     "raw": "Exterior/Interior capstock colour available in Black (Add 40%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [],
+   "notes": [
+    "Exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)",
+    "Exterior Capstock colours available in: Black (Add 20%)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with Loe 180",
+    "Exterior/Interior capstock colour available in Black (Add 40%)"
+   ]
+  },
+  {
+   "code": "WC-200",
+   "name": "SINGLE SLIDER TILT",
+   "collection": "classic",
+   "source_page_pdf": 102,
+   "source_page_book": 98,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 204.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 204.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 210.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 210.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 220.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 220.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 228.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 228.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 232.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 232.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 242.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 242.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 248.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 248.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 21.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 21.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 22.0,
+       "max": 72.0
+      },
+      {
+       "min": 11.5,
+       "max": 44.0
+      }
+     ],
+     "raw": "*double 22\" to 72\" 11½\" to 44\""
+    },
+    {
+     "label": "triple Pane / tri-Pane",
+     "ranges": [
+      {
+       "min": 22.0,
+       "max": 72.0
+      },
+      {
+       "min": 11.5,
+       "max": 44.0
+      }
+     ],
+     "raw": "*triple Pane / tri-Pane 22\" to 72\" 11½\" to 44\""
+    },
+    {
+     "label": "end Vent (double glaze)",
+     "ranges": [
+      {
+       "min": 42.0,
+       "max": 96.0
+      },
+      {
+       "min": 11.5,
+       "max": 44.0
+      }
+     ],
+     "raw": "*end Vent (double glaze) 42\" to 96\" 11½\" to 44\""
+    },
+    {
+     "label": "triple Pane / tri-Pane",
+     "ranges": [
+      {
+       "min": 42.0,
+       "max": 96.0
+      },
+      {
+       "min": 11.5,
+       "max": 44.0
+      }
+     ],
+     "raw": "*triple Pane / tri-Pane 42\" to 96\" 11½\" to 44\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colour available in Black (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [
+    {
+     "name": "Offset",
+     "pct": 20,
+     "raw": "Offset (Add 20%)"
+    }
+   ],
+   "notes": [
+    "Normal slide is left to right (as viewed from outside). Opposite",
+    "slide is available but must be specified on the order",
+    "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)",
+    "exterior Capstock colour available in Black (Add 20%)",
+    "Offset (Add 20%)",
+    "end Vents (3-lite slider - both end sashes operate) (minimum charge 18sqft)",
+    "Please note end vents are 1/3, 1/3, 1/3 unless otherwise noted",
+    "Neat® naturally clean glass only available on Loe 180",
+    "i89 only available with Loe 180",
+    "With exterior black capstock windows standard screen is solid black"
+   ]
+  },
+  {
+   "code": "WC-201",
+   "name": "SINGLE HUNG TILT",
+   "collection": "classic",
+   "source_page_pdf": 104,
+   "source_page_book": 100,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 228.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 228.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 234.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 234.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 244.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 244.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 252.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 252.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 256.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 256.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 266.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 266.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 272.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 272.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 22.18 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 22.18,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 11.5,
+       "max": 40.0
+      },
+      {
+       "min": 22.0,
+       "max": 72.0
+      }
+     ],
+     "raw": "*double 11½\" to 40\" 22\" to 72\""
+    },
+    {
+     "label": "tri-Pane - triple Pane",
+     "ranges": [
+      {
+       "min": 11.5,
+       "max": 40.0
+      },
+      {
+       "min": 22.0,
+       "max": 72.0
+      }
+     ],
+     "raw": "*tri-Pane - triple Pane 11½\" to 40\" 22\" to 72\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colour available in Black (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [
+    {
+     "name": "Offset",
+     "pct": 20,
+     "raw": "Offset (Add 20%)"
+    }
+   ],
+   "notes": [
+    "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)",
+    "exterior Capstock colour available in Black (Add 20%)",
+    "Offset (Add 20%)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "i89 only available with Loe 180",
+    "With exterior black capstock windows standard screen is solid black"
+   ]
+  },
+  {
+   "code": "WC-250",
+   "name": "DOUBLE SLIDER TILT",
+   "collection": "classic",
+   "source_page_pdf": 106,
+   "source_page_book": 102,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 224.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 224.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 230.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 230.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 240.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 240.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 246.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 246.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 254.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 254.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 264.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 264.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 276.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 276.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 22.60 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 22.6,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height SCReeN SUPPORt"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 24.25,
+       "max": 66.0
+      },
+      {
+       "min": 12.5,
+       "max": 44.0
+      }
+     ],
+     "raw": "*double 24¼\" to 66\" 12½\" to 44\" FRAMe Width With BAR"
+    },
+    {
+     "label": "tri-Pane - triple Pane",
+     "ranges": [
+      {
+       "min": 24.25,
+       "max": 66.0
+      },
+      {
+       "min": 12.5,
+       "max": 44.0
+      }
+     ],
+     "raw": "*tri-Pane - triple Pane 24¼\" to 66\" 12½\" to 44\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "0 to 50˝ N"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options. 50˝ plus Y"
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colour available in Black (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [
+    {
+     "name": "Offset",
+     "pct": 20,
+     "raw": "Offset (Add 20%)"
+    }
+   ],
+   "notes": [
+    "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)",
+    "exterior Capstock colour available in Black (Add 20%)",
+    "Offset (Add 20%)",
+    "Vent latch is optional for an additional charge ($2.00 per set)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "i89 only available with Loe 180",
+    "With exterior black capstock windows standard screen is solid black"
+   ]
+  },
+  {
+   "code": "WC-251",
+   "name": "DOUBLE HUNG TILT",
+   "collection": "classic",
+   "source_page_pdf": 108,
+   "source_page_book": 104,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 246.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 246.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 254.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 254.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 260.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 260.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 268.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 268.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 276.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 276.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 284.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 284.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 292.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 292.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 23.60 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 23.6,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height SCReeN SUPPORt"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 12.5,
+       "max": 40.0
+      },
+      {
+       "min": 24.25,
+       "max": 66.0
+      }
+     ],
+     "raw": "*double 12½\" to 40\" 24¼\" to 66\" FRAMe Width With BAR"
+    },
+    {
+     "label": "tri-Pane - triple Pane",
+     "ranges": [
+      {
+       "min": 12.5,
+       "max": 40.0
+      },
+      {
+       "min": 24.25,
+       "max": 66.0
+      }
+     ],
+     "raw": "*tri-Pane - triple Pane 12½\" to 40\" 24¼\" to 66\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options. 0 to 50˝ N"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "50˝ plus Y"
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colour available in Black (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [
+    {
+     "name": "Offset",
+     "pct": 20,
+     "raw": "Offset (Add 20%)"
+    }
+   ],
+   "notes": [
+    "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)",
+    "exterior Capstock colour available in Black (Add 20%)",
+    "Offset (Add 20%)",
+    "Vent latch is optional for an additional charge ($2.00 per set)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "i89 only available with Loe 180",
+    "With exterior black capstock windows standard screen solid is black"
+   ]
+  },
+  {
+   "code": "WC-300",
+   "name": "SINGLE SLIDER LIFT OUT",
+   "collection": "classic",
+   "source_page_pdf": 110,
+   "source_page_book": 106,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 210.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 210.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 216.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 216.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 226.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 226.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 234.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 234.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 238.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 238.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 250.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 250.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 254.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 254.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 21.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 21.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 24.0,
+       "max": 72.0
+      },
+      {
+       "min": 15.0,
+       "max": 44.0
+      }
+     ],
+     "raw": "*double 24\" to 72\" 15\" to 44\""
+    },
+    {
+     "label": "tri-Pane - triple Pane",
+     "ranges": [
+      {
+       "min": 24.0,
+       "max": 72.0
+      },
+      {
+       "min": 15.0,
+       "max": 44.0
+      }
+     ],
+     "raw": "*tri-Pane - triple Pane 24\" to 72\" 15\" to 44\""
+    },
+    {
+     "label": "end Vent (double glaze)",
+     "ranges": [
+      {
+       "min": 42.0,
+       "max": 96.0
+      },
+      {
+       "min": 15.0,
+       "max": 44.0
+      }
+     ],
+     "raw": "*end Vent (double glaze) 42\" to 96\" 15\" to 44\""
+    },
+    {
+     "label": "end Vent (tri-pane)",
+     "ranges": [
+      {
+       "min": 42.0,
+       "max": 96.0
+      },
+      {
+       "min": 15.0,
+       "max": 44.0
+      }
+     ],
+     "raw": "*end Vent (tri-pane) 42\" to 96\" 15\" to 44\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colours available in Sandalwood and Sandstone (Add 15%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [
+    {
+     "name": "Offset",
+     "pct": 20,
+     "raw": "Offset (Add 20%)"
+    }
+   ],
+   "notes": [
+    "Normal slide is left to right (as viewed from outside).",
+    "Opposite slide is available, must be specified on the order.",
+    "exterior Capstock colours available in Sandalwood and Sandstone (Add 15%)",
+    "Offset (Add 20%)",
+    "end Vents (3-lite slider - both end sashes operate) (minimum charge 18sqft)",
+    "end vents are 1/3, 1/3, 1/3 unless otherwise noted",
+    "Limit Lock (Aluminum Cast) (Add $20.00 each)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "i89 only available with Loe 180"
+   ]
+  },
+  {
+   "code": "WC-325",
+   "name": "SINGLE SLIDER LIFT OUT",
+   "collection": "classic",
+   "source_page_pdf": 112,
+   "source_page_book": 108,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 168.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 168.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 178.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 178.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 188.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 188.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 198.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 198.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 208.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 208.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 218.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 218.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 228.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 228.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 19.90 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 19.9,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 22.0,
+       "max": 72.0
+      },
+      {
+       "min": 10.75,
+       "max": 44.0
+      }
+     ],
+     "raw": "*double 22\" to 72\" 10¾\" to 44\""
+    },
+    {
+     "label": "tri-Pane - triple Pane",
+     "ranges": [
+      {
+       "min": 22.0,
+       "max": 72.0
+      },
+      {
+       "min": 10.75,
+       "max": 44.0
+      }
+     ],
+     "raw": "*tri-Pane - triple Pane 22\" to 72\" 10¾\" to 44\""
+    },
+    {
+     "label": "end Vent (double glaze)",
+     "ranges": [
+      {
+       "min": 42.0,
+       "max": 96.0
+      },
+      {
+       "min": 10.75,
+       "max": 44.0
+      }
+     ],
+     "raw": "*end Vent (double glaze) 42\" to 96\" 10¾\" to 44\""
+    },
+    {
+     "label": "end Vent (tri-pane)",
+     "ranges": [
+      {
+       "min": 42.0,
+       "max": 96.0
+      },
+      {
+       "min": 10.75,
+       "max": 44.0
+      }
+     ],
+     "raw": "*end Vent (tri-pane) 42\" to 96\" 10¾\" to 44\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood",
+      "Sandstone"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)"
+    },
+    {
+     "colours": [
+      "Black"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colour available in:Black (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [
+    {
+     "name": "Offset",
+     "pct": 20,
+     "raw": "Offset (Add 20%)"
+    }
+   ],
+   "notes": [
+    "Normal slide is left to right (as viewed from outside). Opposite",
+    "slide is available, must be specified on the order.",
+    "exterior Capstock colours available in: Sandalwood, Sandstone (Add 15%)",
+    "exterior Capstock colour available in:Black (Add 20%)",
+    "Offset (Add 20%)",
+    "end Vents (3-lite slider - both end sashes operate) (minimum charge 18sqft)",
+    "Please note end vents are 1/3, 1/3, 1/3 unless otherwise noted",
+    "Limit Lock (Aluminum cast) (Add $20.00 each)",
+    "Brickmould not available",
+    "Neat® naturally clean glass only available on Loe 180",
+    "i89 only available with Loe 180",
+    "With exterior black capstock windows standard screen is",
+    "solid black"
+   ]
+  },
+  {
+   "code": "WC-350",
+   "name": "DOUBLE SLIDER LIFT OUT",
+   "collection": "classic",
+   "source_page_pdf": 114,
+   "source_page_book": 110,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 190.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 190.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 200.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 200.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 210.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 210.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 220.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 220.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 230.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 230.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 240.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 240.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 250.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 250.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 20.80 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 20.8,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height SCReeN SUPPORt"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 24.25,
+       "max": 72.0
+      },
+      {
+       "min": 12.625,
+       "max": 44.0
+      }
+     ],
+     "raw": "*double 24¼\" to 72\" 125 \" to 44\""
+    },
+    {
+     "label": "tri-Pane - triple Pane",
+     "ranges": [
+      {
+       "min": 24.25,
+       "max": 72.0
+      },
+      {
+       "min": 12.625,
+       "max": 44.0
+      }
+     ],
+     "raw": "*tri-Pane - triple Pane 24¼\" to 72\" 12 ⁄8\" to 44\" FRAMe Width With BAR"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "5⁄8"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options. 0 to 50˝ N"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "50˝ plus Y"
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior Capstock colours available in: Sandalwood (Add 15%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [
+    {
+     "name": "Offset",
+     "pct": 20,
+     "raw": "Offset (Add 20%)"
+    }
+   ],
+   "notes": [
+    "exterior Capstock colours available in: Sandalwood (Add 15%)",
+    "Offset (Add 20%)",
+    "Vent latch is optional for an additional charge ($2.00 per set)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "i89 only available with Loe 180"
+   ]
+  },
+  {
+   "code": "WC-400",
+   "name": "CASEMENT",
+   "collection": "classic",
+   "source_page_pdf": 116,
+   "source_page_book": 112,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 284.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 284.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 295.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 295.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 304.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 304.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 315.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 315.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 324.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 324.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 334.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 334.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 339.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 339.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 28.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 28.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Sash not Reinforced Sash is Reinforced"
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height Width height"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 13.0,
+       "max": 32.0
+      },
+      {
+       "min": 13.5,
+       "max": 72.0
+      },
+      {
+       "min": 32.0,
+       "max": 36.0
+      },
+      {
+       "min": 72.0,
+       "max": 78.0
+      }
+     ],
+     "raw": "*double 13\" to 32\" 13½\" to 72\" 32\" to 36\" 72\" to 78\""
+    },
+    {
+     "label": "tri-Pane or triple Pane",
+     "ranges": [
+      {
+       "min": 13.0,
+       "max": 32.0
+      },
+      {
+       "min": 13.5,
+       "max": 66.0
+      },
+      {
+       "min": 32.0,
+       "max": 32.0
+      },
+      {
+       "min": 66.0,
+       "max": 78.0
+      }
+     ],
+     "raw": "*tri-Pane or triple Pane 13\" to 32\" 13½\" to 66\" 32\" to 32\" 66\" to 78\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior available in Sandalwood two-tone capstock colour (Add 15%)"
+    },
+    {
+     "colours": [
+      "Charcoal"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior available in Charcoal two-tone capstock colour (Add 20%)"
+    }
+   ],
+   "adders": [
+    {
+     "name": "hardware Finish Options (multi-point lock & Premium hardware)",
+     "amount": 60.0,
+     "raw": "hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)"
+    },
+    {
+     "name": "Limit Lock",
+     "amount": 30.0,
+     "raw": "Limit Lock (Add $30.00)"
+    },
+    {
+     "name": "egress hardware",
+     "amount": 40.0,
+     "raw": "egress hardware (Add $40.00)"
+    },
+    {
+     "name": "Sash Reinforcement",
+     "amount": 70.0,
+     "raw": "Sash Reinforcement: (Add $70.00)"
+    }
+   ],
+   "pct_adders": [],
+   "notes": [
+    "Specify right or left hinge looking from outside",
+    "exterior available in Sandalwood two-tone capstock colour (Add 15%)",
+    "exterior available in Charcoal two-tone capstock colour (Add 20%)",
+    "hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)",
+    "(Brushed Chrome, Western Pewter, Coppertone, Antique Brass, Bright Brass,",
+    "Bright Chrome, Brushed Brass, Black)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with Loe 180",
+    "Limit Lock (Add $30.00)",
+    "egress hardware (Add $40.00)",
+    "Sash Reinforcement: (Add $70.00)",
+    "Casement sash requires to be reinforced on exterior white or light colour.",
+    "When the height exceeds 72”",
+    "Casement sash requires to be reinforced on exterior Charcoal colour when the",
+    "height exceeds 66”"
+   ]
+  },
+  {
+   "code": "WC-425",
+   "name": "AWNING",
+   "collection": "classic",
+   "source_page_pdf": 118,
+   "source_page_book": 114,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 284.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 284.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 295.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 295.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 304.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 304.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 315.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 315.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 324.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 324.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 334.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 334.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 339.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 339.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 28.00 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 28.0,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 16.25,
+       "max": 48.0
+      },
+      {
+       "min": 12.5,
+       "max": 40.0
+      }
+     ],
+     "raw": "*double 16¼\" to 48\" 12½\" to 40\""
+    },
+    {
+     "label": "tri-Pane or triple Pane",
+     "ranges": [
+      {
+       "min": 16.25,
+       "max": 48.0
+      },
+      {
+       "min": 12.5,
+       "max": 40.0
+      }
+     ],
+     "raw": "*tri-Pane or triple Pane 16¼\" to 48\" 12½\" to 40\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior available in Sandalwood two-tone capstock colour (Add 15%)"
+    },
+    {
+     "colours": [
+      "Charcoal"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior available in Charcoal two-tone capstock colour (Add 20%)"
+    }
+   ],
+   "adders": [
+    {
+     "name": "hardware Finish Options (multi-point lock & Premium hardware)",
+     "amount": 60.0,
+     "raw": "hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)"
+    },
+    {
+     "name": "Sash Reinforcement",
+     "amount": 70.0,
+     "raw": "Sash Reinforcement: (Add $70.00)"
+    }
+   ],
+   "pct_adders": [],
+   "notes": [
+    "exterior available in Sandalwood two-tone capstock colour (Add 15%)",
+    "exterior available in Charcoal two-tone capstock colour (Add 20%)",
+    "hardware Finish Options (multi-point lock & Premium hardware) (Add $60.00)",
+    "(Brushed Chrome, Western Pewter, Coppertone, Antique Brass, Bright Brass,",
+    "Bright Chrome, Brushed Brass, Black)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with Loe 180",
+    "Sash Reinforcement: (Add $70.00)",
+    "Awning sash requires to be reinforced when the height exceeds 48”"
+   ]
+  },
+  {
+   "code": "WC-450",
+   "name": "SLIM FIXED",
+   "collection": "classic",
+   "source_page_pdf": 120,
+   "source_page_book": 116,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 125.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 125.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 139.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 139.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 159.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 159.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 178.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 178.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 198.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 198.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 218.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 218.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 237.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 237.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 19.90 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 19.9,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 80.0
+      },
+      {
+       "min": 12.0,
+       "max": 80.0
+      }
+     ],
+     "raw": "*double 12\" to 80\" 12\" to 80\""
+    },
+    {
+     "label": "tri-Pane or triple Pane",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 80.0
+      },
+      {
+       "min": 12.0,
+       "max": 80.0
+      }
+     ],
+     "raw": "*tri-Pane or triple Pane 12\" to 80\" 12\" to 80\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior available in Sandalwood two-tone capstock colour (Add 15%)"
+    },
+    {
+     "colours": [
+      "Charcoal"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior available in Charcoal two-tone capstock colour (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [],
+   "notes": [
+    "exterior available in Sandalwood two-tone capstock colour (Add 15%)",
+    "exterior available in Charcoal two-tone capstock colour (Add 20%)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with Loe 180"
+   ]
+  },
+  {
+   "code": "WC-475",
+   "name": "FIXED CASEMENT",
+   "collection": "classic",
+   "source_page_pdf": 122,
+   "source_page_book": 118,
+   "tiers": [
+    {
+     "tier": "up to 6",
+     "min_sqft": 0.0,
+     "max_sqft": 6.0,
+     "raw": "up to 6 176.00 12.00 36.00 6.00 36.00 72.00 54.00 66.00 24.00",
+     "base_white": 176.0,
+     "loe180": 12.0,
+     "loe180_i89": 36.0,
+     "argon": 6.0,
+     "argon_krypton_5050": 36.0,
+     "krypton": 72.0,
+     "triple_pane_upcharge": 54.0,
+     "tri_pane_lami": 66.0,
+     "frost_or_tint": 24.0
+    },
+    {
+     "tier": ">6 to 7",
+     "min_sqft": 6.0,
+     "max_sqft": 7.0,
+     "raw": ">6 to 7 181.00 14.00 42.00 7.00 42.00 84.00 63.00 77.00 28.00",
+     "base_white": 181.0,
+     "loe180": 14.0,
+     "loe180_i89": 42.0,
+     "argon": 7.0,
+     "argon_krypton_5050": 42.0,
+     "krypton": 84.0,
+     "triple_pane_upcharge": 63.0,
+     "tri_pane_lami": 77.0,
+     "frost_or_tint": 28.0
+    },
+    {
+     "tier": ">7 to 8",
+     "min_sqft": 7.0,
+     "max_sqft": 8.0,
+     "raw": ">7 to 8 187.00 16.00 48.00 8.00 48.00 96.00 72.00 88.00 32.00",
+     "base_white": 187.0,
+     "loe180": 16.0,
+     "loe180_i89": 48.0,
+     "argon": 8.0,
+     "argon_krypton_5050": 48.0,
+     "krypton": 96.0,
+     "triple_pane_upcharge": 72.0,
+     "tri_pane_lami": 88.0,
+     "frost_or_tint": 32.0
+    },
+    {
+     "tier": ">8 to 9",
+     "min_sqft": 8.0,
+     "max_sqft": 9.0,
+     "raw": ">8 to 9 200.00 18.00 54.00 9.00 54.00 108.00 81.00 99.00 36.00",
+     "base_white": 200.0,
+     "loe180": 18.0,
+     "loe180_i89": 54.0,
+     "argon": 9.0,
+     "argon_krypton_5050": 54.0,
+     "krypton": 108.0,
+     "triple_pane_upcharge": 81.0,
+     "tri_pane_lami": 99.0,
+     "frost_or_tint": 36.0
+    },
+    {
+     "tier": ">9 to 10",
+     "min_sqft": 9.0,
+     "max_sqft": 10.0,
+     "raw": ">9 to 10 224.00 20.00 60.00 10.00 60.00 120.00 90.00 110.00 40.00",
+     "base_white": 224.0,
+     "loe180": 20.0,
+     "loe180_i89": 60.0,
+     "argon": 10.0,
+     "argon_krypton_5050": 60.0,
+     "krypton": 120.0,
+     "triple_pane_upcharge": 90.0,
+     "tri_pane_lami": 110.0,
+     "frost_or_tint": 40.0
+    },
+    {
+     "tier": ">10 to 11",
+     "min_sqft": 10.0,
+     "max_sqft": 11.0,
+     "raw": ">10 to 11 246.00 22.00 66.00 11.00 66.00 132.00 99.00 121.00 44.00",
+     "base_white": 246.0,
+     "loe180": 22.0,
+     "loe180_i89": 66.0,
+     "argon": 11.0,
+     "argon_krypton_5050": 66.0,
+     "krypton": 132.0,
+     "triple_pane_upcharge": 99.0,
+     "tri_pane_lami": 121.0,
+     "frost_or_tint": 44.0
+    },
+    {
+     "tier": ">11 to 12",
+     "min_sqft": 11.0,
+     "max_sqft": 12.0,
+     "raw": ">11 to 12 269.00 24.00 72.00 12.00 72.00 144.00 108.00 132.00 48.00",
+     "base_white": 269.0,
+     "loe180": 24.0,
+     "loe180_i89": 72.0,
+     "argon": 12.0,
+     "argon_krypton_5050": 72.0,
+     "krypton": 144.0,
+     "triple_pane_upcharge": 108.0,
+     "tri_pane_lami": 132.0,
+     "frost_or_tint": 48.0
+    },
+    {
+     "tier": ">12",
+     "min_sqft": 12.0,
+     "max_sqft": null,
+     "raw": ">12 22.10 2.00 6.00 1.00 6.00 12.00 9.00 11.00 4.00",
+     "base_white": 22.1,
+     "loe180": 2.0,
+     "loe180_i89": 6.0,
+     "argon": 1.0,
+     "argon_krypton_5050": 6.0,
+     "krypton": 12.0,
+     "triple_pane_upcharge": 9.0,
+     "tri_pane_lami": 11.0,
+     "frost_or_tint": 4.0
+    }
+   ],
+   "sizes": [
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "Width height"
+    },
+    {
+     "label": "double",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 80.0
+      },
+      {
+       "min": 12.0,
+       "max": 80.0
+      }
+     ],
+     "raw": "*double 12\" to 80\" 12\" to 80\""
+    },
+    {
+     "label": "tri-Pane or triple Pane",
+     "ranges": [
+      {
+       "min": 12.0,
+       "max": 80.0
+      },
+      {
+       "min": 12.0,
+       "max": 80.0
+      }
+     ],
+     "raw": "*tri-Pane or triple Pane 12\" to 80\" 12\" to 80\""
+    },
+    {
+     "label": null,
+     "ranges": [],
+     "raw": "* Some Manufacturing restrictions may apply based upon overall size and glass options."
+    }
+   ],
+   "colour_upcharges": [
+    {
+     "colours": [
+      "Sandalwood"
+     ],
+     "pct": 15,
+     "interior_and_exterior": false,
+     "raw": "exterior available in Sandalwood two-tone capstock colour (Add 15%)"
+    },
+    {
+     "colours": [
+      "Charcoal"
+     ],
+     "pct": 20,
+     "interior_and_exterior": false,
+     "raw": "exterior available in Charcoal two-tone capstock colour (Add 20%)"
+    }
+   ],
+   "adders": [],
+   "pct_adders": [],
+   "notes": [
+    "exterior available in Sandalwood two-tone capstock colour (Add 15%)",
+    "exterior available in Charcoal two-tone capstock colour (Add 20%)",
+    "Neat® naturally clean glass only available on Loe 180",
+    "For paint options and pricing, see page 17",
+    "i89 only available with Loe 180"
+   ]
+  }
+ ]
+}

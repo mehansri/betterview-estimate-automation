@@ -1,0 +1,36 @@
+{
+  "currency": "CAD",
+  "minimum_markup_percent": 20.0,
+  "presets": [
+    {
+      "id": "standard",
+      "name": "Standard",
+      "description": "Normal sales price with the current 30% markup.",
+      "markup_percent": 30.0,
+      "default_discount_percent": 0.0,
+      "max_discount_percent": 10.0,
+      "minimum_markup_percent": 20.0,
+      "active": true
+    },
+    {
+      "id": "competitive",
+      "name": "Competitive",
+      "description": "A more competitive price for price-sensitive opportunities.",
+      "markup_percent": 25.0,
+      "default_discount_percent": 0.0,
+      "max_discount_percent": 5.0,
+      "minimum_markup_percent": 20.0,
+      "active": true
+    },
+    {
+      "id": "floor",
+      "name": "Floor",
+      "description": "Lowest standard sales package before manager approval.",
+      "markup_percent": 20.0,
+      "default_discount_percent": 0.0,
+      "max_discount_percent": 0.0,
+      "minimum_markup_percent": 20.0,
+      "active": true
+    }
+  ]
+}
