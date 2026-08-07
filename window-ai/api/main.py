@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import admin, doors, health, import_estimates, predict, quote
+from api.routes import admin, customer_estimates, doors, health, import_estimates, predict, quote
 from api.services.predictor import get_predictor
 from utils.logging import get_logger
 from utils.paths import ensure_dirs
@@ -45,5 +45,6 @@ app.include_router(health.router)
 app.include_router(predict.router)
 app.include_router(quote.router)
 app.include_router(doors.router)
+app.include_router(customer_estimates.router)
 app.include_router(import_estimates.router)
 app.include_router(admin.router)

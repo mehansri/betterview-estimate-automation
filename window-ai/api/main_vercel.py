@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import admin, doors, quote
+from api.routes import admin, customer_estimates, doors, quote
 
 
 app = FastAPI(
@@ -29,4 +29,5 @@ def health() -> dict[str, object]:
 
 app.include_router(quote.router)
 app.include_router(doors.router)
+app.include_router(customer_estimates.router)
 app.include_router(admin.router)

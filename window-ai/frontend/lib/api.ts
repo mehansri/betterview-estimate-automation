@@ -391,6 +391,105 @@ export type DoorProjectResponse = {
   totals: Omit<DoorOpeningQuote, "label" | "opening_type" | "material" | "finish" | "finish_label" | "line_items" | "discount" | "install_tier" | "markup" | "hst_rate" | "notes">;
 };
 
+export type CustomerEstimateStatus = "draft" | "priced" | "finalized";
+
+export type CustomerWindowLine = {
+  id: string;
+  location: string;
+  description: string;
+  spec: QuoteLineInput;
+};
+
+export type CustomerDoorOpening = {
+  id: string;
+  location: string;
+  description: string;
+  spec: DoorOpeningSpec;
+};
+
+export type CustomerEstimateDraft = {
+  customer_name: string;
+  company_name: string;
+  email: string;
+  phone: string;
+  project_name: string;
+  project_address: string;
+  salesperson: string;
+  estimate_date: string;
+  valid_until: string;
+  description: string;
+  notes: string;
+  terms: string;
+  windows: CustomerWindowLine[];
+  doors: CustomerDoorOpening[];
+  commercial: CommercialSettings;
+};
+
+export type CustomerEstimatePricing = {
+  pricing_hash: string;
+  priced_at: string;
+  review_required: boolean;
+  warnings: QuoteWarning[];
+  price_versions: Record<string, unknown>;
+  sections: {
+    windows: {
+      lines: Array<{
+        id: string;
+        location: string;
+        description: string;
+        qty: number;
+        unit_price: number;
+        line_total: number;
+      }>;
+      subtotal: number;
+      hst: number;
+      total: number;
+    };
+    doors: {
+      openings: Array<{
+        id: string;
+        location: string;
+        label: string;
+        material: string;
+        finish_label: string;
+        items: Array<{ description: string; qty: number; unit_price: number; line_total: number }>;
+        subtotal: number;
+        hst: number;
+        total: number;
+      }>;
+      subtotal: number;
+      hst: number;
+      total: number;
+    };
+  };
+  totals: { subtotal: number; hst: number; total: number; currency: string };
+  window_quote?: DeterministicQuoteResponse | null;
+  door_quote?: Record<string, unknown> | null;
+};
+
+export type CustomerEstimate = CustomerEstimateDraft & {
+  id: string;
+  estimate_number?: string | null;
+  status: CustomerEstimateStatus;
+  pricing?: CustomerEstimatePricing | null;
+  pricing_hash?: string | null;
+  created_at: string;
+  updated_at: string;
+  finalized_at?: string | null;
+};
+
+export type CustomerEstimateSummary = {
+  id: string;
+  estimate_number?: string | null;
+  status: CustomerEstimateStatus;
+  customer_name: string;
+  company_name: string;
+  project_name: string;
+  total?: number | null;
+  updated_at: string;
+  finalized_at?: string | null;
+};
+
 /**
  * Prefer same-origin (empty string) so Next.js rewrites proxy to the FastAPI backend.
  */
@@ -565,6 +664,56 @@ export async function quoteDoors(openings: DoorOpeningSpec[]): Promise<DoorProje
     const detail = await res.text();
     throw new Error(formatApiError(res.status, detail));
   }
+  return res.json();
+}
+
+export async function createCustomerEstimate(draft: CustomerEstimateDraft): Promise<CustomerEstimate> {
+  const res = await apiFetch("/api/customer-estimates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(draft),
+  });
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
+  return res.json();
+}
+
+export async function fetchCustomerEstimates(): Promise<CustomerEstimateSummary[]> {
+  const res = await apiFetch("/api/customer-estimates");
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
+  return res.json();
+}
+
+export async function fetchCustomerEstimate(id: string): Promise<CustomerEstimate> {
+  const res = await apiFetch(`/api/customer-estimates/${id}`);
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
+  return res.json();
+}
+
+export async function updateCustomerEstimate(id: string, draft: CustomerEstimateDraft): Promise<CustomerEstimate> {
+  const res = await apiFetch(`/api/customer-estimates/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(draft),
+  });
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
+  return res.json();
+}
+
+export async function priceCustomerEstimate(id: string): Promise<CustomerEstimate> {
+  const res = await apiFetch(`/api/customer-estimates/${id}/price`, { method: "POST" });
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
+  return res.json();
+}
+
+export async function finalizeCustomerEstimate(id: string): Promise<CustomerEstimate> {
+  const res = await apiFetch(`/api/customer-estimates/${id}/finalize`, { method: "POST" });
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
+  return res.json();
+}
+
+export async function duplicateCustomerEstimate(id: string): Promise<CustomerEstimate> {
+  const res = await apiFetch(`/api/customer-estimates/${id}/duplicate`, { method: "POST" });
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
   return res.json();
 }
 

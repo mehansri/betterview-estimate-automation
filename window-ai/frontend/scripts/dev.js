@@ -1,5 +1,5 @@
 /* Start the Next frontend and FastAPI backend together for local development. */
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -19,6 +19,17 @@ const environment = {
     : backendRoot,
   DATABASE_URL: process.env.DATABASE_URL || "sqlite:///data/local.db",
 };
+
+// Keep the documented one-command local workflow usable for the saved
+// estimate tables (including a fresh SQLite database).
+const dbInit = spawnSync(pythonCommand, ["-m", "db.init_db"], {
+  cwd: backendRoot,
+  env: environment,
+  stdio: "inherit",
+});
+if (dbInit.status !== 0) {
+  process.exit(dbInit.status || 1);
+}
 
 const api = spawn(
   pythonCommand,

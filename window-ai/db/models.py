@@ -202,3 +202,55 @@ class QuoteOutcome(Base):
     )
 
     quote: Mapped["QuoteRecord"] = relationship("QuoteRecord", back_populates="outcome")
+
+
+class CustomerEstimate(Base):
+    """Saved customer-facing project estimate, separate from imported history."""
+
+    __tablename__ = "customer_estimates"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    estimate_number: Mapped[Optional[str]] = mapped_column(
+        String(32), unique=True, nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(32), default="draft", nullable=False)
+    customer_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    company_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    project_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    project_address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    salesperson: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    estimate_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    valid_until: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    terms: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    windows: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
+    doors: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
+    commercial: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    pricing_snapshot: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONType, nullable=True)
+    pricing_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    finalized_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_customer_estimates_status", "status"),
+        Index("ix_customer_estimates_updated_at", "updated_at"),
+    )
+
+
+class CustomerEstimateCounter(Base):
+    """Per-year sequence used to assign finalized customer estimate numbers."""
+
+    __tablename__ = "customer_estimate_counters"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    next_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)

@@ -3,11 +3,12 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Window City Deterministic Quoting",
-  description: "Auditable Window City price-book quotes with historical PDF learning",
+  title: "Better View Estimates",
+  description: "Better View Solutions project estimates and catalog-backed quoting",
 };
 
 const nav = [
+  { href: "/projects", label: "Project estimates" },
   { href: "/", label: "Quote" },
   { href: "/doors", label: "Doors" },
   { href: "/admin/estimates", label: "Estimates" },
@@ -26,7 +27,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <div className="min-h-screen">
-          <header className="border-b border-slate-200 bg-white">
+          <header className="app-chrome border-b border-slate-200 bg-white">
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
