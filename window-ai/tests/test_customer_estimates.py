@@ -94,6 +94,48 @@ def test_mixed_project_prices_and_finalizes(tmp_path, monkeypatch):
     assert update.status_code == 409
 
 
+def test_residential_project_can_finalize_without_company(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=False)
+    draft["company_name"] = ""
+    created = client.post("/api/customer-estimates", json=draft)
+    assert created.status_code == 200, created.text
+    estimate_id = created.json()["id"]
+
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+    finalized = client.post(f"/api/customer-estimates/{estimate_id}/finalize")
+    assert finalized.status_code == 200, finalized.text
+    assert finalized.json()["company_name"] == ""
+
+
+def test_quote_lines_append_to_one_existing_project(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    created = client.post("/api/customer-estimates", json=_draft(mixed=False))
+    assert created.status_code == 200, created.text
+    estimate_id = created.json()["id"]
+
+    assigned = client.post(
+        f"/api/customer-estimates/{estimate_id}/lines",
+        json={"doors": [_door_opening()], "commercial": {"preset_id": "standard", "negotiated_discount_percent": 0, "presentation_mode": "internal"}},
+    )
+    assert assigned.status_code == 200, assigned.text
+    body = assigned.json()
+    assert len(body["windows"]) == 1
+    assert len(body["doors"]) == 1
+    assert body["status"] == "draft"
+
+    duplicate = client.post(f"/api/customer-estimates/{estimate_id}/lines", json={"doors": [_door_opening()]})
+    assert duplicate.status_code == 200, duplicate.text
+    assert len(duplicate.json()["windows"]) == 1
+    assert len(duplicate.json()["doors"]) == 1
+
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+    assert priced.json()["pricing"]["sections"]["windows"]["lines"]
+    assert priced.json()["pricing"]["sections"]["doors"]["openings"]
+
+
 def test_door_only_project_prices_from_handoff_shape(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
     draft = _draft(mixed=True)

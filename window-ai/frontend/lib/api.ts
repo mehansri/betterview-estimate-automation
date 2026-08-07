@@ -453,6 +453,12 @@ export type CustomerEstimateDraft = {
   commercial: CommercialSettings;
 };
 
+export type CustomerEstimateLineAppend = {
+  windows?: CustomerWindowLine[];
+  doors?: CustomerDoorOpening[];
+  commercial?: CommercialSettings;
+};
+
 export type CustomerEstimatePricing = {
   pricing_hash: string;
   priced_at: string;
@@ -722,6 +728,19 @@ export async function updateCustomerEstimate(id: string, draft: CustomerEstimate
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(draft),
+  });
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
+  return res.json();
+}
+
+export async function appendCustomerEstimateLines(
+  id: string,
+  lines: CustomerEstimateLineAppend,
+): Promise<CustomerEstimate> {
+  const res = await apiFetch(`/api/customer-estimates/${id}/lines`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(lines),
   });
   if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
   return res.json();

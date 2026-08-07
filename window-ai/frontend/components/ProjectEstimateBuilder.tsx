@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   CustomerDoorOpening,
@@ -21,13 +22,14 @@ import {
   updateCustomerEstimate,
 } from "@/lib/api";
 import EstimateDocument from "@/components/EstimateDocument";
+import { isBetween, isAtLeast, numericInputValue, NumericInputValue } from "@/lib/numericInput";
 
 type WindowEditor = {
   type: QuoteLineType;
   style: string;
-  width: number;
-  height: number;
-  qty: number;
+  width: NumericInputValue;
+  height: NumericInputValue;
+  qty: NumericInputValue;
   colour_ext: string;
   loe180: boolean;
   i89: boolean;
@@ -40,7 +42,7 @@ type WindowEditor = {
   sliding_ft: number;
   swing_kind: string;
   head_seat: string;
-  lite_count: number;
+  lite_count: NumericInputValue;
   location: string;
   description: string;
 };
@@ -190,10 +192,12 @@ function buildWindowSpec(editor: WindowEditor, catalog: QuoteCatalog | null): Qu
       lites: [windowLite(editor, editor.style, editor.width, catalog), windowLite(editor, catalog?.styles[1]?.code || editor.style, editor.width, catalog)],
     };
   }
+  const liteCount = editor.lite_count === "" ? 0 : editor.lite_count;
+  const liteWidth = editor.width === "" || editor.lite_count === "" ? "" : editor.width / editor.lite_count;
   return {
     type: "bay_bow",
     qty: editor.qty,
-    lites: Array.from({ length: editor.lite_count }, (_, index) => windowLite(editor, catalog?.styles[index % Math.max(catalog?.styles.length || 1, 1)]?.code || editor.style, editor.width / editor.lite_count, catalog)),
+    lites: Array.from({ length: liteCount }, (_, index) => windowLite(editor, catalog?.styles[index % Math.max(catalog?.styles.length || 1, 1)]?.code || editor.style, liteWidth, catalog)),
     head_seat: editor.head_seat,
   };
 }
@@ -281,6 +285,12 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
 
   const editable = estimate.status !== "finalized";
   const currentWindowSpec = useMemo(() => buildWindowSpec(windowEditor, quoteCatalog), [windowEditor, quoteCatalog]);
+  const windowEditorIsValid =
+    isAtLeast(windowEditor.qty, 1) &&
+    (windowEditor.type === "patio_sliding" ||
+      (isAtLeast(windowEditor.width, 1) &&
+        isAtLeast(windowEditor.height, 1) &&
+        (windowEditor.type !== "bay_bow" || isBetween(windowEditor.lite_count, 3, 6))));
 
   function updateMetadata(patch: Partial<CustomerEstimate>) {
     if (!editable) return;
@@ -296,6 +306,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   }
 
   function addWindowLine() {
+    if (!windowEditorIsValid) return;
     productChanged((current) => ({
       ...current,
       windows: [...current.windows, { id: id(), location: windowEditor.location, description: windowEditor.description, spec: currentWindowSpec }],
@@ -393,6 +404,17 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     } finally { setBusy(false); }
   }
 
+  async function startQuote(path: "/" | "/doors") {
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      const saved = await saveCurrent();
+      window.location.href = `${path}?projectId=${saved.id}`;
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not create the project.");
+      setBusy(false);
+    }
+  }
+
   async function finalizeProject() {
     if (!estimate.id) return;
     setBusy(true); setError(null); setMessage(null);
@@ -426,6 +448,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
         <div className="project-actions">
           {estimate.status === "finalized" ? <><button className="button secondary" type="button" onClick={() => window.print()}>Print / Save PDF</button><button className="button primary" type="button" onClick={duplicateProject} disabled={busy}>Duplicate as draft</button></> : <><button className="button secondary" type="button" onClick={saveDraft} disabled={busy}>Save draft</button><button className="button secondary" type="button" onClick={priceProject} disabled={busy || (!estimate.windows.length && !estimate.doors.length)}>{busy ? "Working…" : "Price project"}</button><button className="button primary" type="button" onClick={finalizeProject} disabled={busy || !estimate.id || estimate.status !== "priced" || needsReprice || Boolean(estimate.pricing?.review_required)}>{busy ? "Working…" : "Finalize estimate"}</button></>}
         </div>
+        {estimate.status !== "finalized" ? <div className="project-actions no-print">
+          {estimate.id ? <><Link className="button secondary" href={`/?projectId=${estimate.id}`}>Add windows</Link><Link className="button secondary" href={`/doors?projectId=${estimate.id}`}>Add doors</Link></> : <><button className="button secondary" type="button" onClick={() => startQuote("/")} disabled={busy}>Create project &amp; add windows</button><button className="button secondary" type="button" onClick={() => startQuote("/doors")} disabled={busy}>Create project &amp; add doors</button></>}
+        </div> : null}
       </div>
 
       {message ? <p className="project-message no-print">{message}</p> : null}
@@ -435,7 +460,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
         <section className="project-editor no-print">
           <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Customer details</p><h3>Who is this estimate for?</h3></div><span className={`status-pill status-${estimate.status}`}>{estimate.status}</span></div><div className="editor-grid">
             <Field label="Customer name *"><input className="project-input" value={estimate.customer_name} onChange={(event) => updateMetadata({ customer_name: event.target.value })} disabled={!editable} /></Field>
-            <Field label="Company"><input className="project-input" value={estimate.company_name} onChange={(event) => updateMetadata({ company_name: event.target.value })} disabled={!editable} /></Field>
+            <Field label="Company (optional)"><input className="project-input" value={estimate.company_name} onChange={(event) => updateMetadata({ company_name: event.target.value })} disabled={!editable} placeholder="Business or organization name" /></Field>
             <Field label="Email"><input className="project-input" type="email" value={estimate.email} onChange={(event) => updateMetadata({ email: event.target.value })} disabled={!editable} /></Field>
             <Field label="Phone"><input className="project-input" value={estimate.phone} onChange={(event) => updateMetadata({ phone: event.target.value })} disabled={!editable} /></Field>
             <Field label="Project name"><input className="project-input" value={estimate.project_name} onChange={(event) => updateMetadata({ project_name: event.target.value })} disabled={!editable} /></Field>
@@ -453,15 +478,15 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             {(windowEditor.type === "window" || windowEditor.type === "combination" || windowEditor.type === "bay_bow") ? <Field label="Style"><select className="project-input" value={windowEditor.style} onChange={(event) => setWindowEditor({ ...windowEditor, style: event.target.value })} disabled={!editable}>{quoteCatalog?.styles.map((style) => <option key={style.code} value={style.code}>{style.code} · {style.name}</option>)}</select></Field> : null}
             {windowEditor.type === "patio_sliding" ? <Field label="Nominal size"><select className="project-input" value={windowEditor.sliding_ft} onChange={(event) => setWindowEditor({ ...windowEditor, sliding_ft: Number(event.target.value) })} disabled={!editable}>{quoteCatalog?.patio_sliding_sizes.map((size) => <option key={size} value={size}>{size} ft</option>)}</select></Field> : null}
             {windowEditor.type === "patio_swing" ? <Field label="Door family"><select className="project-input" value={windowEditor.swing_kind} onChange={(event) => setWindowEditor({ ...windowEditor, swing_kind: event.target.value })} disabled={!editable}>{quoteCatalog?.patio_swing_kinds.map((kind) => <option key={kind} value={kind}>{kind}</option>)}</select></Field> : null}
-            {windowEditor.type !== "patio_sliding" ? <><Field label="Width (in)"><input className="project-input" type="number" min={1} step={0.125} value={windowEditor.width} onChange={(event) => setWindowEditor({ ...windowEditor, width: Number(event.target.value) })} disabled={!editable} /></Field><Field label="Height (in)"><input className="project-input" type="number" min={1} step={0.125} value={windowEditor.height} onChange={(event) => setWindowEditor({ ...windowEditor, height: Number(event.target.value) })} disabled={!editable} /></Field></> : null}
-            <Field label="Quantity"><input className="project-input" type="number" min={1} value={windowEditor.qty} onChange={(event) => setWindowEditor({ ...windowEditor, qty: Math.max(1, Number(event.target.value)) })} disabled={!editable} /></Field>
+            {windowEditor.type !== "patio_sliding" ? <><Field label="Width (in)"><input className="project-input" type="number" min={1} step={0.125} value={windowEditor.width} onChange={(event) => setWindowEditor({ ...windowEditor, width: numericInputValue(event.target.value) })} disabled={!editable} /></Field><Field label="Height (in)"><input className="project-input" type="number" min={1} step={0.125} value={windowEditor.height} onChange={(event) => setWindowEditor({ ...windowEditor, height: numericInputValue(event.target.value) })} disabled={!editable} /></Field></> : null}
+            <Field label="Quantity"><input className="project-input" type="number" min={1} value={windowEditor.qty} onChange={(event) => setWindowEditor({ ...windowEditor, qty: numericInputValue(event.target.value) })} disabled={!editable} /></Field>
             <Field label="Exterior colour"><select className="project-input" value={windowEditor.colour_ext} onChange={(event) => setWindowEditor({ ...windowEditor, colour_ext: event.target.value })} disabled={!editable}>{COLORS.map((color) => <option key={color}>{color}</option>)}</select></Field>
-            {windowEditor.type === "bay_bow" ? <><Field label="Lite count"><input className="project-input" type="number" min={3} max={6} value={windowEditor.lite_count} onChange={(event) => setWindowEditor({ ...windowEditor, lite_count: Math.min(6, Math.max(3, Number(event.target.value))) })} disabled={!editable} /></Field><Field label="Head / seat"><select className="project-input" value={windowEditor.head_seat} onChange={(event) => setWindowEditor({ ...windowEditor, head_seat: event.target.value })} disabled={!editable}>{quoteCatalog?.baybow.head_seat_sizes.map((size) => <option key={size}>{size}</option>)}</select></Field></> : null}
+            {windowEditor.type === "bay_bow" ? <><Field label="Lite count"><input className="project-input" type="number" min={3} max={6} value={windowEditor.lite_count} onChange={(event) => setWindowEditor({ ...windowEditor, lite_count: numericInputValue(event.target.value) })} disabled={!editable} /></Field><Field label="Head / seat"><select className="project-input" value={windowEditor.head_seat} onChange={(event) => setWindowEditor({ ...windowEditor, head_seat: event.target.value })} disabled={!editable}>{quoteCatalog?.baybow.head_seat_sizes.map((size) => <option key={size}>{size}</option>)}</select></Field></> : null}
           </div>
           {windowEditor.type !== "bay_bow" ? <div className="option-box"><p className="eyebrow">Glazing</p><div className="toggle-grid"><Toggle label="LoE 180" checked={windowEditor.loe180} onChange={(value) => setWindowEditor({ ...windowEditor, loe180: value })} /><Toggle label="i89" checked={windowEditor.i89} onChange={(value) => setWindowEditor({ ...windowEditor, i89: value })} /><Toggle label="Triple pane" checked={windowEditor.triple} onChange={(value) => setWindowEditor({ ...windowEditor, triple: value })} /><Toggle label="Tri-pane laminated" checked={windowEditor.tri_pane_lami} onChange={(value) => setWindowEditor({ ...windowEditor, tri_pane_lami: value })} /><Toggle label="Frost / tint" checked={windowEditor.frost_tint} onChange={(value) => setWindowEditor({ ...windowEditor, frost_tint: value })} /></div><Field label="Gas"><select className="project-input" value={windowEditor.gas} onChange={(event) => setWindowEditor({ ...windowEditor, gas: event.target.value })} disabled={!editable}>{GAS.map((gas) => <option key={gas}>{gas}</option>)}</select></Field></div> : null}
           {windowEditor.type === "window" ? <div className="option-box"><p className="eyebrow">Accessories</p><div className="toggle-grid"><Toggle label="Brickmould" checked={windowEditor.brickmould} onChange={(value) => setWindowEditor({ ...windowEditor, brickmould: value })} /><Toggle label="Wood jamb" checked={windowEditor.wood_jamb} onChange={(value) => setWindowEditor({ ...windowEditor, wood_jamb: value })} /></div></div> : null}
           <div className="editor-grid"><Field label="Location"><input className="project-input" value={windowEditor.location} onChange={(event) => setWindowEditor({ ...windowEditor, location: event.target.value })} disabled={!editable} placeholder="Living room" /></Field><Field label="Customer description"><input className="project-input" value={windowEditor.description} onChange={(event) => setWindowEditor({ ...windowEditor, description: event.target.value })} disabled={!editable} placeholder="Energy-efficient replacement window" /></Field></div>
-          <button type="button" className="button secondary" onClick={addWindowLine} disabled={!editable || !quoteCatalog}>Add window line</button>
+          <button type="button" className="button secondary" onClick={addWindowLine} disabled={!editable || !quoteCatalog || !windowEditorIsValid}>Add window line</button>
           {estimate.windows.length ? <div className="line-list">{estimate.windows.map((line) => <div className="line-card" key={line.id}><div className="line-card-main"><strong>{windowLabel(line)}</strong><span>{line.spec.type?.replace(/_/g, " ")} · Qty {String(line.spec.qty || 1)}</span></div><div className="line-card-fields"><input className="project-input" value={line.location} onChange={(event) => updateWindowLine(line.id, { location: event.target.value })} disabled={!editable} placeholder="Location" /><input className="project-input" value={line.description} onChange={(event) => updateWindowLine(line.id, { description: event.target.value })} disabled={!editable} placeholder="Customer description override" /><button type="button" className="text-button danger" onClick={() => removeWindowLine(line.id)} disabled={!editable}>Remove</button></div></div>)}</div> : null}
           </div>
 

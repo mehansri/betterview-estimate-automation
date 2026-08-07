@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  createCustomerEstimate,
+  appendCustomerEstimateLines,
+  CustomerEstimate,
   CustomerDoorOpening,
   DoorCatalog,
   DoorCatalogRow,
@@ -12,10 +13,12 @@ import {
   DoorPartSpec,
   DoorProjectResponse,
   fetchDoorCatalog,
+  fetchCustomerEstimate,
   priceCustomerEstimate,
   quoteDoors,
 } from "@/lib/api";
-import { buildCustomerEstimateDraft, newEstimateLineId } from "@/lib/quoteHandoff";
+import { newEstimateLineId } from "@/lib/quoteHandoff";
+import ProjectAccessGate from "@/components/ProjectAccessGate";
 
 const GLASS_SERIES: Record<string, string> = {
   A: "group_a",
@@ -356,8 +359,9 @@ function OptionEditor({
   );
 }
 
-export default function DoorQuoteBuilder() {
+export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) {
   const [catalog, setCatalog] = useState<DoorCatalog | null>(null);
+  const [project, setProject] = useState<CustomerEstimate | null>(null);
   const [draft, setDraft] = useState<OpeningDraft | null>(null);
   const [openings, setOpenings] = useState<DoorQuoteOpening[]>([]);
   const [result, setResult] = useState<DoorProjectResponse | null>(null);
@@ -366,6 +370,7 @@ export default function DoorQuoteBuilder() {
   const [handoffBusy, setHandoffBusy] = useState(false);
   const [handoffEstimateId, setHandoffEstimateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [projectLoading, setProjectLoading] = useState(Boolean(projectId));
 
   useEffect(() => {
     fetchDoorCatalog()
@@ -376,6 +381,19 @@ export default function DoorQuoteBuilder() {
       .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load door catalog."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!projectId) {
+      setProject(null);
+      setProjectLoading(false);
+      return;
+    }
+    setProjectLoading(true);
+    fetchCustomerEstimate(projectId)
+      .then(setProject)
+      .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load the selected project."))
+      .finally(() => setProjectLoading(false));
+  }, [projectId]);
 
   const data = useMemo(
     () => (catalog && draft ? materialData(catalog, draft.material) : null),
@@ -441,7 +459,7 @@ export default function DoorQuoteBuilder() {
   }
 
   async function sendToProjectEstimate() {
-    if (!result || !openings.length) return;
+    if (!projectId || !project || project.status === "finalized" || !result || !openings.length) return;
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
@@ -451,26 +469,30 @@ export default function DoorQuoteBuilder() {
       description: opening.description,
       spec: opening.spec,
     }));
-    const draftPayload = buildCustomerEstimateDraft({
-      doors,
-      commercial: { preset_id: "standard", negotiated_discount_percent: 0, presentation_mode: "internal" },
-    });
+    const projectHasProducts = project.windows.length > 0 || project.doors.length > 0;
     try {
-      const created = await createCustomerEstimate(draftPayload);
+      const assigned = await appendCustomerEstimateLines(projectId, {
+        windows: [],
+        doors,
+        commercial: projectHasProducts ? undefined : { preset_id: "standard", negotiated_discount_percent: 0, presentation_mode: "internal" },
+      });
       try {
-        const priced = await priceCustomerEstimate(created.id);
+        const priced = await priceCustomerEstimate(assigned.id);
         window.location.href = `/projects/${priced.id}`;
       } catch (pricingError) {
-        setHandoffEstimateId(created.id);
-        setError(pricingError instanceof Error ? `Draft created, but project pricing needs attention: ${pricingError.message}` : "Draft created, but project pricing needs attention.");
+        setHandoffEstimateId(assigned.id);
+        setError(pricingError instanceof Error ? `Door quote assigned, but project pricing needs attention: ${pricingError.message}` : "Door quote assigned, but project pricing needs attention.");
       }
     } catch (handoffError) {
-      setError(handoffError instanceof Error ? handoffError.message : "Could not send the door quote to a project estimate.");
+      setError(handoffError instanceof Error ? handoffError.message : "Could not assign the door quote to this project.");
     } finally {
       setHandoffBusy(false);
     }
   }
 
+  if (!projectId) return <ProjectAccessGate product="door" />;
+  if (projectLoading) return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading projectâ€¦</p>;
+  if (!project) return <p className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{error || "The selected project could not be loaded."}</p>;
   if (loading && !catalog) {
     return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading Palma door catalog…</p>;
   }
@@ -497,6 +519,11 @@ export default function DoorQuoteBuilder() {
           <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "internal" ? "bg-brand-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("internal")}>Internal view</button>
           <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "customer" ? "bg-emerald-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("customer")}>Customer view</button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm">
+        <div><span className="text-brand-700">Assigning this quote to </span><strong className="text-brand-900">{project.project_name || project.customer_name || "Selected project"}</strong>{project.estimate_number ? <span className="ml-2 text-xs text-brand-700">{project.estimate_number}</span> : null}</div>
+        <Link href={`/projects/${project.id}`} className="font-semibold text-brand-700 hover:underline">Open project</Link>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-5">
@@ -631,9 +658,10 @@ export default function DoorQuoteBuilder() {
       <div className="lg:col-span-2">
         <div className="rounded-2xl border border-brand-200 bg-white p-5 shadow-sm">
           <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
-          <p className="mt-1 text-sm text-slate-500">Send all {openings.length} added door opening{openings.length === 1 ? "" : "s"} into a new project estimate, with pricing carried forward.</p>
-          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result}>{handoffBusy ? "Sending to project estimate…" : "Send to project estimate"}</button>
-          {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The draft was saved. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open draft estimate</Link> to resolve the pricing issue.</p> : null}
+          <p className="mt-1 text-sm text-slate-500">Assign all {openings.length} added door opening{openings.length === 1 ? "" : "s"} to the selected project. Existing window and door lines stay together.</p>
+          {project.status === "finalized" ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This project is finalized and cannot accept new quote lines.</p> : null}
+          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result || project.status === "finalized"}>{handoffBusy ? "Assigning to project…" : "Assign to project"}</button>
+          {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The quote was assigned. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
           {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
           {error && !handoffEstimateId ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p> : null}
         </div>

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  createCustomerEstimate,
+  appendCustomerEstimateLines,
+  CustomerEstimate,
   DeterministicQuoteResponse,
   CustomerWindowLine,
   QuoteCatalog,
@@ -12,11 +13,14 @@ import {
   PresentationMode,
   priceCustomerEstimate,
   SalesPreset,
+  fetchCustomerEstimate,
   fetchQuoteCatalog,
   fetchSalesPresets,
   priceDeterministicQuote,
 } from "@/lib/api";
-import { buildCustomerEstimateDraft, newEstimateLineId } from "@/lib/quoteHandoff";
+import { newEstimateLineId } from "@/lib/quoteHandoff";
+import ProjectAccessGate from "@/components/ProjectAccessGate";
+import { isBetween, isAtLeast, numericInputValue, NumericInputValue } from "@/lib/numericInput";
 
 const COLORS = ["white", "black", "dark bronze", "charcoal", "sandstone"];
 const GAS = ["argon", "50/50", "krypton"];
@@ -24,9 +28,9 @@ const GAS = ["argon", "50/50", "krypton"];
 type Draft = {
   type: QuoteLineType;
   style: string;
-  width: number;
-  height: number;
-  qty: number;
+  width: NumericInputValue;
+  height: NumericInputValue;
+  qty: NumericInputValue;
   colour_ext: string;
   loe180: boolean;
   i89: boolean;
@@ -39,7 +43,7 @@ type Draft = {
   sliding_ft: number;
   swing_kind: string;
   head_seat: string;
-  lite_count: number;
+  lite_count: NumericInputValue;
 };
 
 type QuoteLineDraft = {
@@ -80,7 +84,7 @@ function money(n: number, currency = "CAD") {
   }).format(n);
 }
 
-function windowLine(draft: Draft, qty = 1): QuoteLineInput {
+function windowLine(draft: Draft, qty: NumericInputValue = 1): QuoteLineInput {
   const accessories: Array<{ kind: string; name: string }> = [];
   return {
     type: "window",
@@ -161,10 +165,12 @@ function toQuoteLine(draft: Draft, catalog: QuoteCatalog | null): QuoteLineInput
     };
   }
 
-  const lites = Array.from({ length: draft.lite_count }, (_, index) =>
+  const liteCount = draft.lite_count === "" ? 0 : draft.lite_count;
+  const liteWidth = draft.width === "" || draft.lite_count === "" ? "" : draft.width / Math.max(draft.lite_count, 1);
+  const lites = Array.from({ length: liteCount }, (_, index) =>
     windowLine({
       ...draft,
-      width: draft.width / Math.max(draft.lite_count, 1),
+      width: liteWidth,
       style: catalog?.styles[index % Math.max(catalog.styles.length, 1)]?.code || draft.style,
     })
   );
@@ -283,8 +289,9 @@ function SalesResult({ result, mode = result.presentation_mode }: { result: Dete
   );
 }
 
-export default function QuoteBuilder() {
+export default function QuoteBuilder({ projectId }: { projectId?: string }) {
   const [catalog, setCatalog] = useState<QuoteCatalog | null>(null);
+  const [project, setProject] = useState<CustomerEstimate | null>(null);
   const [salesPresets, setSalesPresets] = useState<SalesPreset[]>([]);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [lines, setLines] = useState<QuoteLineDraft[]>([]);
@@ -300,6 +307,7 @@ export default function QuoteBuilder() {
   const [handoffBusy, setHandoffBusy] = useState(false);
   const [handoffEstimateId, setHandoffEstimateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [projectLoading, setProjectLoading] = useState(Boolean(projectId));
 
   useEffect(() => {
     Promise.all([fetchQuoteCatalog(), fetchSalesPresets()])
@@ -317,6 +325,19 @@ export default function QuoteBuilder() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!projectId) {
+      setProject(null);
+      setProjectLoading(false);
+      return;
+    }
+    setProjectLoading(true);
+    fetchCustomerEstimate(projectId)
+      .then(setProject)
+      .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load the selected project."))
+      .finally(() => setProjectLoading(false));
+  }, [projectId]);
+
   const currentLine = useMemo(() => toQuoteLine(draft, catalog), [draft, catalog]);
   const selectedPreset = useMemo(
     () => salesPresets.find((preset) => preset.id === selectedPresetId) || salesPresets[0],
@@ -328,7 +349,15 @@ export default function QuoteBuilder() {
     setResult(null);
   }
 
+  const draftIsValid =
+    isAtLeast(draft.qty, 1) &&
+    (draft.type === "patio_sliding" ||
+      (isAtLeast(draft.width, 1) &&
+        isAtLeast(draft.height, 1) &&
+        (draft.type !== "bay_bow" || isBetween(draft.lite_count, 3, 6))));
+
   function addLine() {
+    if (!draftIsValid) return;
     setLines((current) => [
       ...current,
       { id: newEstimateLineId("window"), spec: currentLine, location: "", description: "" },
@@ -346,6 +375,10 @@ export default function QuoteBuilder() {
   }
 
   async function generateQuote() {
+    if (!lines.length && !draftIsValid) {
+      setError("Enter a valid quantity and dimensions before generating the quote.");
+      return;
+    }
     const payload = lines.length ? lines.map((line) => line.spec) : [currentLine];
     if (!payload.length) return;
     const requested = Math.max(0, negotiatedDiscount);
@@ -388,7 +421,7 @@ export default function QuoteBuilder() {
   }
 
   async function sendToProjectEstimate() {
-    if (!result || !lines.length) return;
+    if (!projectId || !project || project.status === "finalized" || !result || !lines.length) return;
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
@@ -398,26 +431,27 @@ export default function QuoteBuilder() {
       description: line.description,
       spec: line.spec,
     }));
-    const draft = buildCustomerEstimateDraft({
-      windows,
-      commercial: {
-        preset_id: result.sales_pricing.preset_id || selectedPresetId,
-        negotiated_discount_percent: result.sales_pricing.negotiated_discount_percent,
-        manager_override_reason: result.sales_pricing.manager_override_reason || undefined,
-        presentation_mode: "internal",
-      },
-    });
+    const projectHasProducts = project.windows.length > 0 || project.doors.length > 0;
     try {
-      const created = await createCustomerEstimate(draft);
+      const assigned = await appendCustomerEstimateLines(projectId, {
+        windows,
+        doors: [],
+        commercial: projectHasProducts ? undefined : {
+          preset_id: result.sales_pricing.preset_id || selectedPresetId,
+          negotiated_discount_percent: result.sales_pricing.negotiated_discount_percent,
+          manager_override_reason: result.sales_pricing.manager_override_reason || undefined,
+          presentation_mode: "internal",
+        },
+      });
       try {
-        const priced = await priceCustomerEstimate(created.id);
+        const priced = await priceCustomerEstimate(assigned.id);
         window.location.href = `/projects/${priced.id}`;
       } catch (pricingError) {
-        setHandoffEstimateId(created.id);
-        setError(pricingError instanceof Error ? `Draft created, but project pricing needs attention: ${pricingError.message}` : "Draft created, but project pricing needs attention.");
+        setHandoffEstimateId(assigned.id);
+        setError(pricingError instanceof Error ? `Window quote assigned, but project pricing needs attention: ${pricingError.message}` : "Window quote assigned, but project pricing needs attention.");
       }
     } catch (handoffError) {
-      setError(handoffError instanceof Error ? handoffError.message : "Could not send the window quote to a project estimate.");
+      setError(handoffError instanceof Error ? handoffError.message : "Could not assign the window quote to this project.");
     } finally {
       setHandoffBusy(false);
     }
@@ -473,6 +507,10 @@ export default function QuoteBuilder() {
   }, [negotiationMode, negotiatedDiscount, previewDiscount, previewTotal]);
   // --------------------------------------------------------------------------------
 
+  if (!projectId) return <ProjectAccessGate product="window" />;
+  if (projectLoading) return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading projectâ€¦</p>;
+  if (!project) return <p className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{error || "The selected project could not be loaded."}</p>;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -484,6 +522,11 @@ export default function QuoteBuilder() {
           <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "internal" ? "bg-brand-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("internal")}>Internal view</button>
           <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "customer" ? "bg-emerald-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("customer")}>Customer view</button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm">
+        <div><span className="text-brand-700">Assigning this quote to </span><strong className="text-brand-900">{project.project_name || project.customer_name || "Selected project"}</strong>{project.estimate_number ? <span className="ml-2 text-xs text-brand-700">{project.estimate_number}</span> : null}</div>
+        <Link href={`/projects/${project.id}`} className="font-semibold text-brand-700 hover:underline">Open project</Link>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-5">
@@ -534,12 +577,12 @@ export default function QuoteBuilder() {
 
             {draft.type !== "patio_sliding" && (
               <>
-                <Field label="Width (in)"><input className="input" type="number" min={1} step={0.125} value={draft.width} onChange={(e) => update("width", Number(e.target.value))} /></Field>
-                <Field label="Height (in)"><input className="input" type="number" min={1} step={0.125} value={draft.height} onChange={(e) => update("height", Number(e.target.value))} /></Field>
+                <Field label="Width (in)"><input className="input" type="number" min={1} step={0.125} value={draft.width} onChange={(e) => update("width", numericInputValue(e.target.value))} /></Field>
+                <Field label="Height (in)"><input className="input" type="number" min={1} step={0.125} value={draft.height} onChange={(e) => update("height", numericInputValue(e.target.value))} /></Field>
               </>
             )}
 
-            <Field label="Quantity"><input className="input" type="number" min={1} step={1} value={draft.qty} onChange={(e) => update("qty", Math.max(1, Number(e.target.value)))} /></Field>
+            <Field label="Quantity"><input className="input" type="number" min={1} step={1} value={draft.qty} onChange={(e) => update("qty", numericInputValue(e.target.value))} /></Field>
             <Field label="Exterior colour">
               <select className="input" value={draft.colour_ext} onChange={(e) => update("colour_ext", e.target.value)}>
                 {COLORS.map((color) => <option key={color} value={color}>{color}</option>)}
@@ -574,7 +617,7 @@ export default function QuoteBuilder() {
 
           {draft.type === "bay_bow" ? (
             <div className="mt-6 grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-2">
-              <Field label="Lite count"><input className="input" type="number" min={3} max={6} value={draft.lite_count} onChange={(e) => update("lite_count", Math.min(6, Math.max(3, Number(e.target.value))))} /></Field>
+              <Field label="Lite count"><input className="input" type="number" min={3} max={6} value={draft.lite_count} onChange={(e) => update("lite_count", numericInputValue(e.target.value))} /></Field>
               <Field label="Head / seat"><select className="input" value={draft.head_seat} onChange={(e) => update("head_seat", e.target.value)}>{catalog?.baybow.head_seat_sizes.map((size) => <option key={size} value={size}>{size}</option>)}</select></Field>
             </div>
           ) : null}
@@ -728,8 +771,8 @@ export default function QuoteBuilder() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" onClick={addLine}>Add line</button>
-            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading}>{pricing ? "Pricing…" : "Generate window quote"}</button>
+            <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={addLine} disabled={!draftIsValid}>Add line</button>
+            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading || (!lines.length && !draftIsValid)}>{pricing ? "Pricing…" : "Generate window quote"}</button>
           </div>
         </div>
 
@@ -819,9 +862,10 @@ export default function QuoteBuilder() {
             <SalesResult result={result} mode={presentationMode} />
             <div className="rounded-2xl border border-brand-200 bg-white p-5 shadow-sm">
               <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
-              <p className="mt-1 text-sm text-slate-500">Send all {lines.length} added window line{lines.length === 1 ? "" : "s"} into a new project estimate, with pricing carried forward.</p>
-              <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !lines.length}>{handoffBusy ? "Sending to project estimate…" : "Send to project estimate"}</button>
-              {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The draft was saved. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open draft estimate</Link> to resolve the pricing issue.</p> : null}
+              <p className="mt-1 text-sm text-slate-500">Assign all {lines.length} added window line{lines.length === 1 ? "" : "s"} to the selected project. Existing door and window lines stay in the same project.</p>
+              {project.status === "finalized" ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This project is finalized and cannot accept new quote lines.</p> : null}
+              <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !lines.length || project.status === "finalized"}>{handoffBusy ? "Assigning to project…" : "Assign to project"}</button>
+              {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The quote was assigned. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
               {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
             </div>
             {presentationMode === "internal" ? <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

@@ -1,11 +1,14 @@
 import DoorQuoteBuilder from "@/components/DoorQuoteBuilder";
+import ProjectAccessGate from "@/components/ProjectAccessGate";
 
 export const metadata = {
   title: "Door Quotes · Betterview",
   description: "Deterministic fiberglass and steel door quotes from the Palma price book.",
 };
 
-export default function DoorsPage() {
+export default function DoorsPage({ searchParams }: { searchParams?: { projectId?: string | string[] } }) {
+  const projectId = typeof searchParams?.projectId === "string" ? searchParams.projectId : undefined;
+
   return (
     <div>
       <div className="mb-8 max-w-2xl">
@@ -13,10 +16,10 @@ export default function DoorsPage() {
           Build a door quote from the Palma price book
         </h2>
         <p className="mt-2 text-slate-600">
-          Choose catalog-backed door, glass, hardware, transom, and installation options. Add openings, review the internal or customer view, and send the finished door quote into a project estimate.
+          Choose catalog-backed door, glass, hardware, transom, and installation options. Create or open a project first so door openings can be assigned alongside windows for the same customer.
         </p>
       </div>
-      <DoorQuoteBuilder />
+      {projectId ? <DoorQuoteBuilder projectId={projectId} /> : <ProjectAccessGate product="door" />}
     </div>
   );
 }

@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from api.schemas.customer_estimates import (
     CustomerEstimateDraft,
+    CustomerEstimateLineAppend,
     CustomerEstimateResponse,
     CustomerEstimateSummary,
 )
@@ -216,6 +217,48 @@ def update_customer_estimate(estimate_id: str, body: CustomerEstimateDraft) -> C
             row.status = "draft"
             row.pricing_snapshot = None
             row.pricing_hash = None
+        row.updated_at = _now()
+        session.flush()
+        return _row_response(row)
+
+
+@router.post("/{estimate_id}/lines", response_model=CustomerEstimateResponse)
+def append_customer_estimate_lines(
+    estimate_id: str,
+    body: CustomerEstimateLineAppend,
+) -> CustomerEstimateResponse:
+    """Assign generated window/door quote lines to an existing project."""
+    if not body.windows and not body.doors:
+        raise HTTPException(status_code=422, detail="At least one Window or Door line is required")
+
+    eid = _parse_id(estimate_id)
+    with get_session() as session:
+        row = session.get(CustomerEstimate, eid)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Customer estimate not found")
+        if row.status == "finalized":
+            raise HTTPException(status_code=409, detail="Finalized estimates are read-only")
+
+        existing_windows = row.windows or []
+        existing_doors = row.doors or []
+        window_ids = {str(line.get("id")) for line in existing_windows if line.get("id")}
+        door_ids = {str(opening.get("id")) for opening in existing_doors if opening.get("id")}
+
+        row.windows = existing_windows + [
+            line.model_dump(mode="json")
+            for line in body.windows
+            if line.id not in window_ids
+        ]
+        row.doors = existing_doors + [
+            opening.model_dump(mode="json")
+            for opening in body.doors
+            if opening.id not in door_ids
+        ]
+        if body.commercial is not None:
+            row.commercial = body.commercial.model_dump(mode="json")
+        row.status = "draft"
+        row.pricing_snapshot = None
+        row.pricing_hash = None
         row.updated_at = _now()
         session.flush()
         return _row_response(row)

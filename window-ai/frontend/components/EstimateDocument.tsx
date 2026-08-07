@@ -116,7 +116,7 @@ export default function EstimateDocument({
           <div className="estimate-field-large">
             <Editable value={estimate.customer_name} editable={editable} onChange={(value) => onChange({ customer_name: value })} placeholder="Customer name" />
           </div>
-          <Editable value={estimate.company_name} editable={editable} onChange={(value) => onChange({ company_name: value })} placeholder="Company name" />
+          <Editable value={estimate.company_name} editable={editable} onChange={(value) => onChange({ company_name: value })} placeholder="Company name (optional)" />
           <Editable value={estimate.email} editable={editable} onChange={(value) => onChange({ email: value })} placeholder="Email address" />
           <Editable value={estimate.phone} editable={editable} onChange={(value) => onChange({ phone: value })} placeholder="Phone number" />
           <EditableArea value={estimate.project_address} editable={editable} onChange={(value) => onChange({ project_address: value })} placeholder="Project address" />
