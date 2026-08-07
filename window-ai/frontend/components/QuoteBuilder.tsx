@@ -19,6 +19,7 @@ import {
   priceDeterministicQuote,
 } from "@/lib/api";
 import { newEstimateLineId } from "@/lib/quoteHandoff";
+import { describeWindowSpec } from "@/lib/productDescriptions";
 import ProjectAccessGate from "@/components/ProjectAccessGate";
 import { isBetween, isAtLeast, numericInputValue, NumericInputValue } from "@/lib/numericInput";
 
@@ -360,7 +361,7 @@ export default function QuoteBuilder({ projectId }: { projectId?: string }) {
     if (!draftIsValid) return;
     setLines((current) => [
       ...current,
-      { id: newEstimateLineId("window"), spec: currentLine, location: "", description: "" },
+      { id: newEstimateLineId("window"), spec: currentLine, location: "", description: describeWindowSpec(currentLine, catalog) },
     ]);
     setResult(null);
   }
@@ -409,7 +410,7 @@ export default function QuoteBuilder({ projectId }: { projectId?: string }) {
        setLines((current) => payload.map((spec, index) => ({
          id: current[index]?.id || newEstimateLineId("window"),
          location: current[index]?.location || "",
-         description: current[index]?.description || "",
+         description: current[index]?.description || describeWindowSpec(spec, catalog),
          spec,
        })));
        setResult(priced);
@@ -494,7 +495,7 @@ export default function QuoteBuilder({ projectId }: { projectId?: string }) {
     ? (cp.lines as Array<{ line: number; type: string; qty: number; unit_price: number; line_total: number }>).map((line, index) => ({
         ...line,
         location: lines[index]?.location || "",
-        description: lines[index]?.description || "",
+        description: lines[index]?.description || describeWindowSpec(lines[index]?.spec || currentLine, catalog),
       }))
     : [];
   // A discount that no longer matches the generated quote → quote is stale, needs regenerating.

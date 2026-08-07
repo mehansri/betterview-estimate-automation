@@ -18,6 +18,7 @@ import {
   quoteDoors,
 } from "@/lib/api";
 import { newEstimateLineId } from "@/lib/quoteHandoff";
+import { describeDoorLine } from "@/lib/productDescriptions";
 import ProjectAccessGate from "@/components/ProjectAccessGate";
 
 const GLASS_SERIES: Record<string, string> = {
@@ -430,9 +431,10 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
 
   function addOpening() {
     if (!draft) return;
+    const description = describeDoorLine(draft, catalog);
     setOpenings((current) => current.length && sameSpec(current[current.length - 1].spec, draft) ? current : [
       ...current,
-      { id: newEstimateLineId("door"), location: "", description: "", spec: draft },
+      { id: newEstimateLineId("door"), location: "", description, spec: draft },
     ]);
     setResult(null);
   }
@@ -447,7 +449,7 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
       setOpenings((current) => payload.map((spec, index) => ({
         id: current[index]?.id || newEstimateLineId("door"),
         location: current[index]?.location || "",
-        description: current[index]?.description || "",
+        description: current[index]?.description || describeDoorLine(spec, catalog),
         spec,
       })));
       setResult(response);

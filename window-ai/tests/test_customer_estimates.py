@@ -151,6 +151,36 @@ def test_door_only_project_prices_from_handoff_shape(tmp_path, monkeypatch):
     assert body["pricing"]["totals"]["total"] > 0
 
 
+def test_priced_descriptions_include_product_selections(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft()
+    draft["windows"][0]["description"] = ""
+    draft["windows"][0]["spec"]["colour_ext"] = "black"
+    draft["windows"][0]["spec"]["glazing"].update({"i89": True, "triple": True})
+    draft["doors"][0]["description"] = ""
+
+    created = client.post("/api/customer-estimates", json=draft)
+    assert created.status_code == 200, created.text
+    priced = client.post(f"/api/customer-estimates/{created.json()['id']}/price")
+    assert priced.status_code == 200, priced.text
+
+    body = priced.json()["pricing"]["sections"]
+    window_description = body["windows"]["lines"][0]["description"]
+    assert "WC-100" in window_description
+    assert "black" in window_description
+    assert "LoE 180" in window_description
+    assert "i89" in window_description
+    assert "Triple pane" in window_description
+    assert "Argon gas" in window_description
+
+    door_description = body["doors"]["openings"][0]["label"]
+    assert "Fiberglass" in door_description
+    assert "Stain 2 Sides, 1 Colour" in door_description
+    assert "Oak 6-Panel" in door_description
+    assert "Chinchilla" in door_description
+    assert "Hight Performance Fixed Sill" in door_description
+
+
 def test_metadata_edits_preserve_pricing_but_product_edits_make_it_stale(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
     created = client.post("/api/customer-estimates", json=_draft(mixed=False))

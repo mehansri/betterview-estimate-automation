@@ -74,12 +74,13 @@ body {
 .project-preview { min-width: 0; }
 
 .estimate-document { width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid var(--estimate-line); background: #fff; color: #17364b; box-shadow: 0 12px 32px rgba(8, 36, 58, 0.09); font-family: Arial, Helvetica, sans-serif; }
-.estimate-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 2rem 2rem 1.2rem; }
-.estimate-brand-block { display: flex; align-items: center; gap: 0.8rem; min-width: 0; }
-.estimate-logo { width: min(17rem, 46vw); height: auto; object-fit: contain; }
-.estimate-company-name { color: var(--estimate-navy); font-size: 0.78rem; font-weight: 800; }
-.estimate-company-meta { color: var(--estimate-muted); font-size: 0.68rem; margin-top: 0.2rem; }
-.estimate-title-block { text-align: right; }
+.estimate-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2rem; padding: 1.4rem 2rem 1.1rem; }
+.estimate-brand-block { display: grid; justify-items: start; gap: 0.38rem; min-width: 0; }
+.estimate-logo { display: block; width: min(15rem, 44vw); height: auto; object-fit: contain; }
+.estimate-brand-copy { min-width: 0; }
+.estimate-company-name { color: var(--estimate-muted); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.02em; }
+.estimate-company-meta { display: none; }
+.estimate-title-block { min-width: 10.75rem; border-left: 1px solid var(--estimate-line); padding-left: 1.35rem; text-align: right; }
 .estimate-kicker, .estimate-section-label { color: var(--estimate-blue); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
 .estimate-title-block h1 { color: var(--estimate-navy); font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-top: 0.18rem; }
 .estimate-number { color: var(--estimate-muted); font-size: 0.72rem; margin-top: 0.25rem; }
@@ -131,8 +132,8 @@ body {
   .project-actions { width: 100%; justify-content: flex-start; }
   .editor-grid, .line-card-fields, .estimate-meta-grid, .estimate-copy-grid { grid-template-columns: 1fr; }
   .field-span-2 { grid-column: auto; }
-  .estimate-header { flex-direction: column; padding: 1.25rem; }
-  .estimate-title-block { text-align: left; }
+  .estimate-header { grid-template-columns: 1fr; align-items: start; gap: 0.9rem; padding: 1.25rem; }
+  .estimate-title-block { min-width: 0; border-left: 0; border-top: 1px solid var(--estimate-line); padding: 0.75rem 0 0; text-align: left; }
   .estimate-contact-bar, .estimate-meta-grid, .estimate-copy-block, .estimate-product-section, .estimate-copy-grid { padding-left: 1.25rem; padding-right: 1.25rem; }
   .estimate-totals-block { width: calc(100% - 2.5rem); margin-right: 1.25rem; }
   .estimate-footer { flex-direction: column; padding-left: 1.25rem; padding-right: 1.25rem; }

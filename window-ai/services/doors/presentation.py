@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from services.descriptions import door_description
+
 
 def _money(value: Any) -> float:
     return round(float(value or 0), 2)
@@ -53,8 +55,7 @@ def customer_door_openings(
             {
                 "id": str(project_opening.get("id") or index + 1),
                 "location": project_opening.get("location") or "",
-                "label": str(project_opening.get("description") or "").strip()
-                or str(opening.get("label") or "Door opening"),
+                "label": door_description(project_opening, opening) or "Door opening",
                 "material": opening.get("material"),
                 "finish_label": opening.get("finish_label"),
                 "items": customer_items,

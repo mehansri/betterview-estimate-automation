@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import type { CustomerEstimate, CustomerEstimatePricing } from "@/lib/api";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const BRAND = {
   blue: "#248fd0",
@@ -92,9 +93,8 @@ export default function EstimateDocument({
       <header className="estimate-header">
         <div className="estimate-brand-block">
           <img src="/branding/better-view-solutions.png" alt="Better View Solutions" className="estimate-logo" />
-          <div>
+          <div className="estimate-brand-copy">
             <p className="estimate-company-name">Better View Solutions Inc.</p>
-            <p className="estimate-company-meta">Windows and doors experts</p>
           </div>
         </div>
         <div className="estimate-title-block">
@@ -119,7 +119,16 @@ export default function EstimateDocument({
           <Editable value={estimate.company_name} editable={editable} onChange={(value) => onChange({ company_name: value })} placeholder="Company name (optional)" />
           <Editable value={estimate.email} editable={editable} onChange={(value) => onChange({ email: value })} placeholder="Email address" />
           <Editable value={estimate.phone} editable={editable} onChange={(value) => onChange({ phone: value })} placeholder="Phone number" />
-          <EditableArea value={estimate.project_address} editable={editable} onChange={(value) => onChange({ project_address: value })} placeholder="Project address" />
+          {editable ? (
+            <AddressAutocomplete
+              className="estimate-editable estimate-textarea"
+              multiline
+              rows={3}
+              value={estimate.project_address}
+              onChange={(value) => onChange({ project_address: value })}
+              placeholder="Project address"
+            />
+          ) : <p className="whitespace-pre-line">{estimate.project_address || "â€”"}</p>}
         </div>
         <div className="estimate-panel estimate-project-panel">
           <div className="estimate-detail-row"><span>Project</span><Editable value={estimate.project_name} editable={editable} onChange={(value) => onChange({ project_name: value })} placeholder="Project name" /></div>

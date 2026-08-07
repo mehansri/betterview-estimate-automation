@@ -9,6 +9,7 @@ from typing import Any
 
 from services.doors.presentation import customer_door_openings
 from services.doors.pricing import CONFIG_PATH, DoorLookupError, DoorValidationError, quote_project
+from services.descriptions import window_description
 from services.windowcity.engine import price_quote as price_windowcity_quote
 
 
@@ -51,34 +52,13 @@ def _door_config_version() -> str:
     return hashlib.sha256(Path(CONFIG_PATH).read_bytes()).hexdigest()[:12]
 
 
-def _window_description(line: dict[str, Any]) -> str:
-    spec = line.get("spec") or {}
-    line_type = str(spec.get("type") or "window").replace("_", " ")
-    if line_type == "window":
-        style = spec.get("style") or "Window"
-        size = " × ".join(str(spec.get(key)) for key in ("width", "height") if spec.get(key) is not None)
-        return f"{style}{f' · {size} in' if size else ''}"
-    if line_type == "patio_sliding":
-        nominal = spec.get("nominal_ft")
-        return f"Sliding patio door{f' · {nominal} ft' if nominal else ''}"
-    if line_type == "patio_swing":
-        kind = spec.get("kind") or "Swing"
-        size = " × ".join(str(spec.get(key)) for key in ("width", "height") if spec.get(key) is not None)
-        return f"{kind} patio door{f' · {size} in' if size else ''}"
-    if line_type == "combination":
-        return "Combination window assembly"
-    if line_type == "bay_bow":
-        return "Bay / bow window assembly"
-    return line_type.title()
-
-
 def _customer_window_lines(
     project_lines: list[dict[str, Any]],
     quote_lines: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     lines: list[dict[str, Any]] = []
     for project_line, quote_line in zip(project_lines, quote_lines):
-        description = str(project_line.get("description") or "").strip() or _window_description(project_line)
+        description = window_description(project_line)
         lines.append(
             {
                 "id": project_line.get("id"),

@@ -22,7 +22,9 @@ import {
   updateCustomerEstimate,
 } from "@/lib/api";
 import EstimateDocument from "@/components/EstimateDocument";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { isBetween, isAtLeast, numericInputValue, NumericInputValue } from "@/lib/numericInput";
+import { describeDoorLine, describeWindowSpec, descriptionWithProductDetails } from "@/lib/productDescriptions";
 
 type WindowEditor = {
   type: QuoteLineType;
@@ -205,10 +207,7 @@ function buildWindowSpec(editor: WindowEditor, catalog: QuoteCatalog | null): Qu
 function windowLabel(line: CustomerWindowLine) {
   const spec = line.spec;
   if (line.description) return line.description;
-  if (spec.type === "window") return `${spec.style || "Window"} · ${spec.width || "—"} × ${spec.height || "—"} in`;
-  if (spec.type === "patio_sliding") return `Sliding patio door · ${spec.nominal_ft || "—"} ft`;
-  if (spec.type === "patio_swing") return `${spec.kind || "Swing"} patio door`;
-  return String(spec.type || "Window").replace(/_/g, " ");
+  return describeWindowSpec(spec);
 }
 
 function partFromRow(row: DoorCatalog["materials"][number]["slabs"][number] | undefined) {
@@ -307,9 +306,10 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
 
   function addWindowLine() {
     if (!windowEditorIsValid) return;
+    const description = descriptionWithProductDetails(windowEditor.description, describeWindowSpec(currentWindowSpec, quoteCatalog));
     productChanged((current) => ({
       ...current,
-      windows: [...current.windows, { id: id(), location: windowEditor.location, description: windowEditor.description, spec: currentWindowSpec }],
+      windows: [...current.windows, { id: id(), location: windowEditor.location, description, spec: currentWindowSpec }],
     }));
     setWindowEditor((current) => ({ ...current, location: "", description: "" }));
   }
@@ -326,9 +326,10 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   function addDoorOpening() {
     if (!doorCatalog) return;
     const spec = makeDoorSpec(doorCatalog, doorEditor.material, doorEditor.opening_type, doorEditor.finish);
+    const description = describeDoorLine(spec, doorCatalog, doorEditor.description);
     productChanged((current) => ({
       ...current,
-      doors: [...current.doors, { id: id(), location: doorEditor.location, description: doorEditor.description, spec }],
+      doors: [...current.doors, { id: id(), location: doorEditor.location, description, spec }],
     }));
     setDoorEditor((current) => ({ ...current, location: "", description: "" }));
   }
@@ -350,7 +351,10 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     productChanged((current) => ({
       ...current,
       doors: current.doors.map((opening) => opening.id === openingId
-        ? { ...opening, spec: { ...makeDoorSpec(doorCatalog, material, openingType, finish), label: opening.spec.label } }
+        ? (() => {
+          const spec = { ...makeDoorSpec(doorCatalog, material, openingType, finish), label: opening.spec.label };
+          return { ...opening, description: describeDoorLine(spec, doorCatalog), spec };
+        })()
         : opening),
     }));
   }
@@ -467,7 +471,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <Field label="Salesperson"><input className="project-input" value={estimate.salesperson} onChange={(event) => updateMetadata({ salesperson: event.target.value })} disabled={!editable} /></Field>
             <Field label="Estimate date"><input className="project-input" type="date" value={estimate.estimate_date} onChange={(event) => updateMetadata({ estimate_date: event.target.value })} disabled={!editable} /></Field>
             <Field label="Valid until"><input className="project-input" type="date" value={estimate.valid_until} onChange={(event) => updateMetadata({ valid_until: event.target.value })} disabled={!editable} /></Field>
-            <Field label="Project address" className="field-span-2"><textarea className="project-input" rows={2} value={estimate.project_address} onChange={(event) => updateMetadata({ project_address: event.target.value })} disabled={!editable} /></Field>
+            <Field label="Project address" className="field-span-2"><AddressAutocomplete className="project-input" multiline rows={2} value={estimate.project_address} onChange={(value) => updateMetadata({ project_address: value })} disabled={!editable} placeholder="Start typing a Canadian address" /></Field>
             <Field label="Description" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.description} onChange={(event) => updateMetadata({ description: event.target.value })} disabled={!editable} placeholder="Describe the work included in the estimate." /></Field>
             <Field label="Notes" className="field-span-2"><textarea className="project-input" rows={2} value={estimate.notes} onChange={(event) => updateMetadata({ notes: event.target.value })} disabled={!editable} /></Field>
             <Field label="Terms" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.terms} onChange={(event) => updateMetadata({ terms: event.target.value })} disabled={!editable} /></Field>
