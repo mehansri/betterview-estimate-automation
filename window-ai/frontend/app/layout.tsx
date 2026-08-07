@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 const nav = [
   { href: "/projects", label: "Project estimates" },
-  { href: "/", label: "Quote" },
+  { href: "/", label: "Window Quote" },
   { href: "/doors", label: "Doors" },
   { href: "/admin/estimates", label: "Estimates" },
   { href: "/admin/windows", label: "Windows" },

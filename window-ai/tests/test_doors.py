@@ -100,7 +100,15 @@ def test_door_api_catalog_and_validation():
 
     valid = client.post("/api/doors/quote", json={"openings": [_live_opening()]})
     assert valid.status_code == 200, valid.text
-    assert valid.json()["totals"]["customer_total"] == 5497.73
+    body = valid.json()
+    assert body["totals"]["customer_total"] == 5497.73
+    customer = body["customer_presentation"]
+    assert customer["total"] == 5497.73
+    assert customer["openings"][0]["items"]
+    assert customer["openings"][0]["items"][-1]["description"] == "Professional installation"
+    assert "material_cost" not in customer
+    assert "markup" not in customer
+    assert "list_total" not in customer["openings"][0]
 
     invalid = client.post(
         "/api/doors/quote",

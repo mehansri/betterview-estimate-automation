@@ -389,6 +389,34 @@ export type DoorOpeningQuote = {
 export type DoorProjectResponse = {
   openings: DoorOpeningQuote[];
   totals: Omit<DoorOpeningQuote, "label" | "opening_type" | "material" | "finish" | "finish_label" | "line_items" | "discount" | "install_tier" | "markup" | "hst_rate" | "notes">;
+  customer_presentation: DoorCustomerPresentation;
+};
+
+export type DoorCustomerItem = {
+  description: string;
+  qty: number;
+  unit_price: number;
+  line_total: number;
+};
+
+export type DoorCustomerOpening = {
+  id: string;
+  location: string;
+  label: string;
+  material: string;
+  finish_label: string;
+  items: DoorCustomerItem[];
+  subtotal: number;
+  hst: number;
+  total: number;
+};
+
+export type DoorCustomerPresentation = {
+  openings: DoorCustomerOpening[];
+  subtotal: number;
+  hst: number;
+  total: number;
+  currency: string;
 };
 
 export type CustomerEstimateStatus = "draft" | "priced" | "finalized";

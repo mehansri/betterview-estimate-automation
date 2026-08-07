@@ -13,7 +13,7 @@ export default function DoorsPage() {
           Build a door quote from the Palma price book
         </h2>
         <p className="mt-2 text-slate-600">
-          Choose only catalog-backed door, glass, hardware, transom, and installation options. Add openings to a project and generate the customer total with the full internal breakdown.
+          Choose catalog-backed door, glass, hardware, transom, and installation options. Add openings, review the internal or customer view, and send the finished door quote into a project estimate.
         </p>
       </div>
       <DoorQuoteBuilder />

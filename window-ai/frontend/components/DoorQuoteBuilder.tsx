@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  createCustomerEstimate,
+  CustomerDoorOpening,
   DoorCatalog,
   DoorCatalogRow,
   DoorOpeningSpec,
@@ -9,8 +12,10 @@ import {
   DoorPartSpec,
   DoorProjectResponse,
   fetchDoorCatalog,
+  priceCustomerEstimate,
   quoteDoors,
 } from "@/lib/api";
+import { buildCustomerEstimateDraft, newEstimateLineId } from "@/lib/quoteHandoff";
 
 const GLASS_SERIES: Record<string, string> = {
   A: "group_a",
@@ -21,6 +26,13 @@ const GLASS_SERIES: Record<string, string> = {
 };
 
 type OpeningDraft = DoorOpeningSpec & { label: string; finish: string };
+
+type DoorQuoteOpening = {
+  id: string;
+  location: string;
+  description: string;
+  spec: OpeningDraft;
+};
 
 function money(value: number) {
   return new Intl.NumberFormat("en-CA", {
@@ -347,9 +359,12 @@ function OptionEditor({
 export default function DoorQuoteBuilder() {
   const [catalog, setCatalog] = useState<DoorCatalog | null>(null);
   const [draft, setDraft] = useState<OpeningDraft | null>(null);
-  const [openings, setOpenings] = useState<OpeningDraft[]>([]);
+  const [openings, setOpenings] = useState<DoorQuoteOpening[]>([]);
   const [result, setResult] = useState<DoorProjectResponse | null>(null);
+  const [presentationMode, setPresentationMode] = useState<"internal" | "customer">("internal");
   const [loading, setLoading] = useState(true);
+  const [handoffBusy, setHandoffBusy] = useState(false);
+  const [handoffEstimateId, setHandoffEstimateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -390,13 +405,17 @@ export default function DoorQuoteBuilder() {
 
   function buildPayload() {
     if (!draft) return [];
+    const saved = openings.map((opening) => opening.spec);
     if (!openings.length) return [draft];
-    return sameSpec(openings[openings.length - 1], draft) ? openings : [...openings, draft];
+    return sameSpec(saved[saved.length - 1], draft) ? saved : [...saved, draft];
   }
 
   function addOpening() {
     if (!draft) return;
-    setOpenings((current) => current.length && sameSpec(current[current.length - 1], draft) ? current : [...current, draft]);
+    setOpenings((current) => current.length && sameSpec(current[current.length - 1].spec, draft) ? current : [
+      ...current,
+      { id: newEstimateLineId("door"), location: "", description: "", spec: draft },
+    ]);
     setResult(null);
   }
 
@@ -407,12 +426,48 @@ export default function DoorQuoteBuilder() {
     setError(null);
     try {
       const response = await quoteDoors(payload);
-      setOpenings(payload);
+      setOpenings((current) => payload.map((spec, index) => ({
+        id: current[index]?.id || newEstimateLineId("door"),
+        location: current[index]?.location || "",
+        description: current[index]?.description || "",
+        spec,
+      })));
       setResult(response);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not price this door opening.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function sendToProjectEstimate() {
+    if (!result || !openings.length) return;
+    setHandoffBusy(true);
+    setHandoffEstimateId(null);
+    setError(null);
+    const doors: CustomerDoorOpening[] = openings.map((opening) => ({
+      id: opening.id,
+      location: opening.location,
+      description: opening.description,
+      spec: opening.spec,
+    }));
+    const draftPayload = buildCustomerEstimateDraft({
+      doors,
+      commercial: { preset_id: "standard", negotiated_discount_percent: 0, presentation_mode: "internal" },
+    });
+    try {
+      const created = await createCustomerEstimate(draftPayload);
+      try {
+        const priced = await priceCustomerEstimate(created.id);
+        window.location.href = `/projects/${priced.id}`;
+      } catch (pricingError) {
+        setHandoffEstimateId(created.id);
+        setError(pricingError instanceof Error ? `Draft created, but project pricing needs attention: ${pricingError.message}` : "Draft created, but project pricing needs attention.");
+      }
+    } catch (handoffError) {
+      setError(handoffError instanceof Error ? handoffError.message : "Could not send the door quote to a project estimate.");
+    } finally {
+      setHandoffBusy(false);
     }
   }
 
@@ -429,9 +484,24 @@ export default function DoorQuoteBuilder() {
   const selectedPanel = data.panel_upcharges[0];
   const selectedPull = data.pull_bars[0];
 
+  const customer = result?.customer_presentation;
+
   return (
-    <div className="grid gap-8 lg:grid-cols-5">
-      <section className="space-y-6 lg:col-span-3">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Workflow</p>
+          <p className="text-base font-semibold text-slate-900">{presentationMode === "internal" ? "Internal door pricing workspace" : "Door customer presentation"}</p>
+        </div>
+        <div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
+          <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "internal" ? "bg-brand-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("internal")}>Internal view</button>
+          <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "customer" ? "bg-emerald-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("customer")}>Customer view</button>
+        </div>
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-5">
+      {presentationMode === "internal" ? (
+        <section className="space-y-6 lg:col-span-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -532,10 +602,43 @@ export default function DoorQuoteBuilder() {
           {error && <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         </div>
 
-        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={index} className="flex items-center justify-between gap-4 py-3 text-sm"><div><p className="font-medium text-slate-900">{opening.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.material} · {opening.opening_type.replace(/_/g, " ")} · {opening.finish}</p></div><button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></li>)}</ul></div>}
+        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.material} · {opening.spec.opening_type.replace(/_/g, " ")} · {opening.spec.finish}</p></div><button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><input className="input" value={opening.location} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: event.target.value } : item))} placeholder="Location (optional)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
       </section>
+      ) : (
+        <section className="space-y-6 lg:col-span-3">
+        <div className="rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-emerald-900">Door customer estimate</h2>
+              <p className="mt-1 text-sm text-emerald-800">Customer-safe door components, sell amounts, tax, and total. Internal cost and markup details are hidden.</p>
+            </div>
+            <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">Customer view</span>
+          </div>
+          {!customer ? <p className="mt-5 text-sm text-slate-500">Generate a door quote first to see the customer presentation.</p> : <div className="mt-5 space-y-5">
+            {customer.openings.map((opening) => <div key={opening.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+              <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-slate-900">{opening.label}</p><p className="text-xs text-slate-500">{opening.location ? `${opening.location} · ` : ""}{opening.material} · {opening.finish_label}</p></div><p className="font-semibold text-slate-900">{money(opening.total)}</p></div>
+              <div className="mt-3 space-y-1 text-sm text-slate-700">{opening.items.map((item, index) => <div key={`${opening.id}-${index}`} className="flex justify-between gap-3"><span>{item.description}{item.qty > 1 ? ` ×${item.qty}` : ""}</span><span className="font-medium">{money(item.line_total)}</span></div>)}</div>
+            </div>)}
+            <div className="ml-auto w-full max-w-xs space-y-1 border-t border-slate-200 pt-3 text-sm"><div className="flex justify-between text-slate-600"><span>Subtotal</span><span>{money(customer.subtotal)}</span></div><div className="flex justify-between text-slate-600"><span>HST</span><span>{money(customer.hst)}</span></div><div className="flex justify-between text-base font-bold text-emerald-900"><span>Total</span><span>{money(customer.total)}</span></div></div>
+          </div>}
+        </div>
+      </section>
+      )}
+      {presentationMode === "internal" ? <>
 
       <aside className="lg:col-span-2"><div className="sticky top-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-base font-semibold text-slate-900">Door quote</h2>{!result ? <p className="mt-3 text-sm text-slate-500">Complete the opening and click <strong>Generate door quote</strong> for the Palma list, install, markup, HST, and customer total.</p> : <div className="mt-4 space-y-4"><div className="rounded-xl bg-brand-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Project customer total</p><p className="mt-1 text-3xl font-bold text-brand-700">{money(result.totals.customer_total)}</p><p className="mt-1 text-xs text-slate-500">Sell {money(result.totals.sell)} · HST {money(result.totals.hst)}</p></div><div className="grid grid-cols-2 gap-3 text-sm"><Metric label="List" value={result.totals.list_total} /><Metric label="Material cost" value={result.totals.material_cost} /><Metric label="Install" value={result.totals.install} /><Metric label="Markup" value={result.totals.markup_amount} /></div>{result.openings.map((opening, index) => <div key={index} className="rounded-xl border border-slate-100 bg-slate-50 p-4"><div className="flex items-start justify-between gap-2"><div><p className="text-sm font-semibold text-slate-900">{opening.label}</p><p className="text-xs text-slate-500">{opening.material} · {opening.finish_label}</p></div><p className="text-sm font-bold text-slate-900">{money(opening.customer_total)}</p></div><div className="mt-3 space-y-1 text-xs text-slate-600">{opening.line_items.map((item, itemIndex) => <div key={itemIndex} className="flex justify-between gap-3"><span>{item.description}{item.qty > 1 ? ` ×${item.qty}` : ""}</span><span>{money(item.list)}</span></div>)}</div><div className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500"><p>List {money(opening.list_total)} · Material {money(opening.material_cost)}</p><p>Install {money(opening.install)} · Sell {money(opening.sell)} · HST {money(opening.hst)}</p>{opening.notes.map((note) => <p key={note} className="mt-1">Note: {note}</p>)}</div></div>)}</div>}</div></aside>
+      </> : null}
+      <div className="lg:col-span-2">
+        <div className="rounded-2xl border border-brand-200 bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
+          <p className="mt-1 text-sm text-slate-500">Send all {openings.length} added door opening{openings.length === 1 ? "" : "s"} into a new project estimate, with pricing carried forward.</p>
+          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result}>{handoffBusy ? "Sending to project estimate…" : "Send to project estimate"}</button>
+          {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The draft was saved. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open draft estimate</Link> to resolve the pricing issue.</p> : null}
+          {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
+          {error && !handoffEstimateId ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p> : null}
+        </div>
+      </div>
+      </div>
       <style jsx global>{`.input { width: 100%; border-radius: 0.5rem; border: 1px solid #e2e8f0; background: #fff; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: #0f172a; }`}</style>
     </div>
   );

@@ -9,11 +9,6 @@ from typing import Optional
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from api.schemas.quote import ImportResult
-from services.import_pipeline import (
-    import_estimate_file,
-    import_uploads_batch,
-    reprocess_estimate,
-)
 from utils.paths import UPLOADS_DIR, ensure_dirs
 
 router = APIRouter(prefix="/api", tags=["import"])
@@ -21,6 +16,14 @@ router = APIRouter(prefix="/api", tags=["import"])
 
 @router.post("/import-estimate", response_model=ImportResult)
 async def import_estimate(file: UploadFile = File(...)) -> ImportResult:
+    try:
+        from services.import_pipeline import import_estimate_file
+    except ModuleNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="PDF/estimate import dependencies are not installed. Install requirements-ml.txt.",
+        ) from exc
+
     ensure_dirs()
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
@@ -36,6 +39,14 @@ async def import_estimate(file: UploadFile = File(...)) -> ImportResult:
 
 @router.post("/import-estimate/batch")
 def import_batch() -> dict:
+    try:
+        from services.import_pipeline import import_uploads_batch
+    except ModuleNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="PDF/estimate import dependencies are not installed. Install requirements-ml.txt.",
+        ) from exc
+
     results = import_uploads_batch()
     return {
         "processed": len(results),
@@ -47,6 +58,14 @@ def import_batch() -> dict:
 
 @router.post("/estimates/{estimate_id}/reprocess", response_model=ImportResult)
 def reprocess(estimate_id: str) -> ImportResult:
+    try:
+        from services.import_pipeline import reprocess_estimate
+    except ModuleNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="PDF/estimate import dependencies are not installed. Install requirements-ml.txt.",
+        ) from exc
+
     result = reprocess_estimate(estimate_id)
     if result.get("status") == "failed" and "not found" in " ".join(result.get("errors") or []).lower():
         raise HTTPException(status_code=404, detail=result.get("errors"))

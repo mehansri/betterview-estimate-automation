@@ -5,10 +5,19 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
-import joblib
-
-from api.services.confidence import confidence_and_band
-from training.features import row_to_feature_frame
+try:
+    import joblib
+    from api.services.confidence import confidence_and_band
+    from training.features import row_to_feature_frame
+    _ML_IMPORT_ERROR: ModuleNotFoundError | None = None
+except ModuleNotFoundError as exc:
+    # The deterministic quote API does not require the optional ML stack.
+    # Keep the legacy prediction endpoints available as a clear 503/degraded
+    # service when those dependencies are not installed locally.
+    joblib = None  # type: ignore[assignment]
+    confidence_and_band = None  # type: ignore[assignment]
+    row_to_feature_frame = None  # type: ignore[assignment]
+    _ML_IMPORT_ERROR = exc
 from utils.logging import get_logger
 from utils.paths import DEFAULT_MODEL_PATH
 
@@ -24,6 +33,13 @@ class QuotePredictor:
         self.load()
 
     def load(self) -> bool:
+        if _ML_IMPORT_ERROR is not None:
+            logger.warning(
+                "Optional ML dependencies unavailable: %s",
+                _ML_IMPORT_ERROR,
+            )
+            self.bundle = None
+            return False
         if not self.model_path.exists():
             logger.warning("Model not found at %s", self.model_path)
             self.bundle = None

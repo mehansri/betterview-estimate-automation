@@ -1,17 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  createCustomerEstimate,
   DeterministicQuoteResponse,
+  CustomerWindowLine,
   QuoteCatalog,
   QuoteLineInput,
   QuoteLineType,
   PresentationMode,
+  priceCustomerEstimate,
   SalesPreset,
   fetchQuoteCatalog,
   fetchSalesPresets,
   priceDeterministicQuote,
 } from "@/lib/api";
+import { buildCustomerEstimateDraft, newEstimateLineId } from "@/lib/quoteHandoff";
 
 const COLORS = ["white", "black", "dark bronze", "charcoal", "sandstone"];
 const GAS = ["argon", "50/50", "krypton"];
@@ -35,6 +40,13 @@ type Draft = {
   swing_kind: string;
   head_seat: string;
   lite_count: number;
+};
+
+type QuoteLineDraft = {
+  id: string;
+  spec: QuoteLineInput;
+  location: string;
+  description: string;
 };
 
 function emptyDraft(style = "WC-100", type: QuoteLineType = "window"): Draft {
@@ -275,7 +287,7 @@ export default function QuoteBuilder() {
   const [catalog, setCatalog] = useState<QuoteCatalog | null>(null);
   const [salesPresets, setSalesPresets] = useState<SalesPreset[]>([]);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
-  const [lines, setLines] = useState<QuoteLineInput[]>([]);
+  const [lines, setLines] = useState<QuoteLineDraft[]>([]);
   const [result, setResult] = useState<DeterministicQuoteResponse | null>(null);
   const [selectedPresetId, setSelectedPresetId] = useState("standard");
   const [negotiatedDiscount, setNegotiatedDiscount] = useState(0);
@@ -285,6 +297,8 @@ export default function QuoteBuilder() {
   const [presentationMode, setPresentationMode] = useState<PresentationMode>("internal");
   const [loading, setLoading] = useState(true);
   const [pricing, setPricing] = useState(false);
+  const [handoffBusy, setHandoffBusy] = useState(false);
+  const [handoffEstimateId, setHandoffEstimateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -315,7 +329,10 @@ export default function QuoteBuilder() {
   }
 
   function addLine() {
-    setLines((current) => [...current, currentLine]);
+    setLines((current) => [
+      ...current,
+      { id: newEstimateLineId("window"), spec: currentLine, location: "", description: "" },
+    ]);
     setResult(null);
   }
 
@@ -324,8 +341,12 @@ export default function QuoteBuilder() {
     setResult(null);
   }
 
+  function updateLine(index: number, patch: Partial<Pick<QuoteLineDraft, "location" | "description">>) {
+    setLines((current) => current.map((line, lineIndex) => lineIndex === index ? { ...line, ...patch } : line));
+  }
+
   async function generateQuote() {
-    const payload = lines.length ? lines : [currentLine];
+    const payload = lines.length ? lines.map((line) => line.spec) : [currentLine];
     if (!payload.length) return;
     const requested = Math.max(0, negotiatedDiscount);
     // Avoid surfacing a hard server error for an over-limit discount with no reason.
@@ -352,12 +373,53 @@ export default function QuoteBuilder() {
           presentation_mode: "internal",
         },
       });
-      setLines(payload);
-      setResult(priced);
+       setLines((current) => payload.map((spec, index) => ({
+         id: current[index]?.id || newEstimateLineId("window"),
+         location: current[index]?.location || "",
+         description: current[index]?.description || "",
+         spec,
+       })));
+       setResult(priced);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not price the quote.");
     } finally {
       setPricing(false);
+    }
+  }
+
+  async function sendToProjectEstimate() {
+    if (!result || !lines.length) return;
+    setHandoffBusy(true);
+    setHandoffEstimateId(null);
+    setError(null);
+    const windows: CustomerWindowLine[] = lines.map((line) => ({
+      id: line.id,
+      location: line.location,
+      description: line.description,
+      spec: line.spec,
+    }));
+    const draft = buildCustomerEstimateDraft({
+      windows,
+      commercial: {
+        preset_id: result.sales_pricing.preset_id || selectedPresetId,
+        negotiated_discount_percent: result.sales_pricing.negotiated_discount_percent,
+        manager_override_reason: result.sales_pricing.manager_override_reason || undefined,
+        presentation_mode: "internal",
+      },
+    });
+    try {
+      const created = await createCustomerEstimate(draft);
+      try {
+        const priced = await priceCustomerEstimate(created.id);
+        window.location.href = `/projects/${priced.id}`;
+      } catch (pricingError) {
+        setHandoffEstimateId(created.id);
+        setError(pricingError instanceof Error ? `Draft created, but project pricing needs attention: ${pricingError.message}` : "Draft created, but project pricing needs attention.");
+      }
+    } catch (handoffError) {
+      setError(handoffError instanceof Error ? handoffError.message : "Could not send the window quote to a project estimate.");
+    } finally {
+      setHandoffBusy(false);
     }
   }
 
@@ -395,7 +457,11 @@ export default function QuoteBuilder() {
   }
   const cp: Record<string, any> = result?.customer_presentation ?? {};
   const customerLines = Array.isArray(cp.lines)
-    ? (cp.lines as Array<{ line: number; type: string; qty: number; unit_price: number; line_total: number }>)
+    ? (cp.lines as Array<{ line: number; type: string; qty: number; unit_price: number; line_total: number }>).map((line, index) => ({
+        ...line,
+        location: lines[index]?.location || "",
+        description: lines[index]?.description || "",
+      }))
     : [];
   // A discount that no longer matches the generated quote → quote is stale, needs regenerating.
   const stale = isPriced && Math.abs(requestedPct - (sp?.negotiated_discount_percent ?? -1)) > 1e-9;
@@ -424,7 +490,7 @@ export default function QuoteBuilder() {
         {presentationMode === "internal" ? (
         <section className="space-y-6 lg:col-span-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">Build a catalog-backed quote</h2>
+            <h2 className="text-base font-semibold text-slate-900">Build a catalog-backed window quote</h2>
             <p className="mt-1 text-sm text-slate-500">
               Prices come from Window City v18 with component traceability. Unsupported options are flagged for review.
             </p>
@@ -638,7 +704,7 @@ export default function QuoteBuilder() {
 
               {stale ? (
                 <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  Discount changed since the quote was generated — select <b>Generate quote</b> to refresh the pricing.
+                  Discount changed since the quote was generated — select <b>Generate window quote</b> to refresh the pricing.
                 </p>
               ) : null}
             </div>
@@ -663,15 +729,21 @@ export default function QuoteBuilder() {
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" onClick={addLine}>Add line</button>
-            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading}>{pricing ? "Pricing…" : "Generate quote"}</button>
+            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading}>{pricing ? "Pricing…" : "Generate window quote"}</button>
           </div>
         </div>
 
         {lines.length ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between"><h2 className="text-base font-semibold text-slate-900">Quote lines</h2><span className="text-sm text-slate-500">{lines.length} line{lines.length === 1 ? "" : "s"}</span></div>
+             <div className="flex items-center justify-between"><h2 className="text-base font-semibold text-slate-900">Window quote lines</h2><span className="text-sm text-slate-500">{lines.length} line{lines.length === 1 ? "" : "s"}</span></div>
             <div className="mt-4 space-y-2">
-              {lines.map((line, index) => <div key={`${line.type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm"><span className="font-medium text-slate-800">{lineLabel(line)}</span><button type="button" className="text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)}>Remove</button></div>)}
+               {lines.map((line, index) => <div key={line.id} className="rounded-lg bg-slate-50 px-3 py-3 text-sm">
+                 <div className="flex items-center justify-between gap-3"><span className="font-medium text-slate-800">{lineLabel(line.spec)}</span><button type="button" className="text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)}>Remove</button></div>
+                 <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                   <input className="input" value={line.location} onChange={(event) => updateLine(index, { location: event.target.value })} placeholder="Location (optional)" />
+                   <input className="input" value={line.description} onChange={(event) => updateLine(index, { description: event.target.value })} placeholder="Customer description (optional)" />
+                 </div>
+               </div>)}
             </div>
           </div>
         ) : null}
@@ -706,7 +778,7 @@ export default function QuoteBuilder() {
                     <tbody className="divide-y divide-slate-100">
                       {customerLines.map((c) => (
                         <tr key={c.line}>
-                          <td className="px-2 py-2 font-medium capitalize text-slate-900">{c.type.replace(/_/g, " ")}</td>
+                          <td className="px-2 py-2 font-medium text-slate-900"><div>{c.description || c.type.replace(/_/g, " ")}</div>{c.location ? <div className="mt-1 text-xs font-normal text-slate-500">{c.location}</div> : null}</td>
                           <td className="px-2 py-2 text-right text-slate-700">{c.qty}</td>
                           <td className="px-2 py-2 text-right text-slate-700">{money(c.unit_price, result.currency)}</td>
                           <td className="px-2 py-2 text-right font-semibold text-slate-900">{money(c.line_total, result.currency)}</td>
@@ -745,6 +817,13 @@ export default function QuoteBuilder() {
             </div>
             <QuoteTotals result={result} mode={presentationMode} />
             <SalesResult result={result} mode={presentationMode} />
+            <div className="rounded-2xl border border-brand-200 bg-white p-5 shadow-sm">
+              <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
+              <p className="mt-1 text-sm text-slate-500">Send all {lines.length} added window line{lines.length === 1 ? "" : "s"} into a new project estimate, with pricing carried forward.</p>
+              <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !lines.length}>{handoffBusy ? "Sending to project estimate…" : "Send to project estimate"}</button>
+              {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The draft was saved. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open draft estimate</Link> to resolve the pricing issue.</p> : null}
+              {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
+            </div>
             {presentationMode === "internal" ? <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3"><h2 className="text-base font-semibold text-slate-900">Price-book audit</h2><span className={`rounded-full px-2 py-1 text-xs font-semibold ${result.review_required ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>{result.review_required ? "Review required" : "Catalog priced"}</span></div>
               <p className="mt-2 text-xs text-slate-500">{result.price_book_version} · config {result.config_version}</p>

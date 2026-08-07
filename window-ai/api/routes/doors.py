@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from api.schemas.doors import DoorProjectQuote, DoorQuoteRequest
 from services.doors.catalog import catalog_payload
+from services.doors.presentation import customer_door_presentation
 from services.doors.pricing import DoorLookupError, DoorValidationError, load_config, quote_project
 
 
@@ -23,4 +24,5 @@ def door_quote(body: DoorQuoteRequest) -> DoorProjectQuote:
         result = quote_project([opening.model_dump() for opening in body.openings])
     except (DoorLookupError, DoorValidationError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    result["customer_presentation"] = customer_door_presentation(result)
     return DoorProjectQuote(**result)

@@ -94,6 +94,21 @@ def test_mixed_project_prices_and_finalizes(tmp_path, monkeypatch):
     assert update.status_code == 409
 
 
+def test_door_only_project_prices_from_handoff_shape(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=True)
+    draft["windows"] = []
+    created = client.post("/api/customer-estimates", json=draft)
+    assert created.status_code == 200, created.text
+
+    priced = client.post(f"/api/customer-estimates/{created.json()['id']}/price")
+    assert priced.status_code == 200, priced.text
+    body = priced.json()
+    assert body["pricing"]["sections"]["windows"]["lines"] == []
+    assert body["pricing"]["sections"]["doors"]["openings"]
+    assert body["pricing"]["totals"]["total"] > 0
+
+
 def test_metadata_edits_preserve_pricing_but_product_edits_make_it_stale(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
     created = client.post("/api/customer-estimates", json=_draft(mixed=False))

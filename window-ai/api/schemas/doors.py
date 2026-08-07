@@ -120,6 +120,34 @@ class DoorProjectTotals(BaseModel):
     customer_total: float
 
 
+class DoorCustomerItem(BaseModel):
+    description: str
+    qty: int
+    unit_price: float
+    line_total: float
+
+
+class DoorCustomerOpening(BaseModel):
+    id: str
+    location: str = ""
+    label: str
+    material: str
+    finish_label: str
+    items: list[DoorCustomerItem]
+    subtotal: float
+    hst: float
+    total: float
+
+
+class DoorCustomerPresentation(BaseModel):
+    openings: list[DoorCustomerOpening]
+    subtotal: float
+    hst: float
+    total: float
+    currency: str = "CAD"
+
+
 class DoorProjectQuote(BaseModel):
     openings: list[DoorOpeningQuote]
     totals: DoorProjectTotals
+    customer_presentation: DoorCustomerPresentation
