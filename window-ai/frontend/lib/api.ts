@@ -239,6 +239,8 @@ export type DoorPartSpec = {
   height: string;
   qty: number;
   direct_glazed?: boolean;
+  /** Order-spec only: pattern within the priced group. Never affects price. */
+  design?: string;
 };
 
 export type DoorOptionSpec = {
@@ -285,6 +287,8 @@ export type DoorOpeningSpec = {
     qty: number;
   }>;
   options: DoorOptionSpec[];
+  /** Silence a standing default for this opening. */
+  skip_defaults?: Array<"sill" | "hinges" | "brickmould">;
 };
 
 export type DoorCatalogRow = {
@@ -351,6 +355,12 @@ export type DoorCatalog = {
     sidelites: number;
   }>;
   install: Record<string, number>;
+  quote_defaults?: {
+    sill?: string;
+    hd_hinges?: boolean;
+    brickmould?: boolean;
+    brickmould_qty?: number;
+  };
   currency: string;
 };
 

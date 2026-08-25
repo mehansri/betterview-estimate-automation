@@ -511,6 +511,50 @@
   },
   {
    "material": "fiberglass",
+   "category": "ferco_smart_lock",
+   "category_label": "FERCO Smart Lock",
+   "item": "Tedee Smart Biometric Keypad (Black ONLY)",
+   "source_page": 46,
+   "raw": "Tedee Smart Biometric Keypad (Black ONLY) $510",
+   "prices": {
+    "active": 510.0
+   }
+  },
+  {
+   "material": "fiberglass",
+   "category": "ferco_smart_lock",
+   "category_label": "FERCO Smart Lock",
+   "item": "Tedee Smart WiFi Bridge",
+   "source_page": 46,
+   "raw": "Tedee Smart WiFi Bridge $445",
+   "prices": {
+    "active": 445.0
+   }
+  },
+  {
+   "material": "fiberglass",
+   "category": "ferco_smart_lock",
+   "category_label": "FERCO Smart Lock",
+   "item": "Tedee Door Sensor",
+   "source_page": 46,
+   "raw": "Tedee Door Sensor $240",
+   "prices": {
+    "active": 240.0
+   }
+  },
+  {
+   "material": "fiberglass",
+   "category": "ferco_smart_lock",
+   "category_label": "FERCO Smart Lock",
+   "item": "Tedee Temporary Knob (Black and SN ONLY)",
+   "source_page": 46,
+   "raw": "Tedee Temporary Knob (Black and SN ONLY) $40",
+   "prices": {
+    "active": 40.0
+   }
+  },
+  {
+   "material": "fiberglass",
    "category": "paint",
    "category_label": "Paint",
    "item": "Door panel - One Side",
@@ -1304,6 +1348,50 @@
    "raw": "*Tedee-PRO Smart Lock (Black or Silver) - Compatible with over 15+ Smart Homes Systems $1400",
    "prices": {
     "active": 1400.0
+   }
+  },
+  {
+   "material": "steel",
+   "category": "ferco_smart_lock",
+   "category_label": "FERCO Smart Lock",
+   "item": "Tedee Smart Biometric Keypad (Black ONLY)",
+   "source_page": 41,
+   "raw": "Tedee Smart Biometric Keypad (Black ONLY) $510",
+   "prices": {
+    "active": 510.0
+   }
+  },
+  {
+   "material": "steel",
+   "category": "ferco_smart_lock",
+   "category_label": "FERCO Smart Lock",
+   "item": "Tedee Smart WiFi Bridge",
+   "source_page": 41,
+   "raw": "Tedee Smart WiFi Bridge $445",
+   "prices": {
+    "active": 445.0
+   }
+  },
+  {
+   "material": "steel",
+   "category": "ferco_smart_lock",
+   "category_label": "FERCO Smart Lock",
+   "item": "Tedee Door Sensor",
+   "source_page": 41,
+   "raw": "Tedee Door Sensor $240",
+   "prices": {
+    "active": 240.0
+   }
+  },
+  {
+   "material": "steel",
+   "category": "ferco_smart_lock",
+   "category_label": "FERCO Smart Lock",
+   "item": "Tedee Temporary Knob (Black and SN ONLY)",
+   "source_page": 41,
+   "raw": "Tedee Temporary Knob (Black and SN ONLY) $40",
+   "prices": {
+    "active": 40.0
    }
   },
   {

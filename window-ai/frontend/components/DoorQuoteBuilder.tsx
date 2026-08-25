@@ -30,6 +30,22 @@ const GLASS_SERIES: Record<string, string> = {
   W: "wrought_iron",
 };
 
+// Lock and handle choices live in their own section; everything else stays in
+// the generic catalog-options picker.
+const HARDWARE_CATEGORIES = new Set([
+  "ferco_multi_point_locks_handles",
+  "other_multi_point_handles",
+  "ferco_smart_lock",
+]);
+
+type IncludedDefault = "sill" | "hinges" | "brickmould";
+
+const INCLUDED_DEFAULTS: Array<{ key: IncludedDefault; label: (catalog: DoorCatalog) => string }> = [
+  { key: "sill", label: (catalog) => `${catalog.quote_defaults?.sill || "Black Anodized"} sill` },
+  { key: "hinges", label: () => "HD hinges (per slab)" },
+  { key: "brickmould", label: (catalog) => `Brickmould ×${catalog.quote_defaults?.brickmould_qty ?? 3} (finish follows door)` },
+];
+
 type OpeningDraft = DoorOpeningSpec & { label: string; finish: string };
 
 type DoorQuoteOpening = {
@@ -62,40 +78,15 @@ function materialData(catalog: DoorCatalog, material: OpeningDraft["material"]) 
   return catalog.materials.find((entry) => entry.key === material) || catalog.materials[0];
 }
 
-function glassForSeries(catalog: DoorCatalog, material: string, series: string) {
-  const group = Object.entries(GLASS_SERIES).find(([, value]) => value === series)?.[0];
-  return catalog.glass_groups.find(
-    (glass) => glass.group === group && glass.materials.includes(material)
-  );
-}
-
-function rowsForPart(
-  catalog: DoorCatalog,
-  material: OpeningDraft["material"],
-  part: DoorPartSpec,
-  component: "door" | "sidelite" | "direct_glazed_sidelite"
-) {
-  const data = materialData(catalog, material);
-  const series = part.glass
-    ? GLASS_SERIES[catalog.glass_groups.find((glass) => glass.name === part.glass)?.group || ""]
-    : part.series;
-  return data.slabs.filter(
-    (row) =>
-      row.kind === "slab" &&
-      row.component === component &&
-      (!series || row.series === series)
-  );
-}
-
-function partFromRow(row: DoorCatalogRow, existing: DoorPartSpec, glass?: string) {
+function partFromRow(row: DoorCatalogRow, existing: DoorPartSpec, design?: string) {
   return {
-    series: glass ? undefined : row.series,
-    glass: glass || undefined,
+    series: row.series,
     glass_size: row.glass_size || undefined,
     panel: row.panel || undefined,
     height: row.height,
     qty: existing.qty || 1,
     direct_glazed: existing.direct_glazed || false,
+    design: design ?? existing.design,
   } satisfies DoorPartSpec;
 }
 
@@ -112,8 +103,7 @@ function firstPart(
   if (!preferred) {
     return { series: "solid_panel", height: '6\'8"', qty: 1 };
   }
-  const glass = glassForSeries(catalog, material, preferred.series)?.name;
-  return partFromRow(preferred, { height: preferred.height, qty: 1 }, glass);
+  return partFromRow(preferred, { height: preferred.height, qty: 1 });
 }
 
 function makeOpening(
@@ -169,14 +159,6 @@ function PartPicker({
 }) {
   const data = materialData(catalog, material);
   const componentName = component === "door" ? "door" : value.direct_glazed ? "direct_glazed_sidelite" : "sidelite";
-  const allRows = data.slabs.filter(
-    (row) =>
-      row.kind === "slab" &&
-      (component === "door"
-        ? row.component === "door"
-        : row.component === "sidelite" || row.component === "direct_glazed_sidelite")
-  );
-  const rows = rowsForPart(catalog, material, value, componentName);
   const seriesOptions = Array.from(
     new Map(
       data.slabs
@@ -184,11 +166,22 @@ function PartPicker({
         .map((row) => [row.series, row.series_label])
     ).entries()
   );
-  const glassOptions = catalog.glass_groups.filter((glass) => glass.materials.includes(material));
-  const selectedSeries = value.glass
-    ? GLASS_SERIES[catalog.glass_groups.find((glass) => glass.name === value.glass)?.group || ""]
-    : value.series;
-  const filteredRows = rows.filter((row) => row.series === selectedSeries);
+  // The pricing group (series) sets the price. A legacy spec may still name a
+  // glass; resolve it to its group so the picker stays consistent.
+  const selectedSeries =
+    value.series ||
+    GLASS_SERIES[catalog.glass_groups.find((glass) => glass.name === value.glass)?.group || ""] ||
+    seriesOptions[0]?.[0];
+  const groupLetter = Object.entries(GLASS_SERIES).find(([, series]) => series === selectedSeries)?.[0];
+  // The design names the pattern for the order; it never moves the price.
+  const designOptions = groupLetter
+    ? catalog.glass_groups.filter(
+        (glass) => glass.group === groupLetter && glass.materials.includes(material)
+      )
+    : [];
+  const filteredRows = data.slabs.filter(
+    (row) => row.kind === "slab" && row.component === componentName && row.series === selectedSeries
+  );
   const heights = Array.from(new Set(filteredRows.map((row) => row.height)));
   const currentHeight = heights.includes(value.height) ? value.height : heights[0];
   const heightRows = filteredRows.filter((row) => row.height === currentHeight);
@@ -196,22 +189,8 @@ function PartPicker({
     (row) => row.glass_size === value.glass_size && row.panel === value.panel
   );
 
-  function chooseRow(row: DoorCatalogRow | undefined, glass = value.glass) {
-    if (row) onChange(partFromRow(row, value, glass));
-  }
-
-  function chooseGlass(nextGlass: string) {
-    if (nextGlass === "__series__") {
-      const row = allRows.find((entry) => entry.series === value.series) || allRows[0];
-      chooseRow(row, undefined);
-      return;
-    }
-    const group = catalog.glass_groups.find((glass) => glass.name === nextGlass);
-    const nextSeries = GLASS_SERIES[group?.group || ""];
-    const row = data.slabs.find(
-      (entry) => entry.kind === "slab" && entry.component === componentName && entry.series === nextSeries
-    );
-    chooseRow(row, nextGlass);
+  function chooseRow(row: DoorCatalogRow | undefined) {
+    if (row) onChange(partFromRow(row, value));
   }
 
   return (
@@ -229,35 +208,35 @@ function PartPicker({
         </Field>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Named glass">
+        <Field label="Glass pricing group">
           <select
             className="input"
-            value={value.glass || "__series__"}
-            onChange={(event) => chooseGlass(event.target.value)}
+            value={selectedSeries || ""}
+            onChange={(event) => {
+              const nextRows = data.slabs.filter(
+                (row) => row.kind === "slab" && row.component === componentName && row.series === event.target.value
+              );
+              if (nextRows[0]) onChange({ ...partFromRow(nextRows[0], value), design: undefined });
+            }}
           >
-            <option value="__series__">Select by price-book series</option>
-            {glassOptions.map((glass) => (
-              <option key={glass.name} value={glass.name}>
-                {glass.name} · Group {glass.group}
+            {seriesOptions.map(([key, labelText]) => (
+              <option key={key} value={key}>
+                {labelText}
               </option>
             ))}
           </select>
         </Field>
-        {!value.glass && (
-          <Field label="Price-book series">
+        {designOptions.length > 0 && (
+          <Field label="Glass design (does not change the price)">
             <select
               className="input"
-              value={selectedSeries || ""}
-              onChange={(event) => {
-                const nextRows = data.slabs.filter(
-                  (row) => row.kind === "slab" && row.component === componentName && row.series === event.target.value
-                );
-                chooseRow(nextRows[0], undefined);
-              }}
+              value={value.design || ""}
+              onChange={(event) => onChange({ ...value, design: event.target.value || undefined })}
             >
-              {seriesOptions.map(([key, labelText]) => (
-                <option key={key} value={key}>
-                  {labelText}
+              <option value="">TBD — customer to select</option>
+              {designOptions.map((glass) => (
+                <option key={glass.name} value={glass.name}>
+                  {glass.name}
                 </option>
               ))}
             </select>
@@ -267,7 +246,7 @@ function PartPicker({
           <select
             className="input"
             value={currentHeight || ""}
-            onChange={(event) => chooseRow(filteredRows.find((row) => row.height === event.target.value), value.glass)}
+            onChange={(event) => chooseRow(filteredRows.find((row) => row.height === event.target.value))}
           >
             {heights.map((height) => (
               <option key={height}>{height}</option>
@@ -278,7 +257,7 @@ function PartPicker({
           <select
             className="input"
             value={currentIndex >= 0 ? String(currentIndex) : ""}
-            onChange={(event) => chooseRow(heightRows[Number(event.target.value)], value.glass)}
+            onChange={(event) => chooseRow(heightRows[Number(event.target.value)])}
           >
             {heightRows.map((row, index) => (
               <option key={keyForRow(row, index)} value={index}>
@@ -298,7 +277,9 @@ function PartPicker({
                   (row) => row.kind === "slab" && row.component === nextComponent
                 );
                 const nextRow = nextRows.find((row) => row.series === selectedSeries) || nextRows[0];
-                onChange({ ...partFromRow(nextRow, value, value.glass), direct_glazed: event.target.checked });
+                if (nextRow) {
+                  onChange({ ...partFromRow(nextRow, value), direct_glazed: event.target.checked });
+                }
               }}
             />
             Direct-glazed sidelite
@@ -331,7 +312,7 @@ function OptionEditor({
         value={category}
         onChange={(event) => {
           const next = options.find((option) => option.category === event.target.value);
-          onChange({ ...value, category: event.target.value, item: next?.item || "", column: undefined });
+          onChange({ ...value, category: event.target.value, item: next?.item || "", column: next?.columns?.[0] });
         }}
       >
         {categories.map(([key, label]) => (
@@ -341,7 +322,10 @@ function OptionEditor({
       <select
         className="input"
         value={selected?.item || value.item}
-        onChange={(event) => onChange({ ...value, category, item: event.target.value, column: undefined })}
+        onChange={(event) => {
+          const next = categoryOptions.find((option) => option.item === event.target.value);
+          onChange({ ...value, category, item: event.target.value, column: next?.columns?.[0] });
+        }}
       >
         {categoryOptions.map((option) => <option key={option.item}>{option.item}</option>)}
       </select>
@@ -406,6 +390,27 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
     setDraft(next);
     setResult(null);
   }
+
+  // Live pricing: re-quote as the rep edits, so the number on screen always
+  // matches the configuration. Incomplete drafts fail quietly; the Generate
+  // button remains the explicit path and surfaces validation messages.
+  useEffect(() => {
+    if (!catalog || !draft) return;
+    const payload = buildPayload();
+    if (!payload.length) return;
+    const timer = setTimeout(() => {
+      quoteDoors(payload)
+        .then((response) => {
+          setResult(response);
+          setError(null);
+        })
+        .catch(() => {
+          /* incomplete draft — keep the last good result visible */
+        });
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, openings, catalog]);
 
   function updateOpeningType(nextType: DoorOpeningSpec["opening_type"]) {
     if (!catalog || !draft) return;
@@ -505,7 +510,8 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
 
   const openingMeta = catalog.opening_types.find((type) => type.key === draft.opening_type)!;
   const transomMeta = data.transoms.find((transom) => transom.shape === (draft.transom?.shape || "rectangle"));
-  const selectedOption = data.options[0];
+  const hardwareOptions = data.options.filter((option) => HARDWARE_CATEGORIES.has(option.category));
+  const generalOptions = data.options.filter((option) => !HARDWARE_CATEGORIES.has(option.category));
   const selectedPanel = data.panel_upcharges[0];
   const selectedPull = data.pull_bars[0];
 
@@ -560,6 +566,33 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
               </select>
             </Field>
           </div>
+
+          {catalog.quote_defaults && Object.keys(catalog.quote_defaults).length > 0 && (
+            <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Included standard</p>
+              <p className="mt-1 text-xs text-emerald-700">These ride on every quote automatically. Untick to leave one off; adding your own sill/hinge/brickmould line below also overrides it.</p>
+              <div className="mt-2 flex flex-wrap gap-4">
+                {INCLUDED_DEFAULTS.map(({ key, label }) => {
+                  const skipped = (draft.skip_defaults || []).includes(key);
+                  return (
+                    <label key={key} className="flex items-center gap-2 text-sm text-emerald-900">
+                      <input
+                        type="checkbox"
+                        checked={!skipped}
+                        onChange={(event) => {
+                          const next = new Set(draft.skip_defaults || []);
+                          if (event.target.checked) next.delete(key);
+                          else next.add(key);
+                          updateDraft({ ...draft, skip_defaults: Array.from(next) });
+                        }}
+                      />
+                      {label(catalog)}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 space-y-3">
             <PartPicker catalog={catalog} material={draft.material} component="door" label="Door slab" value={draft.door} onChange={(door) => updateDraft({ ...draft, door })} />
@@ -619,9 +652,16 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
           </div>
 
           <div className="mt-6 border-t border-slate-100 pt-6">
-            <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold text-slate-900">Catalog options</h3><p className="text-xs text-slate-500">Optional extras are selected from Palma’s exact option rows.</p></div><button type="button" className="text-xs font-semibold text-brand-700 hover:underline" onClick={() => selectedOption && updateDraft({ ...draft, options: [...draft.options, { category: selectedOption.category, item: selectedOption.item, qty: 1 }] })}>Add option</button></div>
+            <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold text-slate-900">Locks &amp; hardware</h3><p className="text-xs text-slate-500">Multipoint locks, handle sets, and Tedee smart-lock add-ons. Tedee pairs only with FERCO handles, Miami handles, and pull bars.</p></div><button type="button" className="text-xs font-semibold text-brand-700 hover:underline" onClick={() => { const first = hardwareOptions[0]; if (first) updateDraft({ ...draft, options: [...draft.options, { category: first.category, item: first.item, column: first.columns?.[0], qty: 1 }] }); }}>Add hardware</button></div>
             <div className="mt-4 space-y-2">
-              {draft.options.map((option, index) => <OptionEditor key={index} options={data.options} value={option} onChange={(next) => updateDraft({ ...draft, options: draft.options.map((item, itemIndex) => itemIndex === index ? next : item) })} onRemove={() => updateDraft({ ...draft, options: draft.options.filter((_, itemIndex) => itemIndex !== index) })} />)}
+              {draft.options.map((option, index) => HARDWARE_CATEGORIES.has(option.category || "") ? <OptionEditor key={index} options={hardwareOptions} value={option} onChange={(next) => updateDraft({ ...draft, options: draft.options.map((item, itemIndex) => itemIndex === index ? next : item) })} onRemove={() => updateDraft({ ...draft, options: draft.options.filter((_, itemIndex) => itemIndex !== index) })} /> : null)}
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-slate-100 pt-6">
+            <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold text-slate-900">Catalog options</h3><p className="text-xs text-slate-500">Optional extras are selected from Palma’s exact option rows.</p></div><button type="button" className="text-xs font-semibold text-brand-700 hover:underline" onClick={() => { const first = generalOptions[0]; if (first) updateDraft({ ...draft, options: [...draft.options, { category: first.category, item: first.item, column: first.columns?.[0], qty: 1 }] }); }}>Add option</button></div>
+            <div className="mt-4 space-y-2">
+              {draft.options.map((option, index) => HARDWARE_CATEGORIES.has(option.category || "") ? null : <OptionEditor key={index} options={generalOptions} value={option} onChange={(next) => updateDraft({ ...draft, options: draft.options.map((item, itemIndex) => itemIndex === index ? next : item) })} onRemove={() => updateDraft({ ...draft, options: draft.options.filter((_, itemIndex) => itemIndex !== index) })} />)}
             </div>
           </div>
 
@@ -632,7 +672,7 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
           {error && <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         </div>
 
-        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.material} · {opening.spec.opening_type.replace(/_/g, " ")} · {opening.spec.finish}</p></div><button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><LocationInput className="input" value={opening.location} onChange={(value) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: value } : item))} placeholder="Location (e.g. Front entrance)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
+        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.material} · {opening.spec.opening_type.replace(/_/g, " ")} · {opening.spec.finish}</p></div><div className="flex items-center gap-3"><button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => { setOpenings([...openings, { id: newEstimateLineId("door"), location: opening.location, description: opening.description, spec: JSON.parse(JSON.stringify(opening.spec)) }]); setResult(null); }}>Duplicate</button><button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></div></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><LocationInput className="input" value={opening.location} onChange={(value) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: value } : item))} placeholder="Location (e.g. Front entrance)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
       </section>
       ) : (
         <section className="space-y-6 lg:col-span-3">

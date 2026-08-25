@@ -132,6 +132,17 @@ class DoorQuote:
         description = f"{record['series_label']} — {label}"
         if glass_note:
             description = f"{glass_note} ({record['series_label']}) — {label}"
+        # The design names the pattern for the order spec; the pricing group
+        # (series) alone sets the price, so a rep can lock a number before the
+        # customer has picked the exact glass.
+        design = part.get("design")
+        if design:
+            description = f"{description}, design: {design}"
+        elif record["series"] in {"group_a", "group_b", "group_c", "group_d"} and not glass_note:
+            self.notes.append(
+                f"{row_label}: glass design to be selected — price is set by the "
+                f"{record['series_label']} group and will not change with the design."
+            )
         self.add(
             row_label,
             f"{description}, {catalog.FINISH_LABELS[self.finish]}",
@@ -243,6 +254,77 @@ class DoorQuote:
             f"{self.material} p{record['source_page']}",
         )
 
+    # -- standing defaults --------------------------------------------------
+
+    def apply_defaults(self) -> None:
+        """Add the lines every real order carries whether or not they're asked for.
+
+        A quote built only from what the customer says out loud reliably misses
+        the sill, hinges and brickmould — on a recent real order that was $415
+        of list. These go on automatically; a spec silences one by pricing that
+        row itself or by naming it in ``skip_defaults``.
+        """
+        defaults = self.config.get("quote_defaults") or {}
+        if not defaults:
+            return
+        skip = {str(entry).lower() for entry in self.spec.get("skip_defaults") or []}
+        rows = {item["row"] for item in self.items}
+
+        if defaults.get("sill") and "Sill" not in rows and "sill" not in skip:
+            self.add_option({"category": "sills", "item": defaults["sill"]})
+
+        if defaults.get("hd_hinges") and "Hinges" not in rows and "hinges" not in skip:
+            slab_count = sum(1 for key in ("door", "door2") if self.spec.get(key))
+            if slab_count:
+                self.add_option(
+                    {"category": "hinges", "item": "Heavy-Duty", "qty": slab_count}
+                )
+
+        if (
+            defaults.get("brickmould")
+            and "Brickmould" not in rows
+            and "brickmould" not in skip
+        ):
+            self._add_default_brickmould(int(defaults.get("brickmould_qty", 3)))
+
+    def _add_default_brickmould(self, qty: int) -> None:
+        length = '101"' if self._tall_opening() else '84"'
+        if self.finish == "factory_white":
+            word = "White"
+        elif self.finish.startswith("stain"):
+            word = "Stained"
+        else:
+            word = "Painted"
+        try:
+            self.add_option(
+                {
+                    "category": "jambs_brickmould",
+                    "item": f'{length} Regular 2" or Flat 1-1/2" {word}',
+                    "qty": qty,
+                }
+            )
+        except DoorLookupError:
+            # Standard white brickmould is not a priced line — only painted,
+            # stained and the 101" lengths are upcharges — so it ships
+            # included. Say so rather than leaving the quote silent.
+            self.notes.append(
+                f'{length} {word.lower()} brickmould is included at no charge '
+                f'(the book prices only painted, stained and 101" as upcharges).'
+            )
+
+    def _tall_opening(self) -> bool:
+        """True when the opening needs 101" brickmould rather than 84"."""
+        if self.spec.get("transom"):
+            return True
+        for key in ("door", "door2"):
+            part = self.spec.get(key) or {}
+            if part.get("height") in ("7'0\"", "8'0\""):
+                return True
+        for option in self.spec.get("options") or []:
+            if re.search(r"[78]'\s*System", str(option.get("item", ""))):
+                return True
+        return False
+
     def totals(self) -> dict[str, Any]:
         list_total = money(sum(item["list"] for item in self.items))
         discount = float(self.config["discount"])
@@ -311,6 +393,7 @@ def quote(spec: dict[str, Any], config: dict[str, Any] | None = None) -> dict[st
         quote_obj.add_pull_bar(pull)
     for option in spec.get("options") or []:
         quote_obj.add_option(option)
+    quote_obj.apply_defaults()
     return quote_obj.totals()
 
 

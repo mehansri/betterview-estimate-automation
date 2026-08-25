@@ -406,5 +406,6 @@ def catalog_payload(config: dict[str, Any]) -> dict[str, Any]:
             {"key": "double_2_sidelites", "label": "Double + 2 sidelites", "doors": 2, "sidelites": 2},
         ],
         "install": config["install"],
+        "quote_defaults": config.get("quote_defaults", {}),
         "currency": "CAD",
     }

@@ -24,6 +24,9 @@ class DoorPartSpec(BaseModel):
     height: str = '6\'8"'
     qty: int = Field(default=1, ge=1)
     direct_glazed: bool = False
+    # Order-spec only: names the decorative pattern within the priced group.
+    # Pricing ignores it, so the quote holds while the customer decides.
+    design: Optional[str] = None
 
 
 class DoorPanelUpchargeSpec(BaseModel):
@@ -71,6 +74,11 @@ class DoorOpeningSpec(BaseModel):
     panel_upcharge: Optional[DoorPanelUpchargeSpec] = None
     pull_bars: list[DoorPullBarSpec] = Field(default_factory=list)
     options: list[DoorOptionSpec] = Field(default_factory=list)
+    # Silence a standing default ("sill", "hinges", "brickmould") for this
+    # opening; an explicit line for that row also overrides the default.
+    skip_defaults: list[Literal["sill", "hinges", "brickmould"]] = Field(
+        default_factory=list
+    )
 
 
 class DoorQuoteRequest(BaseModel):

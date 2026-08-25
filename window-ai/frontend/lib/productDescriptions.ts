@@ -119,7 +119,8 @@ const OPENING_TYPE_LABELS: Record<DoorOpeningSpec["opening_type"], string> = {
 
 function doorPart(part: Record<string, unknown> | undefined) {
   if (!part) return "";
-  return join([part.panel || part.series, part.glass, part.glass_size, part.height]);
+  const design = part.design ? `design: ${text(part.design)}` : "";
+  return join([part.panel || part.series, part.glass, design, part.glass_size, part.height]);
 }
 
 function doorFinish(spec: DoorOpeningSpec, catalog?: DoorCatalog | null) {
