@@ -146,8 +146,8 @@ export default function EstimateDocument({
       {sections?.windows?.lines?.length ? (
         <section className="estimate-product-section">
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Windows</h2></div><span>{money(sections.windows.subtotal)}</span></div>
-          <table className="estimate-table"><thead><tr><th>Description</th><th>Location</th><th className="text-right">Qty</th><th className="text-right">Unit</th><th className="text-right">Amount</th></tr></thead><tbody>
-            {sections.windows.lines.map((line) => <tr key={line.id}><td>{line.description}</td><td>{line.location || "—"}</td><td className="text-right">{line.qty}</td><td className="text-right">{money(line.unit_price)}</td><td className="text-right font-semibold">{money(line.line_total)}</td></tr>)}
+          <table className="estimate-table"><thead><tr><th>#</th><th>Description</th><th>Location</th><th className="text-right">Qty</th><th className="text-right">Unit</th><th className="text-right">Amount</th></tr></thead><tbody>
+            {sections.windows.lines.map((line, index) => <tr key={line.id}><td>{index + 1}</td><td>{line.description}</td><td>{line.location || "—"}</td><td className="text-right">{line.qty}</td><td className="text-right">{money(line.unit_price)}</td><td className="text-right font-semibold">{money(line.line_total)}</td></tr>)}
           </tbody></table>
         </section>
       ) : null}
@@ -155,9 +155,9 @@ export default function EstimateDocument({
       {sections?.doors?.openings?.length ? (
         <section className="estimate-product-section">
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Doors</h2></div><span>{money(sections.doors.subtotal)}</span></div>
-          {sections.doors.openings.map((opening) => (
+          {sections.doors.openings.map((opening, openingIndex) => (
             <div className="estimate-door-opening" key={opening.id}>
-              <div className="estimate-door-heading"><div><h3>{opening.label}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p></div><strong>{money(opening.subtotal)}</strong></div>
+              <div className="estimate-door-heading"><div><h3>{`Item ${openingIndex + 1} · ${opening.label}`}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p></div><strong>{money(opening.subtotal)}</strong></div>
               <table className="estimate-table estimate-table-compact"><tbody>{opening.items.map((item, index) => <tr key={`${opening.id}-${index}`}><td>{item.description}</td><td className="text-right">{item.qty}</td><td className="text-right">{money(item.unit_price)}</td><td className="text-right font-semibold">{money(item.line_total)}</td></tr>)}</tbody></table>
             </div>
           ))}

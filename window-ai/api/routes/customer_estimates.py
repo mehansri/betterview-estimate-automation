@@ -297,6 +297,17 @@ def price_customer_estimate_route(
         return _row_response(row)
 
 
+def _missing_location_messages(row: CustomerEstimate) -> list[str]:
+    messages = []
+    for index, line in enumerate(row.windows or [], start=1):
+        if not str(line.get("location") or "").strip():
+            messages.append(f"window item {index}")
+    for index, opening in enumerate(row.doors or [], start=1):
+        if not str(opening.get("location") or "").strip():
+            messages.append(f"door item {index}")
+    return messages
+
+
 @router.post("/{estimate_id}/finalize", response_model=CustomerEstimateResponse)
 def finalize_customer_estimate(estimate_id: str) -> CustomerEstimateResponse:
     eid = _parse_id(estimate_id)
@@ -310,6 +321,19 @@ def finalize_customer_estimate(estimate_id: str) -> CustomerEstimateResponse:
             raise HTTPException(status_code=422, detail="Customer name is required before finalization")
         if not (row.windows or row.doors):
             raise HTTPException(status_code=422, detail="Add at least one Window or Door line before finalization")
+        missing_locations = _missing_location_messages(row)
+        if missing_locations:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "locations_required",
+                    "message": (
+                        "Add a location to every line before finalizing. Missing: "
+                        + ", ".join(missing_locations)
+                    ),
+                    "reasons": missing_locations,
+                },
+            )
         if row.status != "priced" or not row.pricing_snapshot:
             raise HTTPException(status_code=422, detail="Price the estimate before finalization")
         current_hash = pricing_hash(_pricing_payload(row))

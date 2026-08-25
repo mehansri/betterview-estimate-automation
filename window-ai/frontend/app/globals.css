@@ -58,6 +58,7 @@ body {
 .project-input { width: 100%; min-width: 0; border: 1px solid #d7e2e9; border-radius: 0.55rem; background: #fff; color: #112f43; padding: 0.55rem 0.65rem; font-size: 0.82rem; outline: none; }
 .project-input:focus { border-color: var(--bv-blue); box-shadow: 0 0 0 3px rgba(36, 143, 208, 0.12); }
 .project-input:disabled { background: #f8fafc; color: #64748b; }
+.location-missing { border-color: #fda4af !important; background: #fff1f2; }
 .option-box { display: grid; gap: 0.65rem; margin: 1rem 0; border: 1px solid #e5edf2; border-radius: 0.75rem; background: #f8fbfd; padding: 0.75rem; }
 .toggle-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .project-toggle { display: inline-flex; align-items: center; gap: 0.35rem; color: #29475c; font-size: 0.78rem; }

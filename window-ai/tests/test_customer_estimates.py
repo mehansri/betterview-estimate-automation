@@ -217,3 +217,36 @@ def test_review_required_project_cannot_finalize(tmp_path, monkeypatch):
     assert priced.json()["pricing"]["review_required"] is True
     finalized = client.post(f"/api/customer-estimates/{estimate_id}/finalize")
     assert finalized.status_code == 422
+
+
+def test_finalize_requires_line_locations(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft()
+    draft["windows"][0]["location"] = ""
+    draft["doors"][0]["location"] = ""
+    created = client.post("/api/customer-estimates", json=draft)
+    assert created.status_code == 200
+    estimate_id = created.json()["id"]
+
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200
+
+    finalized = client.post(f"/api/customer-estimates/{estimate_id}/finalize")
+    assert finalized.status_code == 422
+    detail = finalized.json()["detail"]
+    assert detail["code"] == "locations_required"
+    assert "window item 1" in detail["message"]
+    assert "door item 1" in detail["message"]
+
+    filled = dict(draft)
+    filled["windows"][0]["location"] = "Bedroom"
+    filled["doors"][0]["location"] = "Front entrance"
+    saved = client.put(f"/api/customer-estimates/{estimate_id}", json=filled)
+    assert saved.status_code == 200
+    assert saved.json()["status"] == "priced"
+
+    finalized = client.post(f"/api/customer-estimates/{estimate_id}/finalize")
+    assert finalized.status_code == 200, finalized.text
+    body = finalized.json()
+    assert body["windows"][0]["location"] == "Bedroom"
+    assert body["doors"][0]["location"] == "Front entrance"

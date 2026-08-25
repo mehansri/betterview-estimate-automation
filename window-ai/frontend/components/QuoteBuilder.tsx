@@ -21,6 +21,7 @@ import {
 import { newEstimateLineId } from "@/lib/quoteHandoff";
 import { describeWindowSpec } from "@/lib/productDescriptions";
 import ProjectAccessGate from "@/components/ProjectAccessGate";
+import LocationInput from "@/components/LocationInput";
 import { isBetween, isAtLeast, numericInputValue, NumericInputValue } from "@/lib/numericInput";
 
 const COLORS = ["white", "black", "dark bronze", "charcoal", "sandstone"];
@@ -784,7 +785,7 @@ export default function QuoteBuilder({ projectId }: { projectId?: string }) {
                {lines.map((line, index) => <div key={line.id} className="rounded-lg bg-slate-50 px-3 py-3 text-sm">
                  <div className="flex items-center justify-between gap-3"><span className="font-medium text-slate-800">{lineLabel(line.spec)}</span><button type="button" className="text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)}>Remove</button></div>
                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                   <input className="input" value={line.location} onChange={(event) => updateLine(index, { location: event.target.value })} placeholder="Location (optional)" />
+                   <LocationInput className="input" value={line.location} onChange={(value) => updateLine(index, { location: value })} placeholder="Location (e.g. Bedroom)" />
                    <input className="input" value={line.description} onChange={(event) => updateLine(index, { description: event.target.value })} placeholder="Customer description (optional)" />
                  </div>
                </div>)}
