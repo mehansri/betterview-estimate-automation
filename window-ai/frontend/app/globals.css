@@ -70,7 +70,7 @@ body {
 .line-card-main { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
 .line-card-main strong { color: var(--bv-navy); font-size: 0.82rem; }
 .line-card-main span { color: var(--bv-muted); font-size: 0.7rem; }
-.line-card-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto auto; gap: 0.45rem; align-items: center; }
+.line-card-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 0.45rem; align-items: center; }
 .text-button { border: 0; background: transparent; font-size: 0.72rem; font-weight: 750; white-space: nowrap; }
 .text-button.danger { color: #be123c; }
 .review-box { border: 1px solid #fed7aa; border-radius: 0.75rem; background: #fff7ed; color: #9a3412; padding: 0.8rem; font-size: 0.78rem; }

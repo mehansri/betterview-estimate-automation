@@ -124,12 +124,12 @@ function draftFromSpec(spec: QuoteLineInput, catalog: QuoteCatalog): Draft {
   };
 }
 
-function descriptionForUpdatedSpec(line: CustomerWindowLine, nextSpec: QuoteLineInput, catalog: QuoteCatalog | null) {
-  const existingDescription = line.description.trim();
+function descriptionForUpdatedSpec(line: CustomerWindowLine, nextSpec: QuoteLineInput, catalog: QuoteCatalog | null, description = line.description) {
+  const existingDescription = description.trim();
   const generatedDescription = describeWindowSpec(line.spec, catalog);
   return existingDescription === generatedDescription.trim()
     ? describeWindowSpec(nextSpec, catalog)
-    : line.description;
+    : description;
 }
 
 function money(n: number, currency = "CAD") {
@@ -345,7 +345,7 @@ function SalesResult({ result, mode = result.presentation_mode }: { result: Dete
   );
 }
 
-export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: string; editWindowId?: string }) {
+export default function QuoteBuilder({ projectId, editWindowId, editWindows = false }: { projectId?: string; editWindowId?: string; editWindows?: boolean }) {
   const [catalog, setCatalog] = useState<QuoteCatalog | null>(null);
   const [project, setProject] = useState<CustomerEstimate | null>(null);
   const [salesPresets, setSalesPresets] = useState<SalesPreset[]>([]);
@@ -366,6 +366,8 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
   const [projectLoading, setProjectLoading] = useState(Boolean(projectId));
   const [hydratedEditId, setHydratedEditId] = useState<string | null>(null);
   const [autoPricedEditId, setAutoPricedEditId] = useState<string | null>(null);
+  const [selectedEditLineId, setSelectedEditLineId] = useState<string | null>(editWindowId || null);
+  const editMode = Boolean(editWindows || editWindowId);
 
   useEffect(() => {
     Promise.all([fetchQuoteCatalog(), fetchSalesPresets()])
@@ -373,7 +375,7 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
         setCatalog(catalogPayload);
         setSalesPresets(salesPayload.presets);
         setDraft((current) => ({ ...current, style: catalogPayload.styles[0]?.code || current.style }));
-        if (!editWindowId) {
+        if (!editMode) {
           const standard = salesPayload.presets.find((preset) => preset.id === "standard") || salesPayload.presets[0];
           if (standard) {
             setSelectedPresetId(standard.id);
@@ -398,30 +400,47 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
       .finally(() => setProjectLoading(false));
   }, [projectId]);
 
+  const editHydrationKey = editMode && project ? `${project.id}:${editWindowId || "all"}` : null;
   const editingLine = useMemo(
-    () => editWindowId && project ? project.windows.find((line) => line.id === editWindowId) || null : null,
-    [editWindowId, project],
+    () => editMode && selectedEditLineId ? lines.find((line) => line.id === selectedEditLineId) || null : null,
+    [editMode, lines, selectedEditLineId],
   );
 
   useEffect(() => {
-    if (!editWindowId) {
+    if (!editMode) {
       setHydratedEditId(null);
       setAutoPricedEditId(null);
+      setSelectedEditLineId(null);
       return;
     }
-    if (!project || !catalog || hydratedEditId === editWindowId) return;
-    if (!editingLine) {
+    if (!project || !catalog || !editHydrationKey || hydratedEditId === editHydrationKey) return;
+    if (!project.windows.length) {
+      setError("This project does not have any saved window lines to edit.");
+      setHydratedEditId(editHydrationKey);
+      return;
+    }
+    const requestedLine = editWindowId ? project.windows.find((line) => line.id === editWindowId) : null;
+    if (editWindowId && !requestedLine) {
       setError("The selected window line could not be found in this project.");
-      setHydratedEditId(editWindowId);
+      setHydratedEditId(editHydrationKey);
       return;
     }
-    setDraft(draftFromSpec(editingLine.spec, catalog));
+    const loadedLines: QuoteLineDraft[] = project.windows.map((line) => ({
+      id: line.id,
+      location: line.location,
+      description: line.description,
+      spec: line.spec,
+    }));
+    const selectedLine = requestedLine || project.windows[0];
+    setLines(loadedLines);
+    setSelectedEditLineId(selectedLine.id);
+    setDraft(draftFromSpec(selectedLine.spec, catalog));
     setSelectedPresetId(project.commercial.preset_id || "standard");
     setNegotiatedDiscount(project.commercial.negotiated_discount_percent || 0);
     setAutoPricedEditId(null);
     setResult(null);
-    setHydratedEditId(editWindowId);
-  }, [catalog, editWindowId, editingLine, hydratedEditId, project]);
+    setHydratedEditId(editHydrationKey);
+  }, [catalog, editMode, editHydrationKey, editWindowId, hydratedEditId, project]);
 
   const currentLine = useMemo(() => toQuoteLine(draft, catalog), [draft, catalog]);
   const combinationSuggestion = useMemo(
@@ -463,13 +482,26 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
     setLines((current) => current.map((line, lineIndex) => lineIndex === index ? { ...line, ...patch } : line));
   }
 
+  function selectEditLine(lineId: string) {
+    if (!editMode || !catalog || lineId === selectedEditLineId) return;
+    const nextLine = lines.find((line) => line.id === lineId);
+    if (!nextLine) return;
+    if (selectedEditLineId && draftIsValid) {
+      setLines((current) => current.map((line) => line.id === selectedEditLineId ? { ...line, spec: currentLine } : line));
+    }
+    setSelectedEditLineId(lineId);
+    setDraft(draftFromSpec(nextLine.spec, catalog));
+    setResult(null);
+  }
+
   async function generateQuote() {
-    const editingExistingLine = Boolean(editWindowId && editingLine);
-    if (!editingExistingLine && !lines.length && !draftIsValid) {
+    if (!editMode && !lines.length && !draftIsValid) {
       setError("Enter a valid quantity and dimensions before generating the quote.");
       return;
     }
-    const payload = editingExistingLine ? [currentLine] : lines.length ? lines.map((line) => line.spec) : [currentLine];
+    const payload = editMode
+      ? lines.map((line) => line.id === selectedEditLineId ? currentLine : line.spec)
+      : lines.length ? lines.map((line) => line.spec) : [currentLine];
     if (!payload.length) return;
     const requested = Math.max(0, negotiatedDiscount);
     // Avoid surfacing a hard server error for an over-limit discount with no reason.
@@ -496,7 +528,9 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
           presentation_mode: "internal",
         },
       });
-       if (!editingExistingLine) {
+       if (editMode) {
+         setLines((current) => current.map((line, index) => ({ ...line, spec: payload[index] })));
+       } else {
          setLines((current) => payload.map((spec, index) => ({
            id: current[index]?.id || newEstimateLineId("window"),
            location: current[index]?.location || "",
@@ -513,24 +547,31 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
   }
 
   useEffect(() => {
-    if (!editWindowId || !editingLine || hydratedEditId !== editWindowId || autoPricedEditId === editWindowId || !catalog || !draftIsValid || pricing) return;
-    setAutoPricedEditId(editWindowId);
+    if (!editMode || !editingLine || !editHydrationKey || hydratedEditId !== editHydrationKey || autoPricedEditId === editHydrationKey || !catalog || !draftIsValid || pricing) return;
+    setAutoPricedEditId(editHydrationKey);
     void generateQuote();
-  }, [autoPricedEditId, catalog, draftIsValid, editWindowId, editingLine, hydratedEditId, pricing]);
+  }, [autoPricedEditId, catalog, draftIsValid, editHydrationKey, editMode, editingLine, hydratedEditId, pricing]);
 
-  async function saveExistingWindow() {
-    if (!projectId || !project || !editWindowId || !editingLine || project.status === "finalized" || !result) return;
+  async function saveEditedWindows() {
+    if (!projectId || !project || !editMode || !editingLine || project.status === "finalized" || !result) return;
     if (stale) {
-      setError("Regenerate the quote after changing the discount before saving the window.");
+      setError("Regenerate the quote after changing the discount before saving the windows.");
       return;
     }
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
-    const updatedDescription = descriptionForUpdatedSpec(editingLine, currentLine, catalog);
-    const updatedWindows = project.windows.map((line) => line.id === editWindowId
-      ? { ...line, description: updatedDescription, spec: currentLine }
-      : line);
+    const updatedWindows = project.windows.map((line) => {
+      const bufferedLine = lines.find((item) => item.id === line.id);
+      const nextSpec = line.id === selectedEditLineId ? currentLine : bufferedLine?.spec || line.spec;
+      const nextDescription = descriptionForUpdatedSpec(
+        line,
+        nextSpec,
+        catalog,
+        bufferedLine ? bufferedLine.description : line.description,
+      );
+      return { ...line, description: nextDescription, spec: nextSpec };
+    });
     const draftPayload: CustomerEstimateDraft = {
       customer_name: project.customer_name,
       company_name: project.company_name,
@@ -564,7 +605,7 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
         setError(pricingError instanceof Error ? `Window changes saved, but project pricing needs attention: ${pricingError.message}` : "Window changes saved, but project pricing needs attention.");
       }
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Could not save the edited window line.");
+      setError(saveError instanceof Error ? saveError.message : "Could not save the edited window lines.");
     } finally {
       setHandoffBusy(false);
     }
@@ -572,8 +613,8 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
 
   async function sendToProjectEstimate() {
     if (!projectId || !project || project.status === "finalized" || !result || (!lines.length && !editingLine)) return;
-    if (editWindowId && editingLine) {
-      await saveExistingWindow();
+    if (editMode && editingLine) {
+      await saveEditedWindows();
       return;
     }
     setHandoffBusy(true);
@@ -644,9 +685,7 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
     return capToAllowedDiscount(((baseMerch + protectedInstall - targetPreTax) / baseMerch) * 100);
   }
   const cp: Record<string, any> = result?.customer_presentation ?? {};
-  const visibleLines: QuoteLineDraft[] = editingLine
-    ? [{ id: editingLine.id, location: editingLine.location, description: descriptionForUpdatedSpec(editingLine, currentLine, catalog), spec: currentLine }]
-    : lines;
+  const visibleLines: QuoteLineDraft[] = lines;
   const customerLines = Array.isArray(cp.lines)
     ? (cp.lines as Array<{ line: number; type: string; qty: number; unit_price: number; line_total: number }>).map((line, index) => ({
         ...line,
@@ -667,8 +706,8 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
   if (!projectId) return <ProjectAccessGate product="window" />;
   if (projectLoading) return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading projectâ€¦</p>;
   if (!project) return <p className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{error || "The selected project could not be loaded."}</p>;
-  if (editWindowId && hydratedEditId === editWindowId && !editingLine) {
-    return <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"><p>{error || "The selected window line could not be found in this project."}</p><Link href={`/projects/${project.id}`} className="mt-3 inline-block font-semibold underline">Open project</Link></div>;
+  if (editMode && editHydrationKey && hydratedEditId === editHydrationKey && !editingLine) {
+    return <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"><p>{error || "The project does not have any saved window lines to edit."}</p><Link href={`/projects/${project.id}`} className="mt-3 inline-block font-semibold underline">Open project</Link></div>;
   }
 
   return (
@@ -685,7 +724,7 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm">
-        <div><span className="text-brand-700">{editingLine ? "Editing a window in " : "Assigning this quote to "}</span><strong className="text-brand-900">{project.project_name || project.customer_name || "Selected project"}</strong>{project.estimate_number ? <span className="ml-2 text-xs text-brand-700">{project.estimate_number}</span> : null}</div>
+        <div><span className="text-brand-700">{editMode ? "Editing windows in " : "Assigning this quote to "}</span><strong className="text-brand-900">{project.project_name || project.customer_name || "Selected project"}</strong>{project.estimate_number ? <span className="ml-2 text-xs text-brand-700">{project.estimate_number}</span> : null}</div>
         <Link href={`/projects/${project.id}`} className="font-semibold text-brand-700 hover:underline">Open project</Link>
       </div>
 
@@ -693,9 +732,9 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
         {presentationMode === "internal" ? (
         <section className="space-y-6 lg:col-span-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">{editingLine ? "Edit catalog-backed window quote" : "Build a catalog-backed window quote"}</h2>
+            <h2 className="text-base font-semibold text-slate-900">{editMode ? "Edit catalog-backed window quotes" : "Build a catalog-backed window quote"}</h2>
             <p className="mt-1 text-sm text-slate-500">
-              {editingLine ? "The saved line is loaded below. Change its product options, review the internal cost breakdown or customer presentation, then save it back to this project." : "Prices come from Window City v18 with component traceability. Unsupported options are flagged for review."}
+              {editMode ? "All saved window lines are loaded below. Select a line to prefill its options, change the product, then generate and save the complete window set back to this project." : "Prices come from Window City v18 with component traceability. Unsupported options are flagged for review."}
             </p>
 
           {loading ? <p className="mt-6 text-sm text-slate-500">Loading price-book catalog…</p> : null}
@@ -938,17 +977,17 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            {!editingLine ? <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={addLine} disabled={!draftIsValid}>Add line</button> : null}
-            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading || !draftIsValid}>{pricing ? "Pricing…" : editingLine ? "Refresh window quote" : "Generate window quote"}</button>
+            {!editMode ? <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={addLine} disabled={!draftIsValid}>Add line</button> : null}
+            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading || !draftIsValid}>{pricing ? "Pricing…" : "Generate window quote"}</button>
           </div>
         </div>
 
-        {!editingLine && lines.length ? (
+        {lines.length ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-             <div className="flex items-center justify-between"><h2 className="text-base font-semibold text-slate-900">Window quote lines</h2><span className="text-sm text-slate-500">{lines.length} line{lines.length === 1 ? "" : "s"}</span></div>
+             <div className="flex items-center justify-between"><h2 className="text-base font-semibold text-slate-900">{editMode ? "Project windows" : "Window quote lines"}</h2><span className="text-sm text-slate-500">{lines.length} line{lines.length === 1 ? "" : "s"}</span></div>
             <div className="mt-4 space-y-2">
-               {lines.map((line, index) => <div key={line.id} className="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-                 <div className="flex items-center justify-between gap-3"><span className="font-medium text-slate-800">{lineLabel(line.spec)}</span><button type="button" className="text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)}>Remove</button></div>
+               {lines.map((line, index) => <div key={line.id} className={`rounded-lg px-3 py-3 text-sm ${editMode && line.id === selectedEditLineId ? "border border-brand-300 bg-brand-50" : "bg-slate-50"}`}>
+                 <div className="flex items-center justify-between gap-3"><div><button type="button" className={`font-medium ${editMode ? "text-left text-brand-800 hover:underline" : "text-slate-800"}`} onClick={() => editMode ? selectEditLine(line.id) : undefined}>{line.description || lineLabel(line.spec)}</button>{line.description ? <p className="mt-1 text-xs text-slate-500">{lineLabel(line.spec)}</p> : null}</div>{editMode ? <span className="text-xs font-semibold text-brand-700">{line.id === selectedEditLineId ? "Editing" : "Select to edit"}</span> : <button type="button" className="text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)}>Remove</button>}</div>
                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
                    <LocationInput className="input" value={line.location} onChange={(value) => updateLine(index, { location: value })} placeholder="Location (e.g. Bedroom)" />
                    <input className="input" value={line.description} onChange={(event) => updateLine(index, { description: event.target.value })} placeholder="Customer description (optional)" />
@@ -1029,10 +1068,10 @@ export default function QuoteBuilder({ projectId, editWindowId }: { projectId?: 
             <SalesResult result={result} mode={presentationMode} />
             <div className="rounded-2xl border border-brand-200 bg-white p-5 shadow-sm">
               <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
-              <p className="mt-1 text-sm text-slate-500">{editingLine ? "Save this edited window line back to the same project. Its line ID, location, and customer description stay attached." : `Assign all ${lines.length} added window line${lines.length === 1 ? "" : "s"} to the selected project. Existing door and window lines stay in the same project.`}</p>
+              <p className="mt-1 text-sm text-slate-500">{editMode ? `Save all ${lines.length} window line${lines.length === 1 ? "" : "s"} back to the same estimate. Select a line from the project windows list to edit its options.` : `Assign all ${lines.length} added window line${lines.length === 1 ? "" : "s"} to the selected project. Existing door and window lines stay in the same project.`}</p>
               {project.status === "finalized" ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This project is finalized and cannot accept new quote lines.</p> : null}
-              <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || (!lines.length && !editingLine) || project.status === "finalized"}>{handoffBusy ? (editingLine ? "Saving changes…" : "Assigning to project…") : editingLine ? "Save changes to project" : "Assign to project"}</button>
-              {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">{editingLine ? "The changes were saved." : "The quote was assigned."} <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
+              <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || (!lines.length && !editingLine) || project.status === "finalized"}>{handoffBusy ? (editMode ? "Saving changes…" : "Assigning to project…") : editMode ? "Save windows to estimate" : "Assign to project"}</button>
+              {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">{editMode ? "The window changes were saved." : "The quote was assigned."} <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
               {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
             </div>
             {presentationMode === "internal" ? <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

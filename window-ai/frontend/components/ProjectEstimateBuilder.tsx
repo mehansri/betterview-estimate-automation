@@ -409,16 +409,16 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     } finally { setBusy(false); }
   }
 
-  async function openWindowQuote(lineId: string) {
+  async function openWindowWorkspace() {
     if (!estimate.id) return;
     if (!editable) {
-      window.location.href = `/?projectId=${estimate.id}&editWindowId=${lineId}`;
+      window.location.href = `/?projectId=${estimate.id}&editWindows=1`;
       return;
     }
     setBusy(true); setError(null); setMessage(null);
     try {
       const saved = await saveCurrent();
-      window.location.href = `/?projectId=${saved.id}&editWindowId=${lineId}`;
+      window.location.href = `/?projectId=${saved.id}&editWindows=1`;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not save the project before opening the window quote.");
     } finally { setBusy(false); }
@@ -505,7 +505,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <Field label="Terms" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.terms} onChange={(event) => updateMetadata({ terms: event.target.value })} disabled={!editable} /></Field>
           </div></div>
 
-          <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Windows</p><h3>Add window or patio-door lines</h3></div><span className="count-badge">{estimate.windows.length}</span></div><div className="editor-grid">
+          <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Windows</p><h3>Add window or patio-door lines</h3></div><div className="project-actions"><span className="count-badge">{estimate.windows.length}</span>{estimate.windows.length ? <button type="button" className="button secondary" onClick={openWindowWorkspace} disabled={busy}>{editable ? "Edit windows / view costs" : "View window costs"}</button> : null}</div></div><div className="editor-grid">
             <Field label="Line type"><select className="project-input" value={windowEditor.type} onChange={(event) => setWindowEditor({ ...windowEditor, type: event.target.value as QuoteLineType })} disabled={!editable}><option value="window">Window</option><option value="combination">Combination window</option><option value="patio_sliding">Sliding patio door</option><option value="patio_swing">Swing patio door</option><option value="bay_bow">Bay / bow assembly</option></select></Field>
             {(windowEditor.type === "window" || windowEditor.type === "combination" || windowEditor.type === "bay_bow") ? <Field label="Style"><select className="project-input" value={windowEditor.style} onChange={(event) => setWindowEditor({ ...windowEditor, style: event.target.value })} disabled={!editable}>{quoteCatalog ? groupWindowStyles(quoteCatalog.styles).map((group) => <optgroup key={group.collection} label={group.label}>{group.styles.map((style) => <option key={style.code} value={style.code}>{windowStyleLabel(style)}</option>)}</optgroup>) : null}</select></Field> : null}
             {windowEditor.type === "patio_sliding" ? <Field label="Nominal size"><select className="project-input" value={windowEditor.sliding_ft} onChange={(event) => setWindowEditor({ ...windowEditor, sliding_ft: Number(event.target.value) })} disabled={!editable}>{quoteCatalog?.patio_sliding_sizes.map((size) => <option key={size} value={size}>{size} ft</option>)}</select></Field> : null}
@@ -521,7 +521,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
           {windowEditor.type === "window" ? <div className="option-box"><p className="eyebrow">Accessories</p><div className="toggle-grid"><Toggle label="Brickmould" checked={windowEditor.brickmould} onChange={(value) => setWindowEditor({ ...windowEditor, brickmould: value })} /><Toggle label="Wood jamb" checked={windowEditor.wood_jamb} onChange={(value) => setWindowEditor({ ...windowEditor, wood_jamb: value })} /></div></div> : null}
           <div className="editor-grid"><Field label="Location"><LocationInput className="project-input" value={windowEditor.location} onChange={(value) => setWindowEditor({ ...windowEditor, location: value })} disabled={!editable} placeholder="Living room" /></Field><Field label="Customer description"><input className="project-input" value={windowEditor.description} onChange={(event) => setWindowEditor({ ...windowEditor, description: event.target.value })} disabled={!editable} placeholder="Energy-efficient replacement window" /></Field></div>
           <button type="button" className="button secondary" onClick={addWindowLine} disabled={!editable || !quoteCatalog || !windowEditorIsValid}>Add window line</button>
-          {estimate.windows.length ? <div className="line-list">{estimate.windows.map((line) => <div className="line-card" key={line.id}><div className="line-card-main"><strong>{windowLabel(line)}</strong><span>{line.spec.type?.replace(/_/g, " ")} · Qty {String(line.spec.qty || 1)}</span></div><div className="line-card-fields"><LocationInput className="project-input" required value={line.location} onChange={(value) => updateWindowLine(line.id, { location: value })} disabled={!editable} placeholder="Location" /><input className="project-input" value={line.description} onChange={(event) => updateWindowLine(line.id, { description: event.target.value })} disabled={!editable} placeholder="Customer description override" /><button type="button" className="button secondary" onClick={() => openWindowQuote(line.id)} disabled={busy}>{editable ? "Edit / view costs" : "View quote"}</button><button type="button" className="text-button danger" onClick={() => removeWindowLine(line.id)} disabled={!editable}>Remove</button></div></div>)}</div> : null}
+          {estimate.windows.length ? <div className="line-list">{estimate.windows.map((line) => <div className="line-card" key={line.id}><div className="line-card-main"><strong>{windowLabel(line)}</strong><span>{line.spec.type?.replace(/_/g, " ")} · Qty {String(line.spec.qty || 1)}</span></div><div className="line-card-fields"><LocationInput className="project-input" required value={line.location} onChange={(value) => updateWindowLine(line.id, { location: value })} disabled={!editable} placeholder="Location" /><input className="project-input" value={line.description} onChange={(event) => updateWindowLine(line.id, { description: event.target.value })} disabled={!editable} placeholder="Customer description override" /><button type="button" className="text-button danger" onClick={() => removeWindowLine(line.id)} disabled={!editable}>Remove</button></div></div>)}</div> : null}
           </div>
 
           <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Doors</p><h3>Add entry-door openings</h3></div><span className="count-badge">{estimate.doors.length}</span></div><div className="editor-grid">
