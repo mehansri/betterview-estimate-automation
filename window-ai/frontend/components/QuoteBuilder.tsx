@@ -23,6 +23,7 @@ import { describeWindowSpec } from "@/lib/productDescriptions";
 import ProjectAccessGate from "@/components/ProjectAccessGate";
 import LocationInput from "@/components/LocationInput";
 import { isBetween, isAtLeast, numericInputValue, NumericInputValue } from "@/lib/numericInput";
+import { groupWindowStyles, windowStyleLabel } from "@/lib/styleOptions";
 
 const COLORS = ["white", "black", "dark bronze", "charcoal", "sandstone"];
 const GAS = ["argon", "50/50", "krypton"];
@@ -124,7 +125,7 @@ function toQuoteLine(draft: Draft, catalog: QuoteCatalog | null): QuoteLineInput
 
   if (draft.type === "combination") {
     const first = windowLine(draft);
-    const second = windowLine({ ...draft, style: catalog?.styles[1]?.code || draft.style });
+    const second = windowLine(draft);
     return {
       type: "combination",
       qty: draft.qty,
@@ -556,7 +557,11 @@ export default function QuoteBuilder({ projectId }: { projectId?: string }) {
             {(draft.type === "window" || draft.type === "combination" || draft.type === "bay_bow") && (
               <Field label="Window style">
                 <select className="input" value={draft.style} onChange={(e) => update("style", e.target.value)}>
-                  {catalog?.styles.map((style) => <option key={style.code} value={style.code}>{style.code} · {style.name}</option>)}
+                  {catalog ? groupWindowStyles(catalog.styles).map((group) => (
+                    <optgroup key={group.collection} label={group.label}>
+                      {group.styles.map((style) => <option key={style.code} value={style.code}>{windowStyleLabel(style)}</option>)}
+                    </optgroup>
+                  )) : null}
                 </select>
               </Field>
             )}
@@ -579,7 +584,7 @@ export default function QuoteBuilder({ projectId }: { projectId?: string }) {
 
             {draft.type !== "patio_sliding" && (
               <>
-                <Field label="Width (in)"><input className="input" type="number" min={1} step={0.125} value={draft.width} onChange={(e) => update("width", numericInputValue(e.target.value))} /></Field>
+                <Field label={draft.type === "combination" ? "Lite width (in)" : "Width (in)"}><input className="input" type="number" min={1} step={0.125} value={draft.width} onChange={(e) => update("width", numericInputValue(e.target.value))} /></Field>
                 <Field label="Height (in)"><input className="input" type="number" min={1} step={0.125} value={draft.height} onChange={(e) => update("height", numericInputValue(e.target.value))} /></Field>
               </>
             )}
@@ -591,6 +596,8 @@ export default function QuoteBuilder({ projectId }: { projectId?: string }) {
               </select>
             </Field>
           </div>
+
+          {draft.type === "combination" ? <p className="mt-3 text-xs text-slate-500">Combination uses two equal lites with the selected style. For a 64 in overall width, enter 32 in as the lite width.</p> : null}
 
           {draft.type !== "bay_bow" ? (
             <div className="mt-6 rounded-xl bg-slate-50 p-4">

@@ -44,6 +44,54 @@ def test_window_golden_quote_has_traceable_components() -> None:
     assert result["lines"][0]["components"][0]["source_refs"]
 
 
+@pytest.mark.parametrize(
+    ("style", "colour"),
+    [("WC-150", "charcoal"), ("WC-175", "dark bronze")],
+)
+def test_brochure_classic_colours_are_offered(style: str, colour: str) -> None:
+    result = price_quote(
+        {
+            "lines": [
+                {
+                    "type": "window",
+                    "style": style,
+                    "width": 30,
+                    "height": 60,
+                    "qty": 1,
+                    "colour_ext": colour,
+                    "colour_int": "white",
+                }
+            ]
+        }
+    )
+
+    assert result["status"] == "priced"
+    assert result["review_required"] is False
+
+
+@pytest.mark.parametrize(
+    ("style", "colour"),
+    [("HC-151", "sandalwood"), ("WC-300", "sandstone"), ("WC-400", "black")],
+)
+def test_brochure_excluded_colours_are_rejected(style: str, colour: str) -> None:
+    with pytest.raises(PriceBookReviewRequired, match="not offered"):
+        price_quote(
+            {
+                "lines": [
+                    {
+                        "type": "window",
+                        "style": style,
+                        "width": 30,
+                        "height": 60,
+                        "qty": 1,
+                        "colour_ext": colour,
+                        "colour_int": "white",
+                    }
+                ]
+            }
+        )
+
+
 def test_sample_quote_totals_remain_stable() -> None:
     result = price_quote(
         {
@@ -103,6 +151,30 @@ def test_unsupported_options_are_review_required_not_silently_priced() -> None:
     assert result["status"] == "review_required"
     assert result["review_required"] is True
     assert any("Grid pricing" in warning["message"] for warning in result["warnings"])
+
+
+def test_wc100_two_lite_combination_allows_triple_pane_per_lite() -> None:
+    result = price_quote(
+        {
+            "lines": [
+                {
+                    "type": "combination",
+                    "layout": {"cols": 2, "rows": 1},
+                    "lites": [
+                        {"type": "window", "style": "WC-100", "width": 32, "height": 62,
+                         "glazing": {"triple": True}},
+                        {"type": "window", "style": "WC-100", "width": 32, "height": 62,
+                         "glazing": {"triple": True}},
+                    ],
+                }
+            ]
+        }
+    )
+
+    assert result["status"] == "priced"
+    assert result["review_required"] is False
+    assert result["lines"][0]["components"][0]["label"].startswith("Combination 2x1 overall 64x62")
+    assert sum("Triple pane upcharge" in component["label"] for component in result["lines"][0]["components"]) == 2
 
 
 def test_invalid_catalog_input_fails_closed() -> None:

@@ -28,6 +28,7 @@ body {
 }
 
 .text-muted { color: var(--bv-muted); }
+.project-help { margin: -0.35rem 0 0.7rem; color: var(--bv-muted); font-size: 0.74rem; }
 .project-estimate-shell { min-width: 0; }
 .project-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .project-toolbar h2 { margin-top: 0.2rem; color: var(--bv-navy); font-size: 1.5rem; font-weight: 750; letter-spacing: -0.02em; }
