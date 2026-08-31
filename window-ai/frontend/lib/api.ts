@@ -749,6 +749,11 @@ export async function fetchCustomerEstimate(id: string): Promise<CustomerEstimat
   return res.json();
 }
 
+export async function deleteCustomerEstimate(id: string): Promise<void> {
+  const res = await apiFetch(`/api/customer-estimates/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
+}
+
 export async function updateCustomerEstimate(id: string, draft: CustomerEstimateDraft): Promise<CustomerEstimate> {
   const res = await apiFetch(`/api/customer-estimates/${id}`, {
     method: "PUT",

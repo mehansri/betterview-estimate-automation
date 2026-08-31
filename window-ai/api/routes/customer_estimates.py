@@ -201,6 +201,16 @@ def get_customer_estimate(estimate_id: str) -> CustomerEstimateResponse:
         return _row_response(row)
 
 
+@router.delete("/{estimate_id}", status_code=204)
+def delete_customer_estimate(estimate_id: str) -> None:
+    eid = _parse_id(estimate_id)
+    with get_session() as session:
+        row = session.get(CustomerEstimate, eid)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Customer estimate not found")
+        session.delete(row)
+
+
 @router.put("/{estimate_id}", response_model=CustomerEstimateResponse)
 def update_customer_estimate(estimate_id: str, body: CustomerEstimateDraft) -> CustomerEstimateResponse:
     eid = _parse_id(estimate_id)

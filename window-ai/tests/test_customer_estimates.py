@@ -115,6 +115,23 @@ def test_residential_project_can_finalize_without_company(tmp_path, monkeypatch)
     assert finalized.json()["company_name"] == ""
 
 
+def test_customer_estimate_can_be_removed_after_finalization(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    created = client.post("/api/customer-estimates", json=_draft(mixed=False))
+    assert created.status_code == 200, created.text
+    estimate_id = created.json()["id"]
+
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+    finalized = client.post(f"/api/customer-estimates/{estimate_id}/finalize")
+    assert finalized.status_code == 200, finalized.text
+
+    removed = client.delete(f"/api/customer-estimates/{estimate_id}")
+    assert removed.status_code == 204, removed.text
+    assert client.get(f"/api/customer-estimates/{estimate_id}").status_code == 404
+    assert client.get("/api/customer-estimates").json() == []
+
+
 def test_customer_estimate_manager_override_requires_token(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
     draft = _draft(mixed=False)
