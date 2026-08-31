@@ -2,8 +2,9 @@ import QuoteBuilder from "@/components/QuoteBuilder";
 import ProjectAccessGate from "@/components/ProjectAccessGate";
 import Link from "next/link";
 
-export default function HomePage({ searchParams }: { searchParams?: { projectId?: string | string[] } }) {
+export default function HomePage({ searchParams }: { searchParams?: { projectId?: string | string[]; editWindowId?: string | string[] } }) {
   const projectId = typeof searchParams?.projectId === "string" ? searchParams.projectId : undefined;
+  const editWindowId = typeof searchParams?.editWindowId === "string" ? searchParams.editWindowId : undefined;
 
   return (
     <div>
@@ -16,7 +17,7 @@ export default function HomePage({ searchParams }: { searchParams?: { projectId?
         </p>
         {!projectId ? <Link href="/projects/new" className="mt-4 inline-flex rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Create a project</Link> : null}
       </div>
-      {projectId ? <QuoteBuilder projectId={projectId} /> : <ProjectAccessGate product="window" />}
+      {projectId ? <QuoteBuilder projectId={projectId} editWindowId={editWindowId} /> : <ProjectAccessGate product="window" />}
     </div>
   );
 }

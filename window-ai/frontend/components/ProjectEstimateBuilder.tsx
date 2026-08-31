@@ -27,6 +27,7 @@ import LocationInput from "@/components/LocationInput";
 import { isBetween, isAtLeast, numericInputValue, NumericInputValue } from "@/lib/numericInput";
 import { describeDoorLine, describeWindowSpec, descriptionWithProductDetails } from "@/lib/productDescriptions";
 import { groupWindowStyles, windowStyleLabel } from "@/lib/styleOptions";
+import { getCombinationSuggestion } from "@/lib/windowSuggestions";
 
 type WindowEditor = {
   type: QuoteLineType;
@@ -292,6 +293,10 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       ].filter((label): label is string => label !== null)
     : [];
   const currentWindowSpec = useMemo(() => buildWindowSpec(windowEditor, quoteCatalog), [windowEditor, quoteCatalog]);
+  const combinationSuggestion = useMemo(
+    () => getCombinationSuggestion(quoteCatalog?.styles.find((style) => style.code === windowEditor.style), windowEditor.width, windowEditor.height),
+    [quoteCatalog, windowEditor.style, windowEditor.width, windowEditor.height],
+  );
   const windowEditorIsValid =
     isAtLeast(windowEditor.qty, 1) &&
     (windowEditor.type === "patio_sliding" ||
@@ -404,6 +409,21 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     } finally { setBusy(false); }
   }
 
+  async function openWindowQuote(lineId: string) {
+    if (!estimate.id) return;
+    if (!editable) {
+      window.location.href = `/?projectId=${estimate.id}&editWindowId=${lineId}`;
+      return;
+    }
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      const saved = await saveCurrent();
+      window.location.href = `/?projectId=${saved.id}&editWindowId=${lineId}`;
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save the project before opening the window quote.");
+    } finally { setBusy(false); }
+  }
+
   async function priceProject() {
     setBusy(true); setError(null); setMessage(null);
     try {
@@ -495,12 +515,13 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <Field label="Exterior colour"><select className="project-input" value={windowEditor.colour_ext} onChange={(event) => setWindowEditor({ ...windowEditor, colour_ext: event.target.value })} disabled={!editable}>{COLORS.map((color) => <option key={color}>{color}</option>)}</select></Field>
             {windowEditor.type === "bay_bow" ? <><Field label="Lite count"><input className="project-input" type="number" min={3} max={6} value={windowEditor.lite_count} onChange={(event) => setWindowEditor({ ...windowEditor, lite_count: numericInputValue(event.target.value) })} disabled={!editable} /></Field><Field label="Head / seat"><select className="project-input" value={windowEditor.head_seat} onChange={(event) => setWindowEditor({ ...windowEditor, head_seat: event.target.value })} disabled={!editable}>{quoteCatalog?.baybow.head_seat_sizes.map((size) => <option key={size}>{size}</option>)}</select></Field></> : null}
           </div>
+          {windowEditor.type === "window" && combinationSuggestion ? <div className="project-suggestion"><div><strong>This {combinationSuggestion.styleCode} size may be a two-lite combination.</strong><p>For {combinationSuggestion.overallWidth} × {combinationSuggestion.height} overall, price two {combinationSuggestion.styleCode} lites at {combinationSuggestion.liteWidth} × {combinationSuggestion.height} each.</p></div><button type="button" className="button secondary" onClick={() => setWindowEditor((current) => ({ ...current, type: "combination", width: combinationSuggestion.liteWidth }))} disabled={!editable}>Use two-lite combination</button></div> : null}
           {windowEditor.type === "combination" ? <p className="project-help">Combination uses two equal lites with the selected style. For a 64 in overall width, enter 32 in as the lite width.</p> : null}
           {windowEditor.type !== "bay_bow" ? <div className="option-box"><p className="eyebrow">Glazing</p><div className="toggle-grid"><Toggle label="LoE 180" checked={windowEditor.loe180} onChange={(value) => setWindowEditor({ ...windowEditor, loe180: value })} /><Toggle label="i89" checked={windowEditor.i89} onChange={(value) => setWindowEditor({ ...windowEditor, i89: value })} /><Toggle label="Triple pane" checked={windowEditor.triple} onChange={(value) => setWindowEditor({ ...windowEditor, triple: value })} /><Toggle label="Tri-pane laminated" checked={windowEditor.tri_pane_lami} onChange={(value) => setWindowEditor({ ...windowEditor, tri_pane_lami: value })} /><Toggle label="Frost / tint" checked={windowEditor.frost_tint} onChange={(value) => setWindowEditor({ ...windowEditor, frost_tint: value })} /></div><Field label="Gas"><select className="project-input" value={windowEditor.gas} onChange={(event) => setWindowEditor({ ...windowEditor, gas: event.target.value })} disabled={!editable}>{GAS.map((gas) => <option key={gas}>{gas}</option>)}</select></Field></div> : null}
           {windowEditor.type === "window" ? <div className="option-box"><p className="eyebrow">Accessories</p><div className="toggle-grid"><Toggle label="Brickmould" checked={windowEditor.brickmould} onChange={(value) => setWindowEditor({ ...windowEditor, brickmould: value })} /><Toggle label="Wood jamb" checked={windowEditor.wood_jamb} onChange={(value) => setWindowEditor({ ...windowEditor, wood_jamb: value })} /></div></div> : null}
           <div className="editor-grid"><Field label="Location"><LocationInput className="project-input" value={windowEditor.location} onChange={(value) => setWindowEditor({ ...windowEditor, location: value })} disabled={!editable} placeholder="Living room" /></Field><Field label="Customer description"><input className="project-input" value={windowEditor.description} onChange={(event) => setWindowEditor({ ...windowEditor, description: event.target.value })} disabled={!editable} placeholder="Energy-efficient replacement window" /></Field></div>
           <button type="button" className="button secondary" onClick={addWindowLine} disabled={!editable || !quoteCatalog || !windowEditorIsValid}>Add window line</button>
-          {estimate.windows.length ? <div className="line-list">{estimate.windows.map((line) => <div className="line-card" key={line.id}><div className="line-card-main"><strong>{windowLabel(line)}</strong><span>{line.spec.type?.replace(/_/g, " ")} · Qty {String(line.spec.qty || 1)}</span></div><div className="line-card-fields"><LocationInput className="project-input" required value={line.location} onChange={(value) => updateWindowLine(line.id, { location: value })} disabled={!editable} placeholder="Location" /><input className="project-input" value={line.description} onChange={(event) => updateWindowLine(line.id, { description: event.target.value })} disabled={!editable} placeholder="Customer description override" /><button type="button" className="text-button danger" onClick={() => removeWindowLine(line.id)} disabled={!editable}>Remove</button></div></div>)}</div> : null}
+          {estimate.windows.length ? <div className="line-list">{estimate.windows.map((line) => <div className="line-card" key={line.id}><div className="line-card-main"><strong>{windowLabel(line)}</strong><span>{line.spec.type?.replace(/_/g, " ")} · Qty {String(line.spec.qty || 1)}</span></div><div className="line-card-fields"><LocationInput className="project-input" required value={line.location} onChange={(value) => updateWindowLine(line.id, { location: value })} disabled={!editable} placeholder="Location" /><input className="project-input" value={line.description} onChange={(event) => updateWindowLine(line.id, { description: event.target.value })} disabled={!editable} placeholder="Customer description override" /><button type="button" className="button secondary" onClick={() => openWindowQuote(line.id)} disabled={busy}>{editable ? "Edit / view costs" : "View quote"}</button><button type="button" className="text-button danger" onClick={() => removeWindowLine(line.id)} disabled={!editable}>Remove</button></div></div>)}</div> : null}
           </div>
 
           <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Doors</p><h3>Add entry-door openings</h3></div><span className="count-badge">{estimate.doors.length}</span></div><div className="editor-grid">

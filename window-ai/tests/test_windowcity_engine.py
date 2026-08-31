@@ -15,6 +15,9 @@ def test_catalog_payload_is_populated() -> None:
     payload = catalog_payload()
     assert payload["price_book_version"] == BOOK_VERSION
     assert len(payload["styles"]) == 23
+    wc100 = next(style for style in payload["styles"] if style["code"] == "WC-100")
+    assert wc100["size_ranges"]
+    assert any(row["ranges"][0]["max"] == 32.0 for row in wc100["size_ranges"])
     assert "brickmould" in payload["accessories"]
     assert payload["patio_sliding_sizes"] == [5, 6, 8, 10, 12, 16]
 

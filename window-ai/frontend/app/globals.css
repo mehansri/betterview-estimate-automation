@@ -29,6 +29,8 @@ body {
 
 .text-muted { color: var(--bv-muted); }
 .project-help { margin: -0.35rem 0 0.7rem; color: var(--bv-muted); font-size: 0.74rem; }
+.project-suggestion { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin: 0.4rem 0 0.7rem; border: 1px solid #fed7aa; border-radius: 0.75rem; background: #fff7ed; color: #9a3412; padding: 0.8rem; font-size: 0.78rem; }
+.project-suggestion p { margin-top: 0.25rem; }
 .project-estimate-shell { min-width: 0; }
 .project-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .project-toolbar h2 { margin-top: 0.2rem; color: var(--bv-navy); font-size: 1.5rem; font-weight: 750; letter-spacing: -0.02em; }
@@ -68,7 +70,7 @@ body {
 .line-card-main { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
 .line-card-main strong { color: var(--bv-navy); font-size: 0.82rem; }
 .line-card-main span { color: var(--bv-muted); font-size: 0.7rem; }
-.line-card-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 0.45rem; align-items: center; }
+.line-card-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto auto; gap: 0.45rem; align-items: center; }
 .text-button { border: 0; background: transparent; font-size: 0.72rem; font-weight: 750; white-space: nowrap; }
 .text-button.danger { color: #be123c; }
 .review-box { border: 1px solid #fed7aa; border-radius: 0.75rem; background: #fff7ed; color: #9a3412; padding: 0.8rem; font-size: 0.78rem; }

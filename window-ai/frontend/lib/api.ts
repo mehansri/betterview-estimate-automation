@@ -220,6 +220,10 @@ export type QuoteCatalog = {
     name: string;
     collection: string;
     source_page_pdf?: number;
+    size_ranges?: Array<{
+      label?: string | null;
+      ranges: Array<{ min: number; max: number }>;
+    }>;
   }>;
   accessories: Record<string, Array<{ name: string; item_code?: string; source_page_pdf?: number }>>;
   shapes: Record<string, Array<{ name: string; source_page_pdf?: number }>>;

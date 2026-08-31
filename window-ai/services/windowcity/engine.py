@@ -185,6 +185,17 @@ def catalog_payload() -> dict[str, Any]:
                 "name": row["name"],
                 "collection": row["collection"],
                 "source_page_pdf": row.get("source_page_pdf"),
+                "size_ranges": [
+                    {
+                        "label": size_row.get("label"),
+                        "ranges": [
+                            {"min": item["min"], "max": item["max"]}
+                            for item in size_row.get("ranges", [])
+                        ],
+                    }
+                    for size_row in row.get("sizes", [])
+                    if size_row.get("ranges")
+                ],
             }
             for row in windows.get("styles", [])
         ],
