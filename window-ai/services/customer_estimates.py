@@ -120,6 +120,20 @@ def price_customer_estimate(
     combined_hst = _money(windows_hst + doors_hst)
     combined_total = _money(windows_total + doors_total)
 
+    window_engine_totals = (window_quote or {}).get("totals", {})
+    window_sales_pricing = (window_quote or {}).get("sales_pricing", {})
+    window_hst_rate = float((window_quote or {}).get("config", {}).get("hst", 0.13) or 0.13)
+    window_base_subtotal = _money(window_engine_totals.get("base_sell_before_discount"))
+    window_floor_subtotal = _money(window_sales_pricing.get("minimum_floor_sell", window_base_subtotal))
+    window_base_hst = _money(window_base_subtotal * window_hst_rate)
+    window_floor_hst = _money(window_floor_subtotal * window_hst_rate)
+    base_subtotal = _money(window_base_subtotal + doors_subtotal)
+    base_hst = _money(window_base_hst + doors_hst)
+    base_total = _money(base_subtotal + base_hst)
+    minimum_floor_subtotal = _money(window_floor_subtotal + doors_subtotal)
+    minimum_floor_total = _money(minimum_floor_subtotal + window_floor_hst + doors_hst)
+    offer_discount = _money(max(0.0, base_subtotal - combined_subtotal))
+
     payload = canonical_pricing_payload(windows, doors, commercial)
     current_hash = pricing_hash(payload)
     return {
@@ -143,6 +157,12 @@ def price_customer_estimate(
             "hst": combined_hst,
             "total": combined_total,
             "currency": "CAD",
+            "base_subtotal": base_subtotal,
+            "base_hst": base_hst,
+            "base_total": base_total,
+            "discount": offer_discount,
+            "minimum_floor_subtotal": minimum_floor_subtotal,
+            "minimum_floor_total": minimum_floor_total,
         },
         # Keep the full engine responses in the saved audit snapshot. The UI's
         # customer document only reads the sanitized sections/totals above.

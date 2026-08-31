@@ -7,6 +7,7 @@ import {
   CustomerEstimate,
   CustomerEstimateDraft,
   CustomerWindowLine,
+  CommercialSettings,
   DoorCatalog,
   DoorOpeningSpec,
   QuoteCatalog,
@@ -84,6 +85,10 @@ function plusDays(days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function money(value: number | undefined | null, currency = "CAD") {
+  return new Intl.NumberFormat("en-CA", { style: "currency", currency }).format(value || 0);
+}
+
 function blankEstimate(): CustomerEstimate {
   return {
     id: "",
@@ -103,7 +108,7 @@ function blankEstimate(): CustomerEstimate {
     terms: "This estimate is based on the information available at the time of quoting. Final measurements, site conditions, product availability, and installation details will be confirmed before ordering.",
     windows: [],
     doors: [],
-    commercial: { preset_id: "standard", negotiated_discount_percent: 0, presentation_mode: "internal" },
+    commercial: { preset_id: "standard", negotiated_discount_percent: 0, agreed_customer_total: null, presentation_mode: "internal" },
     pricing: null,
     pricing_hash: null,
     created_at: "",
@@ -249,6 +254,66 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   return <label className="project-toggle"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />{label}</label>;
 }
 
+function numberValue(value: unknown, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+type AgreedTotalBasis = {
+  baseTotal: number;
+  minimumFloorTotal: number;
+  minimumAuthorizedTotal: number;
+  minimumNonDiscountableTotal: number;
+  baseMerchandise: number;
+  protectedInstall: number;
+  doorTotal: number;
+  hstRate: number;
+  maxDiscountPercent: number;
+};
+
+type AgreedTotalOffer = AgreedTotalBasis & {
+  target: number;
+  discountPercent: number;
+  discountAmount: number;
+  aboveBase: boolean;
+  belowHardMinimum: boolean;
+  underAuthorizedFloor: boolean;
+  error?: string;
+};
+
+function getAgreedTotalBasis(pricing: CustomerEstimate["pricing"]): AgreedTotalBasis | null {
+  if (!pricing) return null;
+
+  const windowQuote = pricing.window_quote as unknown as Record<string, unknown> | null | undefined;
+  const windowTotals = windowQuote && typeof windowQuote.totals === "object" && windowQuote.totals ? windowQuote.totals as Record<string, unknown> : {};
+  const salesPricing = windowQuote && typeof windowQuote.sales_pricing === "object" && windowQuote.sales_pricing ? windowQuote.sales_pricing as Record<string, unknown> : {};
+  const quoteConfig = windowQuote && typeof windowQuote.config === "object" && windowQuote.config ? windowQuote.config as Record<string, unknown> : {};
+  const doorQuote = pricing.door_quote && typeof pricing.door_quote === "object" ? pricing.door_quote : {};
+  const doorTotals = typeof doorQuote.totals === "object" && doorQuote.totals ? doorQuote.totals as Record<string, unknown> : {};
+  const hstRate = numberValue(quoteConfig.hst, 0.13);
+  const doorSubtotal = numberValue(doorTotals.sell);
+  const doorHst = numberValue(doorTotals.hst);
+  const doorTotal = numberValue(doorTotals.customer_total, doorSubtotal + doorHst);
+  const baseMerchandise = numberValue(salesPricing.base_merchandise_sell);
+  const protectedInstall = numberValue(salesPricing.protected_install_sell);
+  const baseWindowSubtotal = baseMerchandise + protectedInstall;
+  const baseSubtotal = numberValue(pricing.totals.base_subtotal, baseWindowSubtotal + doorSubtotal);
+  const baseHst = numberValue(pricing.totals.base_hst, baseWindowSubtotal * hstRate + doorHst);
+  const baseTotal = numberValue(pricing.totals.base_total, baseSubtotal + baseHst);
+  const floorWindowSubtotal = numberValue(salesPricing.minimum_floor_sell, baseWindowSubtotal);
+  const floorSubtotal = numberValue(pricing.totals.minimum_floor_subtotal, floorWindowSubtotal + doorSubtotal);
+  const floorHst = (floorWindowSubtotal * hstRate) + doorHst;
+  const minimumFloorTotal = numberValue(pricing.totals.minimum_floor_total, floorSubtotal + floorHst);
+  const maxDiscountPercent = numberValue(salesPricing.maximum_allowed_discount_percent);
+  const authorizedWindowSubtotal = baseMerchandise * Math.max(0, 1 - maxDiscountPercent / 100) + protectedInstall;
+  const authorizedSubtotal = authorizedWindowSubtotal + doorSubtotal;
+  const minimumAuthorizedTotal = authorizedSubtotal + authorizedWindowSubtotal * hstRate + doorHst;
+  const minimumNonDiscountableTotal = protectedInstall + protectedInstall * hstRate + doorTotal;
+
+  if (baseMerchandise <= 0) return null;
+  return { baseTotal, minimumFloorTotal, minimumAuthorizedTotal, minimumNonDiscountableTotal, baseMerchandise, protectedInstall, doorTotal, hstRate, maxDiscountPercent };
+}
+
 export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: string }) {
   const [estimate, setEstimate] = useState<CustomerEstimate>(blankEstimate);
   const [quoteCatalog, setQuoteCatalog] = useState<QuoteCatalog | null>(null);
@@ -258,6 +323,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   const [loading, setLoading] = useState(Boolean(estimateId));
   const [busy, setBusy] = useState(false);
   const [needsReprice, setNeedsReprice] = useState(false);
+  const [agreedTotalText, setAgreedTotalText] = useState("");
+  const [managerReason, setManagerReason] = useState("");
+  const [managerToken, setManagerToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -278,6 +346,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       .then((loaded) => {
         setEstimate(loaded);
         setNeedsReprice(false);
+        setAgreedTotalText(loaded.commercial.agreed_customer_total == null ? "" : String(loaded.commercial.agreed_customer_total));
+        setManagerReason(loaded.commercial.manager_override_reason || "");
+        setManagerToken("");
         const firstDoor = loaded.doors[0]?.spec;
         if (firstDoor) setDoorEditor({ material: firstDoor.material, opening_type: firstDoor.opening_type, finish: firstDoor.finish || "", location: loaded.doors[0].location, description: loaded.doors[0].description });
       })
@@ -297,6 +368,29 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     () => getCombinationSuggestion(quoteCatalog?.styles.find((style) => style.code === windowEditor.style), windowEditor.width, windowEditor.height),
     [quoteCatalog, windowEditor.style, windowEditor.width, windowEditor.height],
   );
+  const agreedBasis = useMemo(() => getAgreedTotalBasis(estimate.pricing), [estimate.pricing]);
+  const agreedOffer = useMemo<AgreedTotalOffer | null>(() => {
+    if (!agreedBasis || !agreedTotalText.trim()) return null;
+    const target = Number(agreedTotalText);
+    if (!Number.isFinite(target)) return { ...agreedBasis, target: 0, discountPercent: 0, discountAmount: 0, aboveBase: false, belowHardMinimum: false, underAuthorizedFloor: false, error: "Enter a valid customer total." };
+    if (target <= 0) return { ...agreedBasis, target, discountPercent: 0, discountAmount: 0, aboveBase: false, belowHardMinimum: false, underAuthorizedFloor: false, error: "Enter a customer total above $0." };
+    const targetWindowTotal = target - agreedBasis.doorTotal;
+    const targetWindowSubtotal = targetWindowTotal / (1 + agreedBasis.hstRate);
+    const targetMerchandise = targetWindowSubtotal - agreedBasis.protectedInstall;
+    const discountPercent = ((agreedBasis.baseMerchandise - targetMerchandise) / agreedBasis.baseMerchandise) * 100;
+    const aboveBase = target > agreedBasis.baseTotal + 0.01;
+    const belowHardMinimum = target < agreedBasis.minimumNonDiscountableTotal - 0.01;
+    const underAuthorizedFloor = target < agreedBasis.minimumAuthorizedTotal - 0.01;
+    return {
+      ...agreedBasis,
+      target,
+      discountPercent: Math.max(0, discountPercent),
+      discountAmount: Math.max(0, agreedBasis.baseTotal - target),
+      aboveBase,
+      belowHardMinimum,
+      underAuthorizedFloor,
+    };
+  }, [agreedBasis, agreedTotalText]);
   const windowEditorIsValid =
     isAtLeast(windowEditor.qty, 1) &&
     (windowEditor.type === "patio_sliding" ||
@@ -312,8 +406,21 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
 
   function productChanged(update: (current: CustomerEstimate) => CustomerEstimate) {
     if (!editable) return;
-    setEstimate(update);
+    setEstimate((current) => {
+      const next = update(current);
+      return {
+        ...next,
+        commercial: {
+          ...next.commercial,
+          agreed_customer_total: null,
+          negotiated_discount_percent: 0,
+          manager_override_reason: null,
+        },
+      };
+    });
     setNeedsReprice(true);
+    setManagerReason("");
+    setManagerToken("");
     setMessage(null);
   }
 
@@ -424,16 +531,60 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     } finally { setBusy(false); }
   }
 
-  async function priceProject() {
+  async function priceProjectWithCommercial(commercial: CommercialSettings, successMessage = "Project priced successfully.") {
     setBusy(true); setError(null); setMessage(null);
     try {
-      const saved = await saveCurrent();
-      const priced = await priceCustomerEstimate(saved.id);
+      const draft = { ...asDraft(estimate), commercial };
+      const saved = estimate.id ? await updateCustomerEstimate(estimate.id, draft) : await createCustomerEstimate(draft);
+      const priced = await priceCustomerEstimate(saved.id, managerToken.trim() || undefined);
       setEstimate(priced);
-      setMessage(priced.pricing?.review_required ? "Priced with review items. Resolve them before finalization." : "Project priced successfully.");
+      setNeedsReprice(false);
+      setMessage(priced.pricing?.review_required ? "Priced with review items. Resolve them before finalization." : successMessage);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not price the project.");
     } finally { setBusy(false); }
+  }
+
+  async function priceProject() {
+    await priceProjectWithCommercial(estimate.commercial);
+  }
+
+  async function applyAgreedTotal() {
+    if (!editable || !estimate.pricing || !agreedOffer) return;
+    if (agreedOffer.error) {
+      setError(agreedOffer.error);
+      return;
+    }
+    if (agreedOffer.aboveBase) {
+      setError(`The agreed total cannot exceed the undiscounted estimate total of ${money(agreedOffer.baseTotal)}.`);
+      return;
+    }
+    if (agreedOffer.belowHardMinimum) {
+      setError(`This total is below the protected installation and door amount of ${money(agreedOffer.minimumNonDiscountableTotal)}. Increase the customer total or change the scope.`);
+      return;
+    }
+    if (agreedOffer.underAuthorizedFloor && (!managerReason.trim() || !managerToken.trim())) {
+      setEstimate((current) => ({
+        ...current,
+        commercial: {
+          ...current.commercial,
+          agreed_customer_total: agreedOffer.target,
+          negotiated_discount_percent: agreedOffer.discountPercent,
+          manager_override_reason: managerReason.trim() || current.commercial.manager_override_reason || undefined,
+        },
+      }));
+      setNeedsReprice(true);
+      setError(`This offer is below the authorized minimum of ${money(agreedOffer.minimumAuthorizedTotal)}. Enter a manager reason and authorization token, then apply it again.`);
+      return;
+    }
+    const commercial: CommercialSettings = {
+      ...estimate.commercial,
+      agreed_customer_total: agreedOffer.target,
+      negotiated_discount_percent: agreedOffer.discountPercent,
+      manager_override_reason: agreedOffer.underAuthorizedFloor ? managerReason.trim() : null,
+      presentation_mode: "internal",
+    };
+    await priceProjectWithCommercial(commercial, "Estimate priced at the agreed customer total.");
   }
 
   async function startQuote(path: "/" | "/doors") {
@@ -504,6 +655,30 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <Field label="Notes" className="field-span-2"><textarea className="project-input" rows={2} value={estimate.notes} onChange={(event) => updateMetadata({ notes: event.target.value })} disabled={!editable} /></Field>
             <Field label="Terms" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.terms} onChange={(event) => updateMetadata({ terms: event.target.value })} disabled={!editable} /></Field>
           </div></div>
+
+          <div className="editor-card">
+            <div className="card-heading"><div><p className="eyebrow">Sales price</p><h3>Agreed customer total</h3></div><span className="status-pill">{estimate.commercial.agreed_customer_total != null ? "Offer set" : "List / preset"}</span></div>
+            <p className="project-help">Enter the customer’s total including HST. The difference becomes a merchandise discount while installation remains protected. Door pricing stays fixed when the project includes doors.</p>
+            {!estimate.pricing ? <p className="review-box">Price the estimate first. Once the current estimate is priced, enter the total the customer agreed to and apply it.</p> : null}
+            {estimate.pricing && !agreedBasis ? <p className="review-box">An agreed total can be converted into a discount when the estimate contains windows. Door-only estimates keep their catalog price.</p> : null}
+            <div className="editor-grid">
+              <Field label="Customer agreed total (incl. HST)"><input className="project-input" type="number" min={0} step={0.01} value={agreedTotalText} onChange={(event) => setAgreedTotalText(event.target.value)} disabled={!editable || !estimate.pricing || busy} placeholder="e.g. 12500.00" /></Field>
+              <div className="project-actions"><button type="button" className="button primary" onClick={applyAgreedTotal} disabled={!editable || busy || !estimate.pricing || !agreedOffer}>{busy ? "Working…" : "Apply agreed total & price"}</button></div>
+            </div>
+            {agreedBasis && agreedOffer && !agreedOffer.error ? <div className="offer-summary">
+              <div><span>Undiscounted total</span><strong>{money(agreedOffer.baseTotal)}</strong></div>
+              <div><span>Offer discount</span><strong>−{money(agreedOffer.discountAmount)}</strong></div>
+              <div><span>Authorized minimum</span><strong>{money(agreedOffer.minimumAuthorizedTotal)}</strong></div>
+              <div><span>Price-book floor</span><strong>{money(agreedOffer.minimumFloorTotal)}</strong></div>
+              <div><span>Merchandise discount rate</span><strong>{agreedOffer.discountPercent.toFixed(2)}%</strong></div>
+            </div> : null}
+            {agreedOffer?.aboveBase ? <div className="review-box"><strong>The agreed total is above the undiscounted estimate.</strong><p>Use a sales preset or change the scope if the customer needs a higher total.</p></div> : null}
+            {agreedOffer?.belowHardMinimum ? <div className="review-box"><strong>The agreed total is too low to price safely.</strong><p>It would reduce the merchandise below zero after protecting installation and door pricing.</p></div> : null}
+            {agreedOffer?.underAuthorizedFloor ? <div className="review-box"><strong>Manager approval required</strong><p>This offer is below the authorized minimum of {money(agreedOffer.minimumAuthorizedTotal)}. Add the reason and authorization token before applying it.</p><div className="editor-grid">
+              <Field label="Manager reason"><input className="project-input" value={managerReason} onChange={(event) => setManagerReason(event.target.value)} disabled={!editable || busy} placeholder="Approved promotional offer" /></Field>
+              <Field label="Manager authorization token"><input className="project-input" type="password" value={managerToken} onChange={(event) => setManagerToken(event.target.value)} disabled={!editable || busy} placeholder="Required for override" /></Field>
+            </div></div> : null}
+          </div>
 
           <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Windows</p><h3>Add window or patio-door lines</h3></div><div className="project-actions"><span className="count-badge">{estimate.windows.length}</span>{estimate.windows.length ? <button type="button" className="button secondary" onClick={openWindowWorkspace} disabled={busy}>{editable ? "Edit windows / view costs" : "View window costs"}</button> : null}</div></div><div className="editor-grid">
             <Field label="Line type"><select className="project-input" value={windowEditor.type} onChange={(event) => setWindowEditor({ ...windowEditor, type: event.target.value as QuoteLineType })} disabled={!editable}><option value="window">Window</option><option value="combination">Combination window</option><option value="patio_sliding">Sliding patio door</option><option value="patio_swing">Swing patio door</option><option value="bay_bow">Bay / bow assembly</option></select></Field>

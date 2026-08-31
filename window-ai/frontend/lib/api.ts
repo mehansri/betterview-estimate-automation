@@ -76,6 +76,7 @@ export type PresentationMode = "internal" | "customer";
 export type CommercialSettings = {
   preset_id: string;
   negotiated_discount_percent: number;
+  agreed_customer_total?: number | null;
   presentation_mode?: PresentationMode;
   manager_override_reason?: string | null;
 };
@@ -510,7 +511,18 @@ export type CustomerEstimatePricing = {
       total: number;
     };
   };
-  totals: { subtotal: number; hst: number; total: number; currency: string };
+  totals: {
+    subtotal: number;
+    hst: number;
+    total: number;
+    currency: string;
+    base_subtotal?: number;
+    base_hst?: number;
+    base_total?: number;
+    discount?: number;
+    minimum_floor_subtotal?: number;
+    minimum_floor_total?: number;
+  };
   window_quote?: DeterministicQuoteResponse | null;
   door_quote?: Record<string, unknown> | null;
 };
@@ -760,8 +772,12 @@ export async function appendCustomerEstimateLines(
   return res.json();
 }
 
-export async function priceCustomerEstimate(id: string): Promise<CustomerEstimate> {
-  const res = await apiFetch(`/api/customer-estimates/${id}/price`, { method: "POST" });
+export async function priceCustomerEstimate(id: string, pricingAdminToken?: string): Promise<CustomerEstimate> {
+  const headers = pricingAdminToken ? { "X-Pricing-Admin-Token": pricingAdminToken } : undefined;
+  const res = await apiFetch(`/api/customer-estimates/${id}/price`, {
+    method: "POST",
+    ...(headers ? { headers } : {}),
+  });
   if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
   return res.json();
 }

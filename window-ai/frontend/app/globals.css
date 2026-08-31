@@ -75,6 +75,10 @@ body {
 .text-button.danger { color: #be123c; }
 .review-box { border: 1px solid #fed7aa; border-radius: 0.75rem; background: #fff7ed; color: #9a3412; padding: 0.8rem; font-size: 0.78rem; }
 .review-box p { margin-top: 0.35rem; }
+.offer-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; margin-top: 0.8rem; }
+.offer-summary div { border: 1px solid #e5edf2; border-radius: 0.65rem; background: #f8fbfd; padding: 0.65rem 0.75rem; }
+.offer-summary span { display: block; color: var(--bv-muted); font-size: 0.68rem; }
+.offer-summary strong { display: block; margin-top: 0.2rem; color: var(--bv-navy); font-size: 0.84rem; }
 .project-preview { min-width: 0; }
 
 .estimate-document { width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid var(--estimate-line); background: #fff; color: #17364b; box-shadow: 0 12px 32px rgba(8, 36, 58, 0.09); font-family: Arial, Helvetica, sans-serif; }
@@ -134,7 +138,7 @@ body {
 @media (max-width: 640px) {
   .project-toolbar { align-items: flex-start; flex-direction: column; }
   .project-actions { width: 100%; justify-content: flex-start; }
-  .editor-grid, .line-card-fields, .estimate-meta-grid, .estimate-copy-grid { grid-template-columns: 1fr; }
+  .editor-grid, .line-card-fields, .estimate-meta-grid, .estimate-copy-grid, .offer-summary { grid-template-columns: 1fr; }
   .field-span-2 { grid-column: auto; }
   .estimate-header { grid-template-columns: 1fr; align-items: start; gap: 0.9rem; padding: 1.25rem; }
   .estimate-title-block { min-width: 0; border-left: 0; border-top: 1px solid var(--estimate-line); padding: 0.75rem 0 0; text-align: left; }

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from db.init_db import init_db
@@ -82,6 +83,11 @@ def test_mixed_project_prices_and_finalizes(tmp_path, monkeypatch):
     assert pricing["sections"]["windows"]["lines"]
     assert pricing["sections"]["doors"]["openings"]
     assert pricing["totals"]["total"] == round(pricing["totals"]["subtotal"] + pricing["totals"]["hst"], 2)
+    assert pricing["totals"]["base_total"] >= pricing["totals"]["total"]
+    assert pricing["totals"]["discount"] == pytest.approx(
+        pricing["totals"]["base_subtotal"] - pricing["totals"]["subtotal"]
+    )
+    assert pricing["totals"]["minimum_floor_total"] <= pricing["totals"]["base_total"]
     door = pricing["sections"]["doors"]["openings"][0]
     assert round(sum(item["line_total"] for item in door["items"]), 2) == door["subtotal"]
 
@@ -107,6 +113,35 @@ def test_residential_project_can_finalize_without_company(tmp_path, monkeypatch)
     finalized = client.post(f"/api/customer-estimates/{estimate_id}/finalize")
     assert finalized.status_code == 200, finalized.text
     assert finalized.json()["company_name"] == ""
+
+
+def test_customer_estimate_manager_override_requires_token(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=False)
+    created = client.post("/api/customer-estimates", json=draft)
+    assert created.status_code == 200, created.text
+    estimate_id = created.json()["id"]
+
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+    maximum_discount = priced.json()["pricing"]["window_quote"]["sales_pricing"]["maximum_allowed_discount_percent"]
+
+    draft["commercial"]["negotiated_discount_percent"] = maximum_discount + 1
+    draft["commercial"]["manager_override_reason"] = "Approved customer offer"
+    updated = client.put(f"/api/customer-estimates/{estimate_id}", json=draft)
+    assert updated.status_code == 200, updated.text
+
+    blocked = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert blocked.status_code == 403
+    assert blocked.json()["detail"]["code"] == "manager_authorization_required"
+
+    monkeypatch.setenv("PRICING_ADMIN_TOKEN", "manager-secret")
+    approved = client.post(
+        f"/api/customer-estimates/{estimate_id}/price",
+        headers={"X-Pricing-Admin-Token": "manager-secret"},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["pricing"]["window_quote"]["sales_pricing"]["floor_status"] == "manager_override"
 
 
 def test_quote_lines_append_to_one_existing_project(tmp_path, monkeypatch):

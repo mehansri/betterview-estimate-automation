@@ -167,6 +167,8 @@ export default function EstimateDocument({
       {!sections ? <div className="estimate-empty-state">Price the project to populate the customer-facing estimate.</div> : null}
 
       <section className="estimate-totals-block">
+        {(totals?.base_subtotal || 0) > (totals?.subtotal || 0) + 0.01 ? <div className="estimate-total-line"><span>Original subtotal</span><strong>{money(totals?.base_subtotal)}</strong></div> : null}
+        {(totals?.discount || 0) > 0 ? <div className="estimate-total-line"><span>Offer discount</span><strong>−{money(totals?.discount)}</strong></div> : null}
         <div className="estimate-total-line"><span>Subtotal</span><strong>{money(totals?.subtotal)}</strong></div>
         <div className="estimate-total-line"><span>HST</span><strong>{money(totals?.hst)}</strong></div>
         <div className="estimate-total-line estimate-grand-total"><span>Total</span><strong>{money(totals?.total)}</strong></div>

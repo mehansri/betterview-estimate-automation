@@ -21,6 +21,7 @@ class CommercialSettings(BaseModel):
 
     preset_id: str = "standard"
     negotiated_discount_percent: float = Field(default=0.0, ge=0)
+    agreed_customer_total: Optional[float] = Field(default=None, ge=0)
     presentation_mode: PresentationMode = "internal"
     manager_override_reason: Optional[str] = None
 
