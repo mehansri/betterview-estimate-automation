@@ -6,6 +6,7 @@ import {
   appendCustomerEstimateLines,
   CustomerEstimate,
   CustomerEstimateDraft,
+  CommercialSettings,
   CustomerDoorOpening,
   DoorCatalog,
   DoorCatalogRow,
@@ -15,8 +16,10 @@ import {
   DoorProjectResponse,
   fetchDoorCatalog,
   fetchCustomerEstimate,
+  fetchSalesPresets,
   priceCustomerEstimate,
   quoteDoors,
+  SalesPreset,
   updateCustomerEstimate,
 } from "@/lib/api";
 import { newEstimateLineId } from "@/lib/quoteHandoff";
@@ -361,11 +364,15 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   const [projectLoading, setProjectLoading] = useState(Boolean(projectId));
   const [editHydrated, setEditHydrated] = useState(false);
   const [selectedEditDoorId, setSelectedEditDoorId] = useState<string | null>(null);
+  const [salesPresets, setSalesPresets] = useState<SalesPreset[]>([]);
+  const [selectedPresetId, setSelectedPresetId] = useState("standard");
+  const [negotiatedDiscount, setNegotiatedDiscount] = useState(0);
 
   useEffect(() => {
-    fetchDoorCatalog()
-      .then((nextCatalog) => {
+    Promise.all([fetchDoorCatalog(), fetchSalesPresets()])
+      .then(([nextCatalog, sales]) => {
         setCatalog(nextCatalog);
+        setSalesPresets(sales.presets);
         setDraft(makeOpening(nextCatalog, "fiberglass", "single_door"));
       })
       .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load door catalog."))
@@ -380,7 +387,11 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     }
     setProjectLoading(true);
     fetchCustomerEstimate(projectId)
-      .then(setProject)
+      .then((loaded) => {
+        setProject(loaded);
+        setSelectedPresetId(loaded.commercial.preset_id || "standard");
+        setNegotiatedDiscount(loaded.commercial.negotiated_discount_percent || 0);
+      })
       .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load the selected project."))
       .finally(() => setProjectLoading(false));
   }, [projectId]);
@@ -408,6 +419,15 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     () => (catalog && draft ? materialData(catalog, draft.material) : null),
     [catalog, draft]
   );
+  const selectedPreset = useMemo(
+    () => salesPresets.find((preset) => preset.id === selectedPresetId) || salesPresets[0],
+    [salesPresets, selectedPresetId],
+  );
+  const commercial: CommercialSettings = {
+    preset_id: selectedPreset?.id || selectedPresetId,
+    negotiated_discount_percent: negotiatedDiscount,
+    presentation_mode: "internal",
+  };
 
   function updateDraft(next: OpeningDraft) {
     setDraft(next);
@@ -422,7 +442,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     const payload = buildPayload();
     if (!payload.length) return;
     const timer = setTimeout(() => {
-      quoteDoors(payload)
+      quoteDoors(payload, commercial)
         .then((response) => {
           setResult(response);
           setError(null);
@@ -433,7 +453,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     }, 600);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, openings, catalog]);
+  }, [draft, openings, catalog, selectedPresetId, negotiatedDiscount]);
 
   function updateOpeningType(nextType: DoorOpeningSpec["opening_type"]) {
     if (!catalog || !draft) return;
@@ -485,7 +505,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     setLoading(true);
     setError(null);
     try {
-      const response = await quoteDoors(payload);
+      const response = await quoteDoors(payload, commercial);
       setOpenings((current) => payload.map((spec, index) => ({
         id: current[index]?.id || newEstimateLineId("door"),
         location: current[index]?.location || "",
@@ -529,7 +549,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
           terms: project.terms,
           windows: project.windows,
           doors,
-          commercial: project.commercial,
+          commercial: { ...project.commercial, ...commercial },
         };
         const saved = await updateCustomerEstimate(project.id, draftPayload);
         const priced = await priceCustomerEstimate(saved.id);
@@ -539,7 +559,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
       const assigned = await appendCustomerEstimateLines(projectId, {
         windows: [],
         doors,
-        commercial: projectHasProducts ? undefined : { preset_id: "standard", negotiated_discount_percent: 0, presentation_mode: "internal" },
+        commercial: projectHasProducts ? { ...project.commercial, ...commercial } : commercial,
       });
       try {
         const priced = await priceCustomerEstimate(assigned.id);
@@ -720,6 +740,30 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
             <div className="mt-4 space-y-2">
               {draft.options.map((option, index) => HARDWARE_CATEGORIES.has(option.category || "") ? null : <OptionEditor key={index} options={generalOptions} value={option} onChange={(next) => updateDraft({ ...draft, options: draft.options.map((item, itemIndex) => itemIndex === index ? next : item) })} onRemove={() => updateDraft({ ...draft, options: draft.options.filter((_, itemIndex) => itemIndex !== index) })} />)}
             </div>
+          </div>
+
+          <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div><p className="text-sm font-semibold text-slate-800">Sales strategy</p><p className="mt-1 text-xs text-slate-600">The same manager-controlled markup, merchandise discount, protected installation, and minimum floor used by window quotes.</p></div>
+              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-brand-700">Manager-controlled floors</span>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Preset">
+                <select className="input" value={selectedPreset?.id || selectedPresetId} onChange={(event) => { const next = salesPresets.find((preset) => preset.id === event.target.value); setSelectedPresetId(event.target.value); setNegotiatedDiscount(next?.default_discount_percent || 0); setResult(null); }}>
+                  {salesPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name} · {preset.markup_percent}% markup</option>)}
+                </select>
+                {selectedPreset?.description ? <p className="mt-1 text-xs text-slate-500">{selectedPreset.description}</p> : null}
+              </Field>
+              <Field label="Negotiated discount (%)">
+                <input className="input" type="number" min={0} max={result?.sales_pricing.maximum_allowed_discount_percent ?? selectedPreset?.max_discount_percent ?? 0} step={0.5} value={negotiatedDiscount} onChange={(event) => { setNegotiatedDiscount(Math.max(0, Number(event.target.value))); setResult(null); }} />
+              </Field>
+            </div>
+            {result ? <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-700 sm:grid-cols-4">
+              <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Discount</span><b>{money(result.sales_pricing.merchandise_discount_amount)}</b></div>
+              <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Customer total</span><b>{money(result.totals.customer_total)}</b></div>
+              <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Floor price</span><b>{money(result.sales_pricing.minimum_floor_sell || 0)}</b></div>
+              <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Remaining room</span><b>{(result.sales_pricing.remaining_discount_percent || 0).toFixed(1)}%</b></div>
+            </div> : <p className="mt-3 text-xs text-slate-500">Generate a quote to see the strategy totals and available room.</p>}
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">

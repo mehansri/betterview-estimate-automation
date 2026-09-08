@@ -90,6 +90,24 @@ def test_project_rollup_sums_openings():
     assert result["totals"]["customer_total"] == 11564.84
 
 
+def test_door_sales_strategy_uses_shared_presets_and_protects_install():
+    standard = quote_project([_live_opening()], load_config())
+    competitive = quote_project(
+        [_live_opening()],
+        load_config(),
+        commercial={"preset_id": "competitive", "negotiated_discount_percent": 4.5},
+    )
+    sales = competitive["sales_pricing"]
+    assert sales["preset_id"] == "competitive"
+    assert sales["markup_percent"] == 25
+    assert sales["negotiated_discount_percent"] == 4.5
+    assert sales["protected_install_sell"] == 937.5
+    assert competitive["totals"]["customer_total"] < standard["totals"]["customer_total"]
+    assert competitive["totals"]["customer_total"] == sum(
+        opening["customer_total"] for opening in competitive["openings"]
+    )
+
+
 def test_door_api_catalog_and_validation():
     client = TestClient(app)
     catalog_response = client.get("/api/doors/catalog")

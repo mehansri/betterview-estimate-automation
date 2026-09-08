@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from . import catalog
+from services.windowcity.sales import apply_sales_pricing
 
 
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "door_pricing.json"
@@ -397,7 +398,13 @@ def quote(spec: dict[str, Any], config: dict[str, Any] | None = None) -> dict[st
     return quote_obj.totals()
 
 
-def quote_project(specs: list[dict[str, Any]], config: dict[str, Any] | None = None) -> dict[str, Any]:
+def quote_project(
+    specs: list[dict[str, Any]],
+    config: dict[str, Any] | None = None,
+    commercial: dict[str, Any] | None = None,
+    *,
+    allow_manager_override: bool = False,
+) -> dict[str, Any]:
     if not specs:
         raise DoorValidationError("At least one door opening is required.")
     cfg = config or load_config()
@@ -412,7 +419,52 @@ def quote_project(specs: list[dict[str, Any]], config: dict[str, Any] | None = N
         "hst",
         "customer_total",
     )
-    return {
+    result = {
         "openings": openings,
         "totals": {key: money(sum(opening[key] for opening in openings)) for key in keys},
     }
+    # Door catalog lookup remains authoritative for cost. Reuse the same
+    # protected sales layer as windows so presets, discounts, and floors have
+    # identical meaning across both product workspaces.
+    sales_input = {
+        "config": {"hst": float(cfg.get("hst", 0.13))},
+        "lines": [
+            {
+                "line": index,
+                "type": "door",
+                "qty": 1,
+                "dealer_each": opening["material_cost"],
+                "install_each": opening["install"],
+                "sell_each": opening["sell"],
+                "markup_each": opening["markup_amount"],
+                "hst_each": opening["hst"],
+                "customer_total": opening["customer_total"],
+            }
+            for index, opening in enumerate(openings, start=1)
+        ],
+        "totals": {
+            "dealer_cost": money(sum(opening["material_cost"] for opening in openings)),
+            "install": money(sum(opening["install"] for opening in openings)),
+            "sell": result["totals"]["sell"],
+            "hst": result["totals"]["hst"],
+            "customer_total": result["totals"]["customer_total"],
+        },
+    }
+    apply_sales_pricing(sales_input, commercial, allow_manager_override=allow_manager_override)
+    for opening, line in zip(openings, sales_input["lines"]):
+        opening["markup"] = float(sales_input["sales_pricing"]["markup_percent"]) / 100.0
+        opening["markup_amount"] = line["markup_each"]
+        opening["sell"] = line["sell_each"]
+        opening["hst"] = line["hst_each"]
+        opening["customer_total"] = line["customer_total"]
+    result["totals"].update({
+        "markup_amount": sales_input["totals"]["markup"],
+        # Sum the customer-facing, per-opening rounded amounts so the project
+        # rollup always matches the visible opening cards to the cent.
+        "sell": money(sum(opening["sell"] for opening in openings)),
+        "hst": money(sum(opening["hst"] for opening in openings)),
+        "customer_total": money(sum(opening["customer_total"] for opening in openings)),
+    })
+    result["sales_pricing"] = sales_input["sales_pricing"]
+    result["internal_presentation"] = sales_input["internal_presentation"]
+    return result

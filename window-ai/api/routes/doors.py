@@ -8,6 +8,7 @@ from api.schemas.doors import DoorProjectQuote, DoorQuoteRequest
 from services.doors.catalog import catalog_payload
 from services.doors.presentation import customer_door_presentation
 from services.doors.pricing import DoorLookupError, DoorValidationError, load_config, quote_project
+from services.windowcity.sales import SalesPricingError
 
 
 router = APIRouter(prefix="/api/doors", tags=["doors"])
@@ -21,8 +22,11 @@ def door_catalog() -> dict:
 @router.post("/quote", response_model=DoorProjectQuote)
 def door_quote(body: DoorQuoteRequest) -> DoorProjectQuote:
     try:
-        result = quote_project([opening.model_dump() for opening in body.openings])
-    except (DoorLookupError, DoorValidationError) as exc:
+        result = quote_project(
+            [opening.model_dump() for opening in body.openings],
+            commercial=body.commercial.model_dump(),
+        )
+    except (DoorLookupError, DoorValidationError, SalesPricingError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     result["customer_presentation"] = customer_door_presentation(result)
     return DoorProjectQuote(**result)

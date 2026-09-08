@@ -11,6 +11,7 @@ from services.doors.presentation import customer_door_openings
 from services.doors.pricing import CONFIG_PATH, DoorLookupError, DoorValidationError, quote_project
 from services.descriptions import window_description
 from services.windowcity.engine import price_quote as price_windowcity_quote
+from services.windowcity.sales import SalesPricingError
 
 
 class CustomerEstimatePricingError(Exception):
@@ -103,8 +104,12 @@ def price_customer_estimate(
 
     if doors:
         try:
-            door_quote = quote_project([opening.get("spec") or {} for opening in doors])
-        except (DoorLookupError, DoorValidationError) as exc:
+            door_quote = quote_project(
+                [opening.get("spec") or {} for opening in doors],
+                commercial=commercial,
+                allow_manager_override=allow_manager_override,
+            )
+        except (DoorLookupError, DoorValidationError, SalesPricingError) as exc:
             raise CustomerEstimatePricingError(str(exc)) from exc
         door_openings = customer_door_openings(doors, door_quote.get("openings", []))
 

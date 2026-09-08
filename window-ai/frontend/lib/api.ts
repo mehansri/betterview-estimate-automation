@@ -405,6 +405,8 @@ export type DoorProjectResponse = {
   openings: DoorOpeningQuote[];
   totals: Omit<DoorOpeningQuote, "label" | "opening_type" | "material" | "finish" | "finish_label" | "line_items" | "discount" | "install_tier" | "markup" | "hst_rate" | "notes">;
   customer_presentation: DoorCustomerPresentation;
+  sales_pricing: DeterministicQuoteResponse["sales_pricing"];
+  internal_presentation?: Record<string, unknown>;
 };
 
 export type DoorCustomerItem = {
@@ -714,11 +716,11 @@ export async function fetchDoorCatalog(): Promise<DoorCatalog> {
   return res.json();
 }
 
-export async function quoteDoors(openings: DoorOpeningSpec[]): Promise<DoorProjectResponse> {
+export async function quoteDoors(openings: DoorOpeningSpec[], commercial?: CommercialSettings): Promise<DoorProjectResponse> {
   const res = await apiFetch("/api/doors/quote", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ openings }),
+    body: JSON.stringify({ openings, commercial }),
   });
   if (!res.ok) {
     const detail = await res.text();

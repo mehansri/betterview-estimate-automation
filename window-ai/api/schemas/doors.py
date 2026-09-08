@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
+from api.schemas.quote import CommercialSettings, SalesPricingSummary
 
 
 OpeningType = Literal[
@@ -83,6 +84,7 @@ class DoorOpeningSpec(BaseModel):
 
 class DoorQuoteRequest(BaseModel):
     openings: list[DoorOpeningSpec] = Field(..., min_length=1)
+    commercial: CommercialSettings = Field(default_factory=CommercialSettings)
 
 
 class DoorLineItem(BaseModel):
@@ -159,3 +161,5 @@ class DoorProjectQuote(BaseModel):
     openings: list[DoorOpeningQuote]
     totals: DoorProjectTotals
     customer_presentation: DoorCustomerPresentation
+    sales_pricing: SalesPricingSummary
+    internal_presentation: dict = Field(default_factory=dict)
