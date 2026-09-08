@@ -531,6 +531,21 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     } finally { setBusy(false); }
   }
 
+  async function openDoorWorkspace() {
+    if (!estimate.id) return;
+    if (!editable) {
+      window.location.href = `/doors?projectId=${estimate.id}&editDoors=1`;
+      return;
+    }
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      const saved = await saveCurrent();
+      window.location.href = `/doors?projectId=${saved.id}&editDoors=1`;
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save the project before opening the door quote.");
+    } finally { setBusy(false); }
+  }
+
   async function priceProjectWithCommercial(commercial: CommercialSettings, successMessage = "Project priced successfully.") {
     setBusy(true); setError(null); setMessage(null);
     try {
@@ -699,7 +714,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
           {estimate.windows.length ? <div className="line-list">{estimate.windows.map((line) => <div className="line-card" key={line.id}><div className="line-card-main"><strong>{windowLabel(line)}</strong><span>{line.spec.type?.replace(/_/g, " ")} · Qty {String(line.spec.qty || 1)}</span></div><div className="line-card-fields"><LocationInput className="project-input" required value={line.location} onChange={(value) => updateWindowLine(line.id, { location: value })} disabled={!editable} placeholder="Location" /><input className="project-input" value={line.description} onChange={(event) => updateWindowLine(line.id, { description: event.target.value })} disabled={!editable} placeholder="Customer description override" /><button type="button" className="text-button danger" onClick={() => removeWindowLine(line.id)} disabled={!editable}>Remove</button></div></div>)}</div> : null}
           </div>
 
-          <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Doors</p><h3>Add entry-door openings</h3></div><span className="count-badge">{estimate.doors.length}</span></div><div className="editor-grid">
+          <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Doors</p><h3>Add entry-door openings</h3></div><div className="project-actions"><span className="count-badge">{estimate.doors.length}</span>{estimate.doors.length ? <button type="button" className="button secondary" onClick={openDoorWorkspace} disabled={busy}>{editable ? "Edit doors / view costs" : "View door costs"}</button> : null}</div></div><div className="editor-grid">
             <Field label="Material"><select className="project-input" value={doorEditor.material} onChange={(event) => { const material = event.target.value as "fiberglass" | "steel"; const data = doorCatalog?.materials.find((entry) => entry.key === material); setDoorEditor({ ...doorEditor, material, finish: data?.finishes[0]?.key || "" }); }} disabled={!editable}>{doorCatalog?.materials.map((entry) => <option key={entry.key} value={entry.key}>{entry.label}</option>)}</select></Field>
             <Field label="Opening type"><select className="project-input" value={doorEditor.opening_type} onChange={(event) => setDoorEditor({ ...doorEditor, opening_type: event.target.value as DoorOpeningSpec["opening_type"] })} disabled={!editable}>{OPENING_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></Field>
             <Field label="Finish"><select className="project-input" value={doorEditor.finish} onChange={(event) => setDoorEditor({ ...doorEditor, finish: event.target.value })} disabled={!editable}>{doorCatalog?.materials.find((entry) => entry.key === doorEditor.material)?.finishes.map((finish) => <option key={finish.key} value={finish.key}>{finish.label}</option>)}</select></Field>

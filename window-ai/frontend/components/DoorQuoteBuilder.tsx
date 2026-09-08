@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   appendCustomerEstimateLines,
   CustomerEstimate,
+  CustomerEstimateDraft,
   CustomerDoorOpening,
   DoorCatalog,
   DoorCatalogRow,
@@ -16,6 +17,7 @@ import {
   fetchCustomerEstimate,
   priceCustomerEstimate,
   quoteDoors,
+  updateCustomerEstimate,
 } from "@/lib/api";
 import { newEstimateLineId } from "@/lib/quoteHandoff";
 import { describeDoorLine } from "@/lib/productDescriptions";
@@ -345,7 +347,7 @@ function OptionEditor({
   );
 }
 
-export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) {
+export default function DoorQuoteBuilder({ projectId, editDoors = false }: { projectId?: string; editDoors?: boolean }) {
   const [catalog, setCatalog] = useState<DoorCatalog | null>(null);
   const [project, setProject] = useState<CustomerEstimate | null>(null);
   const [draft, setDraft] = useState<OpeningDraft | null>(null);
@@ -357,6 +359,8 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
   const [handoffEstimateId, setHandoffEstimateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [projectLoading, setProjectLoading] = useState(Boolean(projectId));
+  const [editHydrated, setEditHydrated] = useState(false);
+  const [selectedEditDoorId, setSelectedEditDoorId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDoorCatalog()
@@ -380,6 +384,25 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
       .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load the selected project."))
       .finally(() => setProjectLoading(false));
   }, [projectId]);
+
+  useEffect(() => {
+    if (!editDoors || !project || !catalog || editHydrated) return;
+    if (!project.doors.length) {
+      setError("This project does not have any saved door openings to edit.");
+      setEditHydrated(true);
+      return;
+    }
+    const loaded = project.doors.map((opening) => ({
+      id: opening.id,
+      location: opening.location,
+      description: opening.description,
+      spec: { ...opening.spec, label: opening.spec.label || opening.description || "Door opening", finish: opening.spec.finish || "" } as OpeningDraft,
+    }));
+    setOpenings(loaded);
+    setSelectedEditDoorId(loaded[0].id);
+    setDraft(loaded[0].spec);
+    setEditHydrated(true);
+  }, [catalog, editDoors, editHydrated, project]);
 
   const data = useMemo(
     () => (catalog && draft ? materialData(catalog, draft.material) : null),
@@ -430,6 +453,9 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
 
   function buildPayload() {
     if (!draft) return [];
+    if (editDoors) {
+      return openings.map((opening) => opening.id === selectedEditDoorId ? draft : opening.spec);
+    }
     const saved = openings.map((opening) => opening.spec);
     if (!openings.length) return [draft];
     return sameSpec(saved[saved.length - 1], draft) ? saved : [...saved, draft];
@@ -442,6 +468,14 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
       ...current,
       { id: newEstimateLineId("door"), location: "", description, spec: draft },
     ]);
+    setResult(null);
+  }
+
+  function selectEditOpening(opening: DoorQuoteOpening) {
+    if (!editDoors || opening.id === selectedEditDoorId || !draft) return;
+    setOpenings((current) => current.map((item) => item.id === selectedEditDoorId ? { ...item, spec: draft } : item));
+    setSelectedEditDoorId(opening.id);
+    setDraft(opening.spec);
     setResult(null);
   }
 
@@ -475,10 +509,33 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
       id: opening.id,
       location: opening.location,
       description: opening.description,
-      spec: opening.spec,
+      spec: opening.id === selectedEditDoorId && draft ? draft : opening.spec,
     }));
     const projectHasProducts = project.windows.length > 0 || project.doors.length > 0;
     try {
+      if (editDoors) {
+        const draftPayload: CustomerEstimateDraft = {
+          customer_name: project.customer_name,
+          company_name: project.company_name,
+          email: project.email,
+          phone: project.phone,
+          project_name: project.project_name,
+          project_address: project.project_address,
+          salesperson: project.salesperson,
+          estimate_date: project.estimate_date,
+          valid_until: project.valid_until,
+          description: project.description,
+          notes: project.notes,
+          terms: project.terms,
+          windows: project.windows,
+          doors,
+          commercial: project.commercial,
+        };
+        const saved = await updateCustomerEstimate(project.id, draftPayload);
+        const priced = await priceCustomerEstimate(saved.id);
+        window.location.href = `/projects/${priced.id}`;
+        return;
+      }
       const assigned = await appendCustomerEstimateLines(projectId, {
         windows: [],
         doors,
@@ -531,7 +588,7 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm">
-        <div><span className="text-brand-700">Assigning this quote to </span><strong className="text-brand-900">{project.project_name || project.customer_name || "Selected project"}</strong>{project.estimate_number ? <span className="ml-2 text-xs text-brand-700">{project.estimate_number}</span> : null}</div>
+        <div><span className="text-brand-700">{editDoors ? "Editing doors in " : "Assigning this quote to "}</span><strong className="text-brand-900">{project.project_name || project.customer_name || "Selected project"}</strong>{project.estimate_number ? <span className="ml-2 text-xs text-brand-700">{project.estimate_number}</span> : null}</div>
         <Link href={`/projects/${project.id}`} className="font-semibold text-brand-700 hover:underline">Open project</Link>
       </div>
 
@@ -666,13 +723,13 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" onClick={addOpening} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Add to project</button>
+            {!editDoors ? <button type="button" onClick={addOpening} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Add to project</button> : null}
             <button type="button" onClick={generateQuote} disabled={loading} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60">{loading ? "Pricing…" : "Generate door quote"}</button>
           </div>
           {error && <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         </div>
 
-        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.material} · {opening.spec.opening_type.replace(/_/g, " ")} · {opening.spec.finish}</p></div><div className="flex items-center gap-3"><button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => { setOpenings([...openings, { id: newEstimateLineId("door"), location: opening.location, description: opening.description, spec: JSON.parse(JSON.stringify(opening.spec)) }]); setResult(null); }}>Duplicate</button><button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></div></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><LocationInput className="input" value={opening.location} onChange={(value) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: value } : item))} placeholder="Location (e.g. Front entrance)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
+        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.material} · {opening.spec.opening_type.replace(/_/g, " ")} · {opening.spec.finish}</p></div><div className="flex items-center gap-3">{editDoors ? <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => selectEditOpening(opening)}>{opening.id === selectedEditDoorId ? "Editing" : "Edit"}</button> : <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => { setOpenings([...openings, { id: newEstimateLineId("door"), location: opening.location, description: opening.description, spec: JSON.parse(JSON.stringify(opening.spec)) }]); setResult(null); }}>Duplicate</button>}<button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></div></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><LocationInput className="input" value={opening.location} onChange={(value) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: value } : item))} placeholder="Location (e.g. Front entrance)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
       </section>
       ) : (
         <section className="space-y-6 lg:col-span-3">
@@ -701,9 +758,9 @@ export default function DoorQuoteBuilder({ projectId }: { projectId?: string }) 
       <div className="lg:col-span-2">
         <div className="rounded-2xl border border-brand-200 bg-white p-5 shadow-sm">
           <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
-          <p className="mt-1 text-sm text-slate-500">Assign all {openings.length} added door opening{openings.length === 1 ? "" : "s"} to the selected project. Existing window and door lines stay together.</p>
+          <p className="mt-1 text-sm text-slate-500">{editDoors ? "Save these door openings and return to the repriced project." : `Assign all ${openings.length} added door opening${openings.length === 1 ? "" : "s"} to the selected project. Existing window and door lines stay together.`}</p>
           {project.status === "finalized" ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This project is finalized and cannot accept new quote lines.</p> : null}
-          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result || project.status === "finalized"}>{handoffBusy ? "Assigning to project…" : "Assign to project"}</button>
+          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result || project.status === "finalized"}>{handoffBusy ? (editDoors ? "Saving changes…" : "Assigning to project…") : editDoors ? "Save doors to estimate" : "Assign to project"}</button>
           {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The quote was assigned. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
           {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
           {error && !handoffEstimateId ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p> : null}
