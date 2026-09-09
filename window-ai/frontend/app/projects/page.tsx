@@ -40,11 +40,34 @@ export default function ProjectsPage() {
         <Link href="/projects/new" className="button primary">New project estimate</Link>
       </div>
       {error ? <p className="project-error">{error}</p> : null}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
         <table className="min-w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Estimate</th><th className="px-4 py-3">Customer</th><th className="px-4 py-3">Project</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">Actions</th></tr></thead><tbody className="divide-y divide-slate-100">
           {rows.map((row) => <tr key={row.id}><td className="px-4 py-4 font-semibold text-slate-900">{row.estimate_number || "Draft"}</td><td className="px-4 py-4">{row.customer_name || "Unnamed customer"}{row.company_name ? <span className="block text-xs text-slate-500">{row.company_name}</span> : null}</td><td className="px-4 py-4 text-slate-600">{row.project_name || "—"}</td><td className="px-4 py-4"><span className={`status-pill status-${row.status}`}>{row.status}</span></td><td className="px-4 py-4 text-right font-semibold">{money(row.total)}</td><td className="px-4 py-4 text-right"><div className="flex justify-end gap-3"><Link href={`/projects/${row.id}`} className="text-sm font-semibold text-brand-700 hover:underline">Open</Link><button type="button" className="text-button danger" onClick={() => void removeEstimate(row)} disabled={deletingId !== null} aria-label={`Remove ${row.estimate_number || row.project_name || row.customer_name || "estimate"}`}>{deletingId === row.id ? "Removing…" : "Remove"}</button></div></td></tr>)}
           {!rows.length ? <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-500">No project estimates yet.</td></tr> : null}
         </tbody></table>
+      </div>
+      <div className="project-mobile-list grid gap-3 md:hidden">
+        {rows.map((row) => (
+          <article className="project-mobile-card" key={row.id}>
+            <div className="project-mobile-heading">
+              <div>
+                <p className="eyebrow">{row.estimate_number || "Draft estimate"}</p>
+                <h3>{row.customer_name || "Unnamed customer"}</h3>
+                {row.company_name ? <p>{row.company_name}</p> : null}
+              </div>
+              <span className={`status-pill status-${row.status}`}>{row.status}</span>
+            </div>
+            <div className="project-mobile-details">
+              <div><span>Project</span><strong>{row.project_name || "—"}</strong></div>
+              <div><span>Total</span><strong>{money(row.total)}</strong></div>
+            </div>
+            <div className="project-mobile-actions">
+              <Link href={`/projects/${row.id}`} className="button primary">Open project</Link>
+              <button type="button" className="button secondary project-remove-button" onClick={() => void removeEstimate(row)} disabled={deletingId !== null} aria-label={`Remove ${row.estimate_number || row.project_name || row.customer_name || "estimate"}`}>{deletingId === row.id ? "Removing…" : "Remove"}</button>
+            </div>
+          </article>
+        ))}
+        {!rows.length ? <div className="project-mobile-empty">No project estimates yet.</div> : null}
       </div>
     </div>
   );
