@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   appendCustomerEstimateLines,
   CustomerEstimate,
@@ -367,6 +367,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   const [salesPresets, setSalesPresets] = useState<SalesPreset[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState("standard");
   const [negotiatedDiscount, setNegotiatedDiscount] = useState(0);
+  const autoPriceRequestRef = useRef(0);
 
   useEffect(() => {
     Promise.all([fetchDoorCatalog(), fetchSalesPresets()])
@@ -438,12 +439,14 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   // matches the configuration. Incomplete drafts fail quietly; the Generate
   // button remains the explicit path and surfaces validation messages.
   useEffect(() => {
+    const requestId = ++autoPriceRequestRef.current;
     if (!catalog || !draft) return;
     const payload = buildPayload();
     if (!payload.length) return;
     const timer = setTimeout(() => {
       quoteDoors(payload, commercial)
         .then((response) => {
+          if (autoPriceRequestRef.current !== requestId) return;
           setResult(response);
           setError(null);
         })
@@ -763,12 +766,12 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
               <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Customer total</span><b>{money(result.totals.customer_total)}</b></div>
               <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Floor price</span><b>{money(result.sales_pricing.minimum_floor_sell || 0)}</b></div>
               <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Remaining room</span><b>{(result.sales_pricing.remaining_discount_percent || 0).toFixed(1)}%</b></div>
-            </div> : <p className="mt-3 text-xs text-slate-500">Generate a quote to see the strategy totals and available room.</p>}
+            </div> : <p className="mt-3 text-xs text-slate-500">Choose valid door options to see the live strategy totals and available room.</p>}
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            {!editDoors ? <button type="button" onClick={addOpening} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Add to project</button> : null}
-            <button type="button" onClick={generateQuote} disabled={loading} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60">{loading ? "Pricing…" : "Generate door quote"}</button>
+            {!editDoors ? <button type="button" onClick={addOpening} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Add door to project list</button> : null}
+            <button type="button" onClick={generateQuote} disabled={loading} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60">{loading ? "Updating price…" : "Refresh price"}</button>
           </div>
           {error && <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         </div>
@@ -785,7 +788,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
             </div>
             <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">Customer view</span>
           </div>
-          {!customer ? <p className="mt-5 text-sm text-slate-500">Generate a door quote first to see the customer presentation.</p> : <div className="mt-5 space-y-5">
+          {!customer ? <p className="mt-5 text-sm text-slate-500">Choose valid door options to see the live customer presentation.</p> : <div className="mt-5 space-y-5">
             {customer.openings.map((opening) => <div key={opening.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
               <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-slate-900">{opening.label}</p><p className="text-xs text-slate-500">{opening.location ? `${opening.location} · ` : ""}{opening.material} · {opening.finish_label}</p></div><p className="font-semibold text-slate-900">{money(opening.total)}</p></div>
               <div className="mt-3 space-y-1 text-sm text-slate-700">{opening.items.map((item, index) => <div key={`${opening.id}-${index}`} className="flex justify-between gap-3"><span>{item.description}{item.qty > 1 ? ` ×${item.qty}` : ""}</span><span className="font-medium">{money(item.line_total)}</span></div>)}</div>
@@ -804,7 +807,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
           <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
           <p className="mt-1 text-sm text-slate-500">{editDoors ? "Save these door openings and return to the repriced project." : `Assign all ${openings.length} added door opening${openings.length === 1 ? "" : "s"} to the selected project. Existing window and door lines stay together.`}</p>
           {project.status === "finalized" ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This project is finalized and cannot accept new quote lines.</p> : null}
-          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result || project.status === "finalized"}>{handoffBusy ? (editDoors ? "Saving changes…" : "Assigning to project…") : editDoors ? "Save doors to estimate" : "Assign to project"}</button>
+          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result || project.status === "finalized"}>{handoffBusy ? (editDoors ? "Saving changes…" : "Saving doors…") : editDoors ? "Save door changes" : `Save ${openings.length} door${openings.length === 1 ? "" : "s"} to project`}</button>
           {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The quote was assigned. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
           {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
           {error && !handoffEstimateId ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p> : null}

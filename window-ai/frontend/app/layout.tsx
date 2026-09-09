@@ -28,7 +28,7 @@ export default function RootLayout({
       <body>
         <div className="min-h-screen">
           <header className="app-chrome border-b border-slate-200 bg-white">
-            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
+            <div className="app-header-inner mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
                   Betterview · Window City
@@ -37,7 +37,7 @@ export default function RootLayout({
                   Deterministic Quoting
                 </h1>
               </div>
-              <nav className="flex flex-wrap gap-1 text-sm">
+              <nav className="app-nav flex flex-wrap gap-1 text-sm">
                 {nav.map((item) => (
                   <Link
                     key={item.href}
@@ -50,7 +50,7 @@ export default function RootLayout({
               </nav>
             </div>
           </header>
-          <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+          <main className="app-main mx-auto max-w-6xl px-4 py-8">{children}</main>
         </div>
       </body>
     </html>

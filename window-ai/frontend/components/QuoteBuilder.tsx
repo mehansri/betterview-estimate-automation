@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   appendCustomerEstimateLines,
   CustomerEstimate,
@@ -365,8 +365,8 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
   const [error, setError] = useState<string | null>(null);
   const [projectLoading, setProjectLoading] = useState(Boolean(projectId));
   const [hydratedEditId, setHydratedEditId] = useState<string | null>(null);
-  const [autoPricedEditId, setAutoPricedEditId] = useState<string | null>(null);
   const [selectedEditLineId, setSelectedEditLineId] = useState<string | null>(editWindowId || null);
+  const autoPriceRequestRef = useRef(0);
   const editMode = Boolean(editWindows || editWindowId);
 
   useEffect(() => {
@@ -409,7 +409,6 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
   useEffect(() => {
     if (!editMode) {
       setHydratedEditId(null);
-      setAutoPricedEditId(null);
       setSelectedEditLineId(null);
       return;
     }
@@ -437,7 +436,6 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     setDraft(draftFromSpec(selectedLine.spec, catalog));
     setSelectedPresetId(project.commercial.preset_id || "standard");
     setNegotiatedDiscount(project.commercial.negotiated_discount_percent || 0);
-    setAutoPricedEditId(null);
     setResult(null);
     setHydratedEditId(editHydrationKey);
   }, [catalog, editMode, editHydrationKey, editWindowId, hydratedEditId, project]);
@@ -451,6 +449,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     () => salesPresets.find((preset) => preset.id === selectedPresetId) || salesPresets[0],
     [salesPresets, selectedPresetId]
   );
+  const autoPricingDiscountLimit = selectedPreset?.max_discount_percent ?? Number.POSITIVE_INFINITY;
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -499,9 +498,11 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       setError("Enter a valid quantity and dimensions before generating the quote.");
       return;
     }
+    const savedSpecs = lines.map((line) => line.spec);
+    const currentAlreadyAdded = savedSpecs.length > 0 && JSON.stringify(savedSpecs[savedSpecs.length - 1]) === JSON.stringify(currentLine);
     const payload = editMode
       ? lines.map((line) => line.id === selectedEditLineId ? currentLine : line.spec)
-      : lines.length ? lines.map((line) => line.spec) : [currentLine];
+      : currentAlreadyAdded ? savedSpecs : [...savedSpecs, currentLine];
     if (!payload.length) return;
     const requested = Math.max(0, negotiatedDiscount);
     // Avoid surfacing a hard server error for an over-limit discount with no reason.
@@ -546,11 +547,60 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     }
   }
 
+  // Keep the FastAPI price preview in sync with every valid window selection.
+  // The short debounce prevents number inputs and rapid option changes from
+  // producing a request for every keystroke.
   useEffect(() => {
-    if (!editMode || !editingLine || !editHydrationKey || hydratedEditId !== editHydrationKey || autoPricedEditId === editHydrationKey || !catalog || !draftIsValid || pricing) return;
-    setAutoPricedEditId(editHydrationKey);
-    void generateQuote();
-  }, [autoPricedEditId, catalog, draftIsValid, editHydrationKey, editMode, editingLine, hydratedEditId, pricing]);
+    const requestId = ++autoPriceRequestRef.current;
+    if (!catalog || !draftIsValid) {
+      setPricing(false);
+      return;
+    }
+    if (editMode && (!editingLine || hydratedEditId !== editHydrationKey)) {
+      setPricing(false);
+      return;
+    }
+
+    const savedSpecs = lines.map((line) => line.spec);
+    const currentAlreadyAdded = savedSpecs.length > 0 && JSON.stringify(savedSpecs[savedSpecs.length - 1]) === JSON.stringify(currentLine);
+    const payload = editMode
+      ? lines.map((line) => line.id === selectedEditLineId ? currentLine : line.spec)
+      : currentAlreadyAdded ? savedSpecs : [...savedSpecs, currentLine];
+    if (!payload.length) return;
+
+    const requested = Math.max(0, negotiatedDiscount);
+    if (requested > autoPricingDiscountLimit + 1e-9 && !overrideReason.trim()) {
+      setPricing(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setPricing(true);
+      priceDeterministicQuote({
+        lines: payload,
+        commercial: {
+          preset_id: selectedPreset?.id || selectedPresetId,
+          negotiated_discount_percent: requested,
+          manager_override_reason: requested > autoPricingDiscountLimit + 1e-9 ? overrideReason.trim() : undefined,
+          presentation_mode: "internal",
+        },
+      })
+        .then((priced) => {
+          if (autoPriceRequestRef.current !== requestId) return;
+          setResult(priced);
+          setError(null);
+        })
+        .catch(() => {
+          // An incomplete/intermediate selection should not replace the last
+          // useful price with a validation error while the user is typing.
+        })
+        .finally(() => {
+          if (autoPriceRequestRef.current === requestId) setPricing(false);
+        });
+    }, 600);
+
+    return () => window.clearTimeout(timer);
+  }, [autoPricingDiscountLimit, catalog, currentLine, draftIsValid, editHydrationKey, editMode, editingLine, hydratedEditId, lines, negotiatedDiscount, overrideReason, selectedEditLineId, selectedPreset, selectedPresetId]);
 
   async function saveEditedWindows() {
     if (!projectId || !project || !editMode || !editingLine || project.status === "finalized" || !result) return;
@@ -894,7 +944,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
               </div>
 
               {!isPriced && negotiationMode !== "percent" ? (
-                <p className="mt-3 text-xs text-slate-500">Generate a quote first, then enter the discount in dollars or as a total customer price.</p>
+                <p className="mt-3 text-xs text-slate-500">Your FastAPI price will appear automatically, then you can enter the discount in dollars or as a total customer price.</p>
               ) : negotiationMode === "percent" ? (
                 <>
                   <input type="range" min={0} max={sliderMax} step={0.5} value={negotiatedDiscount} onChange={(e) => { setNegotiatedDiscount(Number(e.target.value)); }} className="mt-3 w-full" />
@@ -953,7 +1003,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
 
               {stale ? (
                 <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  Discount changed since the quote was generated — select <b>Generate window quote</b> to refresh the pricing.
+                  Price is updating for the changed discount…
                 </p>
               ) : null}
             </div>
@@ -977,8 +1027,8 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            {!editMode ? <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={addLine} disabled={!draftIsValid}>Add line</button> : null}
-            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading || !draftIsValid}>{pricing ? "Pricing…" : "Generate window quote"}</button>
+            {!editMode ? <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={addLine} disabled={!draftIsValid}>Add window to project list</button> : null}
+            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading || !draftIsValid}>{pricing ? "Updating price…" : "Refresh price"}</button>
           </div>
         </div>
 
@@ -1070,7 +1120,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
               <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
               <p className="mt-1 text-sm text-slate-500">{editMode ? `Save all ${lines.length} window line${lines.length === 1 ? "" : "s"} back to the same estimate. Select a line from the project windows list to edit its options.` : `Assign all ${lines.length} added window line${lines.length === 1 ? "" : "s"} to the selected project. Existing door and window lines stay in the same project.`}</p>
               {project.status === "finalized" ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This project is finalized and cannot accept new quote lines.</p> : null}
-              <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || (!lines.length && !editingLine) || project.status === "finalized"}>{handoffBusy ? (editMode ? "Saving changes…" : "Assigning to project…") : editMode ? "Save windows to estimate" : "Assign to project"}</button>
+              <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || (!lines.length && !editingLine) || project.status === "finalized"}>{handoffBusy ? (editMode ? "Saving changes…" : "Saving windows…") : editMode ? "Save window changes" : `Save ${lines.length || "all"} window${lines.length === 1 ? "" : "s"} to project`}</button>
               {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">{editMode ? "The window changes were saved." : "The quote was assigned."} <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
               {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
             </div>
@@ -1087,7 +1137,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
             </div> : null}
           </>
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 shadow-sm">Add a line and generate a quote to see the deterministic component breakdown, review warnings, and customer total.</div>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 shadow-sm">Choose valid window options to see the live FastAPI component breakdown, review warnings, and customer total.</div>
         )}
       </aside>
       </div>

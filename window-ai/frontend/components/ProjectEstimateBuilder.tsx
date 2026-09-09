@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CustomerDoorOpening,
   CustomerEstimate,
@@ -316,29 +316,21 @@ function getAgreedTotalBasis(pricing: CustomerEstimate["pricing"]): AgreedTotalB
 
 export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: string }) {
   const [estimate, setEstimate] = useState<CustomerEstimate>(blankEstimate);
-  const [quoteCatalog, setQuoteCatalog] = useState<QuoteCatalog | null>(null);
-  const [doorCatalog, setDoorCatalog] = useState<DoorCatalog | null>(null);
-  const [windowEditor, setWindowEditor] = useState<WindowEditor>(blankWindow());
-  const [doorEditor, setDoorEditor] = useState<DoorEditor>({ material: "fiberglass", opening_type: "single_door", finish: "", location: "", description: "" });
   const [loading, setLoading] = useState(Boolean(estimateId));
   const [busy, setBusy] = useState(false);
+  const [autoPricing, setAutoPricing] = useState(false);
   const [needsReprice, setNeedsReprice] = useState(false);
   const [agreedTotalText, setAgreedTotalText] = useState("");
   const [managerReason, setManagerReason] = useState("");
   const [managerToken, setManagerToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    Promise.all([fetchQuoteCatalog(), fetchDoorCatalog()])
-      .then(([nextQuoteCatalog, nextDoorCatalog]) => {
-        setQuoteCatalog(nextQuoteCatalog);
-        setDoorCatalog(nextDoorCatalog);
-        setWindowEditor((current) => ({ ...current, style: nextQuoteCatalog.styles[0]?.code || current.style }));
-        setDoorEditor((current) => ({ ...current, finish: nextDoorCatalog.materials[0]?.finishes[0]?.key || current.finish }));
-      })
-      .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load product catalogs."));
-  }, []);
+  const pricingFingerprint = useMemo(
+    () => JSON.stringify({ windows: estimate.windows, doors: estimate.doors, commercial: estimate.commercial }),
+    [estimate.windows, estimate.doors, estimate.commercial],
+  );
+  const pricingFingerprintRef = useRef(pricingFingerprint);
+  pricingFingerprintRef.current = pricingFingerprint;
 
   useEffect(() => {
     if (!estimateId) return;
@@ -349,8 +341,6 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
         setAgreedTotalText(loaded.commercial.agreed_customer_total == null ? "" : String(loaded.commercial.agreed_customer_total));
         setManagerReason(loaded.commercial.manager_override_reason || "");
         setManagerToken("");
-        const firstDoor = loaded.doors[0]?.spec;
-        if (firstDoor) setDoorEditor({ material: firstDoor.material, opening_type: firstDoor.opening_type, finish: firstDoor.finish || "", location: loaded.doors[0].location, description: loaded.doors[0].description });
       })
       .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load this estimate."))
       .finally(() => setLoading(false));
@@ -363,11 +353,6 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
         ...estimate.doors.map((opening, index) => (opening.location.trim() ? null : `door item ${index + 1}`)),
       ].filter((label): label is string => label !== null)
     : [];
-  const currentWindowSpec = useMemo(() => buildWindowSpec(windowEditor, quoteCatalog), [windowEditor, quoteCatalog]);
-  const combinationSuggestion = useMemo(
-    () => getCombinationSuggestion(quoteCatalog?.styles.find((style) => style.code === windowEditor.style), windowEditor.width, windowEditor.height),
-    [quoteCatalog, windowEditor.style, windowEditor.width, windowEditor.height],
-  );
   const agreedBasis = useMemo(() => getAgreedTotalBasis(estimate.pricing), [estimate.pricing]);
   const agreedOffer = useMemo<AgreedTotalOffer | null>(() => {
     if (!agreedBasis || !agreedTotalText.trim()) return null;
@@ -391,13 +376,6 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       underAuthorizedFloor,
     };
   }, [agreedBasis, agreedTotalText]);
-  const windowEditorIsValid =
-    isAtLeast(windowEditor.qty, 1) &&
-    (windowEditor.type === "patio_sliding" ||
-      (isAtLeast(windowEditor.width, 1) &&
-        isAtLeast(windowEditor.height, 1) &&
-        (windowEditor.type !== "bay_bow" || isBetween(windowEditor.lite_count, 3, 6))));
-
   function updateMetadata(patch: Partial<CustomerEstimate>) {
     if (!editable) return;
     setEstimate((current) => ({ ...current, ...patch }));
@@ -422,61 +400,6 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     setManagerReason("");
     setManagerToken("");
     setMessage(null);
-  }
-
-  function addWindowLine() {
-    if (!windowEditorIsValid) return;
-    const description = descriptionWithProductDetails(windowEditor.description, describeWindowSpec(currentWindowSpec, quoteCatalog));
-    productChanged((current) => ({
-      ...current,
-      windows: [...current.windows, { id: id(), location: windowEditor.location, description, spec: currentWindowSpec }],
-    }));
-    setWindowEditor((current) => ({ ...current, location: "", description: "" }));
-  }
-
-  function removeWindowLine(lineId: string) {
-    productChanged((current) => ({ ...current, windows: current.windows.filter((line) => line.id !== lineId) }));
-  }
-
-  function updateWindowLine(lineId: string, patch: Partial<CustomerWindowLine>) {
-    setEstimate((current) => current ? { ...current, windows: current.windows.map((line) => line.id === lineId ? { ...line, ...patch } : line) } : current);
-    setMessage(null);
-  }
-
-  function addDoorOpening() {
-    if (!doorCatalog) return;
-    const spec = makeDoorSpec(doorCatalog, doorEditor.material, doorEditor.opening_type, doorEditor.finish);
-    const description = describeDoorLine(spec, doorCatalog, doorEditor.description);
-    productChanged((current) => ({
-      ...current,
-      doors: [...current.doors, { id: id(), location: doorEditor.location, description, spec }],
-    }));
-    setDoorEditor((current) => ({ ...current, location: "", description: "" }));
-  }
-
-  function updateDoorOpening(openingId: string, patch: Partial<CustomerDoorOpening>) {
-    setEstimate((current) => current ? { ...current, doors: current.doors.map((opening) => opening.id === openingId ? { ...opening, ...patch } : opening) } : current);
-    setMessage(null);
-  }
-
-  function updateDoorSpec(openingId: string, patch: Partial<DoorOpeningSpec>) {
-    productChanged((current) => ({
-      ...current,
-      doors: current.doors.map((opening) => opening.id === openingId ? { ...opening, spec: { ...opening.spec, ...patch } } : opening),
-    }));
-  }
-
-  function rebuildDoorOpening(openingId: string, material: "fiberglass" | "steel", openingType: DoorOpeningSpec["opening_type"], finish?: string) {
-    if (!doorCatalog) return;
-    productChanged((current) => ({
-      ...current,
-      doors: current.doors.map((opening) => opening.id === openingId
-        ? (() => {
-          const spec = { ...makeDoorSpec(doorCatalog, material, openingType, finish), label: opening.spec.label };
-          return { ...opening, description: describeDoorLine(spec, doorCatalog), spec };
-        })()
-        : opening),
-    }));
   }
 
   function asDraft(value: CustomerEstimate): CustomerEstimateDraft {
@@ -516,7 +439,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     } finally { setBusy(false); }
   }
 
-  async function openWindowWorkspace() {
+  async function openWindowWorkspace(mode: "add" | "edit" = "edit") {
     if (!estimate.id) return;
     if (!editable) {
       window.location.href = `/?projectId=${estimate.id}&editWindows=1`;
@@ -525,13 +448,15 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     setBusy(true); setError(null); setMessage(null);
     try {
       const saved = await saveCurrent();
-      window.location.href = `/?projectId=${saved.id}&editWindows=1`;
+      window.location.href = mode === "edit"
+        ? `/?projectId=${saved.id}&editWindows=1`
+        : `/?projectId=${saved.id}`;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not save the project before opening the window quote.");
     } finally { setBusy(false); }
   }
 
-  async function openDoorWorkspace() {
+  async function openDoorWorkspace(mode: "add" | "edit" = "edit") {
     if (!estimate.id) return;
     if (!editable) {
       window.location.href = `/doors?projectId=${estimate.id}&editDoors=1`;
@@ -540,7 +465,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     setBusy(true); setError(null); setMessage(null);
     try {
       const saved = await saveCurrent();
-      window.location.href = `/doors?projectId=${saved.id}&editDoors=1`;
+      window.location.href = mode === "edit"
+        ? `/doors?projectId=${saved.id}&editDoors=1`
+        : `/doors?projectId=${saved.id}`;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not save the project before opening the door quote.");
     } finally { setBusy(false); }
@@ -563,6 +490,37 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   async function priceProject() {
     await priceProjectWithCommercial(estimate.commercial);
   }
+
+  // Product edits are persisted and repriced through FastAPI automatically.
+  // Metadata fields remain ordinary draft edits and do not cause unnecessary
+  // pricing requests.
+  useEffect(() => {
+    if (!editable || !needsReprice || (!estimate.windows.length && !estimate.doors.length)) return;
+    const expectedFingerprint = pricingFingerprint;
+    const snapshot = estimate;
+    const timer = window.setTimeout(async () => {
+      setAutoPricing(true);
+      setError(null);
+      try {
+        const draft = asDraft(snapshot);
+        const saved = snapshot.id
+          ? await updateCustomerEstimate(snapshot.id, draft)
+          : await createCustomerEstimate(draft);
+        const priced = await priceCustomerEstimate(saved.id);
+        if (pricingFingerprintRef.current !== expectedFingerprint) return;
+        setEstimate(priced);
+        setNeedsReprice(false);
+        setMessage(priced.pricing?.review_required ? "Live price updated with review items." : "Live price updated.");
+      } catch (reason) {
+        if (pricingFingerprintRef.current === expectedFingerprint) {
+          setError(reason instanceof Error ? reason.message : "Could not update the live project price.");
+        }
+      } finally {
+        if (pricingFingerprintRef.current === expectedFingerprint) setAutoPricing(false);
+      }
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [editable, estimate, needsReprice, pricingFingerprint]);
 
   async function applyAgreedTotal() {
     if (!editable || !estimate.pricing || !agreedOffer) return;
@@ -642,13 +600,10 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   return (
     <div className="project-estimate-shell">
       <div className="project-toolbar no-print">
-        <div><p className="eyebrow">Project estimate</p><h2>{estimate.estimate_number || "New Better View estimate"}</h2><p className="text-muted">{estimate.status === "finalized" ? "Finalized customer document" : "Add Windows and Doors, then price the complete project."}</p></div>
+        <div><p className="eyebrow">Project estimate</p><h2>{estimate.estimate_number || "New Better View estimate"}</h2><p className="text-muted">{estimate.status === "finalized" ? "Finalized customer document" : autoPricing ? "Updating the live price…" : "Window and door prices update automatically as selections change."}</p></div>
         <div className="project-actions">
-          {estimate.status === "finalized" ? <><button className="button secondary" type="button" onClick={() => window.print()}>Print / Save PDF</button><button className="button primary" type="button" onClick={duplicateProject} disabled={busy}>Duplicate as draft</button></> : <><button className="button secondary" type="button" onClick={saveDraft} disabled={busy}>Save draft</button><button className="button secondary" type="button" onClick={priceProject} disabled={busy || (!estimate.windows.length && !estimate.doors.length)}>{busy ? "Working…" : "Price project"}</button><button className="button primary" type="button" title={missingLocationLabels.length ? `Add a location to ${missingLocationLabels.join(", ")}` : undefined} onClick={finalizeProject} disabled={busy || !estimate.id || estimate.status !== "priced" || needsReprice || Boolean(estimate.pricing?.review_required) || missingLocationLabels.length > 0}>{busy ? "Working…" : "Finalize estimate"}</button></>}
+          {estimate.status === "finalized" ? <><button className="button secondary" type="button" onClick={() => window.print()}>Print / Save PDF</button><button className="button primary" type="button" onClick={duplicateProject} disabled={busy}>Duplicate as draft</button></> : <><button className="button secondary" type="button" onClick={saveDraft} disabled={busy || autoPricing}>Save draft</button>{error && needsReprice ? <button className="button secondary" type="button" onClick={priceProject} disabled={busy || autoPricing || (!estimate.windows.length && !estimate.doors.length)}>{autoPricing ? "Updating…" : "Retry pricing"}</button> : null}<button className="button primary" type="button" title={missingLocationLabels.length ? `Add a location to ${missingLocationLabels.join(", ")}` : undefined} onClick={finalizeProject} disabled={busy || autoPricing || !estimate.id || estimate.status !== "priced" || needsReprice || Boolean(estimate.pricing?.review_required) || missingLocationLabels.length > 0}>{busy || autoPricing ? "Working…" : "Finalize estimate"}</button></>}
         </div>
-        {estimate.status !== "finalized" ? <div className="project-actions no-print">
-          {estimate.id ? <><Link className="button secondary" href={`/?projectId=${estimate.id}`}>Add windows</Link><Link className="button secondary" href={`/doors?projectId=${estimate.id}`}>Add doors</Link></> : <><button className="button secondary" type="button" onClick={() => startQuote("/")} disabled={busy}>Create project &amp; add windows</button><button className="button secondary" type="button" onClick={() => startQuote("/doors")} disabled={busy}>Create project &amp; add doors</button></>}
-        </div> : null}
       </div>
 
       {message ? <p className="project-message no-print">{message}</p> : null}
@@ -695,33 +650,32 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             </div></div> : null}
           </div>
 
-          <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Windows</p><h3>Add window or patio-door lines</h3></div><div className="project-actions"><span className="count-badge">{estimate.windows.length}</span>{estimate.windows.length ? <button type="button" className="button secondary" onClick={openWindowWorkspace} disabled={busy}>{editable ? "Edit windows / view costs" : "View window costs"}</button> : null}</div></div><div className="editor-grid">
-            <Field label="Line type"><select className="project-input" value={windowEditor.type} onChange={(event) => setWindowEditor({ ...windowEditor, type: event.target.value as QuoteLineType })} disabled={!editable}><option value="window">Window</option><option value="combination">Combination window</option><option value="patio_sliding">Sliding patio door</option><option value="patio_swing">Swing patio door</option><option value="bay_bow">Bay / bow assembly</option></select></Field>
-            {(windowEditor.type === "window" || windowEditor.type === "combination" || windowEditor.type === "bay_bow") ? <Field label="Style"><select className="project-input" value={windowEditor.style} onChange={(event) => setWindowEditor({ ...windowEditor, style: event.target.value })} disabled={!editable}>{quoteCatalog ? groupWindowStyles(quoteCatalog.styles).map((group) => <optgroup key={group.collection} label={group.label}>{group.styles.map((style) => <option key={style.code} value={style.code}>{windowStyleLabel(style)}</option>)}</optgroup>) : null}</select></Field> : null}
-            {windowEditor.type === "patio_sliding" ? <Field label="Nominal size"><select className="project-input" value={windowEditor.sliding_ft} onChange={(event) => setWindowEditor({ ...windowEditor, sliding_ft: Number(event.target.value) })} disabled={!editable}>{quoteCatalog?.patio_sliding_sizes.map((size) => <option key={size} value={size}>{size} ft</option>)}</select></Field> : null}
-            {windowEditor.type === "patio_swing" ? <Field label="Door family"><select className="project-input" value={windowEditor.swing_kind} onChange={(event) => setWindowEditor({ ...windowEditor, swing_kind: event.target.value })} disabled={!editable}>{quoteCatalog?.patio_swing_kinds.map((kind) => <option key={kind} value={kind}>{kind}</option>)}</select></Field> : null}
-            {windowEditor.type !== "patio_sliding" ? <><Field label={windowEditor.type === "combination" ? "Lite width (in)" : "Width (in)"}><input className="project-input" type="number" min={1} step={0.125} value={windowEditor.width} onChange={(event) => setWindowEditor({ ...windowEditor, width: numericInputValue(event.target.value) })} disabled={!editable} /></Field><Field label="Height (in)"><input className="project-input" type="number" min={1} step={0.125} value={windowEditor.height} onChange={(event) => setWindowEditor({ ...windowEditor, height: numericInputValue(event.target.value) })} disabled={!editable} /></Field></> : null}
-            <Field label="Quantity"><input className="project-input" type="number" min={1} value={windowEditor.qty} onChange={(event) => setWindowEditor({ ...windowEditor, qty: numericInputValue(event.target.value) })} disabled={!editable} /></Field>
-            <Field label="Exterior colour"><select className="project-input" value={windowEditor.colour_ext} onChange={(event) => setWindowEditor({ ...windowEditor, colour_ext: event.target.value })} disabled={!editable}>{COLORS.map((color) => <option key={color}>{color}</option>)}</select></Field>
-            {windowEditor.type === "bay_bow" ? <><Field label="Lite count"><input className="project-input" type="number" min={3} max={6} value={windowEditor.lite_count} onChange={(event) => setWindowEditor({ ...windowEditor, lite_count: numericInputValue(event.target.value) })} disabled={!editable} /></Field><Field label="Head / seat"><select className="project-input" value={windowEditor.head_seat} onChange={(event) => setWindowEditor({ ...windowEditor, head_seat: event.target.value })} disabled={!editable}>{quoteCatalog?.baybow.head_seat_sizes.map((size) => <option key={size}>{size}</option>)}</select></Field></> : null}
-          </div>
-          {windowEditor.type === "window" && combinationSuggestion ? <div className="project-suggestion"><div><strong>This {combinationSuggestion.styleCode} size may be a two-lite combination.</strong><p>For {combinationSuggestion.overallWidth} × {combinationSuggestion.height} overall, price two {combinationSuggestion.styleCode} lites at {combinationSuggestion.liteWidth} × {combinationSuggestion.height} each.</p></div><button type="button" className="button secondary" onClick={() => setWindowEditor((current) => ({ ...current, type: "combination", width: combinationSuggestion.liteWidth }))} disabled={!editable}>Use two-lite combination</button></div> : null}
-          {windowEditor.type === "combination" ? <p className="project-help">Combination uses two equal lites with the selected style. For a 64 in overall width, enter 32 in as the lite width.</p> : null}
-          {windowEditor.type !== "bay_bow" ? <div className="option-box"><p className="eyebrow">Glazing</p><div className="toggle-grid"><Toggle label="LoE 180" checked={windowEditor.loe180} onChange={(value) => setWindowEditor({ ...windowEditor, loe180: value })} /><Toggle label="i89" checked={windowEditor.i89} onChange={(value) => setWindowEditor({ ...windowEditor, i89: value })} /><Toggle label="Triple pane" checked={windowEditor.triple} onChange={(value) => setWindowEditor({ ...windowEditor, triple: value })} /><Toggle label="Tri-pane laminated" checked={windowEditor.tri_pane_lami} onChange={(value) => setWindowEditor({ ...windowEditor, tri_pane_lami: value })} /><Toggle label="Frost / tint" checked={windowEditor.frost_tint} onChange={(value) => setWindowEditor({ ...windowEditor, frost_tint: value })} /></div><Field label="Gas"><select className="project-input" value={windowEditor.gas} onChange={(event) => setWindowEditor({ ...windowEditor, gas: event.target.value })} disabled={!editable}>{GAS.map((gas) => <option key={gas}>{gas}</option>)}</select></Field></div> : null}
-          {windowEditor.type === "window" ? <div className="option-box"><p className="eyebrow">Accessories</p><div className="toggle-grid"><Toggle label="Brickmould" checked={windowEditor.brickmould} onChange={(value) => setWindowEditor({ ...windowEditor, brickmould: value })} /><Toggle label="Wood jamb" checked={windowEditor.wood_jamb} onChange={(value) => setWindowEditor({ ...windowEditor, wood_jamb: value })} /></div></div> : null}
-          <div className="editor-grid"><Field label="Location"><LocationInput className="project-input" value={windowEditor.location} onChange={(value) => setWindowEditor({ ...windowEditor, location: value })} disabled={!editable} placeholder="Living room" /></Field><Field label="Customer description"><input className="project-input" value={windowEditor.description} onChange={(event) => setWindowEditor({ ...windowEditor, description: event.target.value })} disabled={!editable} placeholder="Energy-efficient replacement window" /></Field></div>
-          <button type="button" className="button secondary" onClick={addWindowLine} disabled={!editable || !quoteCatalog || !windowEditorIsValid}>Add window line</button>
-          {estimate.windows.length ? <div className="line-list">{estimate.windows.map((line) => <div className="line-card" key={line.id}><div className="line-card-main"><strong>{windowLabel(line)}</strong><span>{line.spec.type?.replace(/_/g, " ")} · Qty {String(line.spec.qty || 1)}</span></div><div className="line-card-fields"><LocationInput className="project-input" required value={line.location} onChange={(value) => updateWindowLine(line.id, { location: value })} disabled={!editable} placeholder="Location" /><input className="project-input" value={line.description} onChange={(event) => updateWindowLine(line.id, { description: event.target.value })} disabled={!editable} placeholder="Customer description override" /><button type="button" className="text-button danger" onClick={() => removeWindowLine(line.id)} disabled={!editable}>Remove</button></div></div>)}</div> : null}
-          </div>
+          <div className="product-hub">
+            <article className="product-hub-card">
+              <div className="product-hub-icon" aria-hidden="true">▦</div>
+              <div className="product-hub-copy">
+                <div className="product-hub-heading"><div><p className="eyebrow">Windows &amp; patio doors</p><h3>{estimate.windows.length ? `${estimate.windows.length} line${estimate.windows.length === 1 ? "" : "s"} added` : "Add windows"}</h3></div><span className="count-badge">{estimate.windows.length}</span></div>
+                <p>Configure styles, sizes, glazing, accessories, and sales pricing in the full Window City builder.</p>
+                {estimate.pricing && estimate.windows.length ? <strong className="product-hub-total">{money(estimate.pricing.sections.windows.total)} <span>including HST</span></strong> : null}
+                <div className="product-hub-actions">
+                  {estimate.windows.length ? <button type="button" className="button secondary" onClick={() => openWindowWorkspace("edit")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : "Edit existing"}</button> : null}
+                  <button type="button" className="button primary" onClick={() => estimate.id ? openWindowWorkspace("add") : startQuote("/")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : estimate.windows.length ? "Add more windows" : "Save & add windows"}</button>
+                </div>
+              </div>
+            </article>
 
-          <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Doors</p><h3>Add entry-door openings</h3></div><div className="project-actions"><span className="count-badge">{estimate.doors.length}</span>{estimate.doors.length ? <button type="button" className="button secondary" onClick={openDoorWorkspace} disabled={busy}>{editable ? "Edit doors / view costs" : "View door costs"}</button> : null}</div></div><div className="editor-grid">
-            <Field label="Material"><select className="project-input" value={doorEditor.material} onChange={(event) => { const material = event.target.value as "fiberglass" | "steel"; const data = doorCatalog?.materials.find((entry) => entry.key === material); setDoorEditor({ ...doorEditor, material, finish: data?.finishes[0]?.key || "" }); }} disabled={!editable}>{doorCatalog?.materials.map((entry) => <option key={entry.key} value={entry.key}>{entry.label}</option>)}</select></Field>
-            <Field label="Opening type"><select className="project-input" value={doorEditor.opening_type} onChange={(event) => setDoorEditor({ ...doorEditor, opening_type: event.target.value as DoorOpeningSpec["opening_type"] })} disabled={!editable}>{OPENING_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></Field>
-            <Field label="Finish"><select className="project-input" value={doorEditor.finish} onChange={(event) => setDoorEditor({ ...doorEditor, finish: event.target.value })} disabled={!editable}>{doorCatalog?.materials.find((entry) => entry.key === doorEditor.material)?.finishes.map((finish) => <option key={finish.key} value={finish.key}>{finish.label}</option>)}</select></Field>
-            <Field label="Location"><LocationInput className="project-input" value={doorEditor.location} onChange={(value) => setDoorEditor({ ...doorEditor, location: value })} disabled={!editable} placeholder="Front entry" /></Field>
-            <Field label="Customer description" className="field-span-2"><input className="project-input" value={doorEditor.description} onChange={(event) => setDoorEditor({ ...doorEditor, description: event.target.value })} disabled={!editable} placeholder="Fiberglass entry door package" /></Field>
-          </div><button type="button" className="button secondary" onClick={addDoorOpening} disabled={!editable || !doorCatalog}>Add door opening</button>
-          {estimate.doors.length ? <div className="line-list">{estimate.doors.map((opening) => <div className="line-card" key={opening.id}><div className="line-card-main"><strong>{opening.description || opening.spec.label || "Door opening"}</strong><span>{opening.spec.material} · {OPENING_TYPES.find((type) => type.value === opening.spec.opening_type)?.label}</span></div><div className="line-card-fields"><LocationInput className="project-input" required value={opening.location} onChange={(value) => updateDoorOpening(opening.id, { location: value })} disabled={!editable} placeholder="Location" /><input className="project-input" value={opening.description} onChange={(event) => updateDoorOpening(opening.id, { description: event.target.value })} disabled={!editable} placeholder="Customer description override" /><select className="project-input" value={opening.spec.material} onChange={(event) => rebuildDoorOpening(opening.id, event.target.value as "fiberglass" | "steel", opening.spec.opening_type, opening.spec.finish)} disabled={!editable}><option value="fiberglass">Fiberglass</option><option value="steel">Steel</option></select><select className="project-input" value={opening.spec.opening_type} onChange={(event) => rebuildDoorOpening(opening.id, opening.spec.material, event.target.value as DoorOpeningSpec["opening_type"], opening.spec.finish)} disabled={!editable}>{OPENING_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select><button type="button" className="text-button danger" onClick={() => productChanged((current) => ({ ...current, doors: current.doors.filter((item) => item.id !== opening.id) }))} disabled={!editable}>Remove</button></div></div>)}</div> : null}
+            <article className="product-hub-card">
+              <div className="product-hub-icon door" aria-hidden="true">▯</div>
+              <div className="product-hub-copy">
+                <div className="product-hub-heading"><div><p className="eyebrow">Entry doors</p><h3>{estimate.doors.length ? `${estimate.doors.length} opening${estimate.doors.length === 1 ? "" : "s"} added` : "Add doors"}</h3></div><span className="count-badge">{estimate.doors.length}</span></div>
+                <p>Configure door systems, glass, sidelites, hardware, finishes, and installation in the Palma builder.</p>
+                {estimate.pricing && estimate.doors.length ? <strong className="product-hub-total">{money(estimate.pricing.sections.doors.total)} <span>including HST</span></strong> : null}
+                <div className="product-hub-actions">
+                  {estimate.doors.length ? <button type="button" className="button secondary" onClick={() => openDoorWorkspace("edit")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : "Edit existing"}</button> : null}
+                  <button type="button" className="button primary" onClick={() => estimate.id ? openDoorWorkspace("add") : startQuote("/doors")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : estimate.doors.length ? "Add more doors" : "Save & add doors"}</button>
+                </div>
+              </div>
+            </article>
           </div>
 
           {estimate.pricing?.review_required ? <div className="review-box"><strong>Review required before finalization</strong>{estimate.pricing.warnings.map((warning, index) => <p key={`${warning.code}-${index}`}>{warning.message}</p>)}</div> : null}
