@@ -6,4 +6,6 @@ pydantic>=2.5.0
 python-multipart>=0.0.6
 sqlalchemy>=2.0.25
 psycopg2-binary>=2.9.9
+# The production DATABASE_URL uses the psycopg 3 driver (postgresql+psycopg://).
+psycopg[binary]>=3.1
 pyyaml>=6.0.1
