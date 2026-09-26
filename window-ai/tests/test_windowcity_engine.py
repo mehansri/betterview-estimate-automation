@@ -215,3 +215,47 @@ def test_cantor_125401159_triple_calibration_values_are_present() -> None:
     assert config["item_discounts"]["argon_krypton_5050"] == pytest.approx(0.0)
     assert config["item_discounts"]["triple_pane_upcharge"] == pytest.approx(0.61616)
     assert config["engine"]["triple_loe_panes"] == 2
+
+
+def _estimator_lite(style: str, width: float, *, reinforced: bool, accessories: list[dict]) -> dict:
+    """A lite shaped exactly as the estimator's QuoteBuilder builds it."""
+    return {
+        "type": "window",
+        "style": style,
+        "width": width,
+        "height": 66,
+        "qty": 1,
+        "colour_ext": "Jet Black",
+        "colour_int": "White",
+        "glazing": {"loe180": True, "i89": False, "gas": "90/5", "triple": True, "tri_pane_lami": False, "frost_tint": False},
+        "adders": ["Sash Reinforcement"] if reinforced else [],
+        "accessories": accessories,
+    }
+
+
+def test_estimator_combination_trim_on_first_lite_matches_window_city() -> None:
+    # Window City order 125401151 opening 1: fixed + casement 72x66, trim
+    # billed once around the whole assembly (carried by lite 1).
+    trim = [
+        {"kind": "wood_jamb", "name": '5 1/2" wood jamb', "lineal_ft": 23},
+        {"kind": "misc", "name": "Nailing Flange", "lineal_ft": 23},
+    ]
+    line = {
+        "type": "combination",
+        "qty": 1,
+        "layout": {"cols": 2, "rows": 1},
+        "lites": [
+            _estimator_lite("WC-175", 47.975, reinforced=False, accessories=trim),
+            _estimator_lite("WC-100", 23.975, reinforced=True, accessories=[]),
+        ],
+    }
+    result = price_quote({"lines": [line]})
+    assert result["review_required"] is False, result["warnings"]
+    assert result["lines"][0]["dealer_each"] == pytest.approx(1097.11, abs=1.0)
+
+
+def test_accessory_exact_row_name_resolves_when_it_is_a_substring_of_another_row() -> None:
+    from services.windowcity import catalog
+
+    row = catalog.accessory("brickmould", '2" brickmould (heritage)')
+    assert row["name"] == '2" brickmould (heritage)'

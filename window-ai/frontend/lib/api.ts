@@ -438,11 +438,50 @@ export type DoorCustomerPresentation = {
 
 export type CustomerEstimateStatus = "draft" | "priced" | "finalized";
 
+export type WindowOperation =
+  | "fixed"
+  | "casement"
+  | "awning"
+  | "single_slider"
+  | "double_slider"
+  | "single_hung"
+  | "double_hung";
+
+/** casement: hinge side; awning: "top"; single slider: operating sash side (viewed from outside). */
+export type WindowHanding = "left" | "right" | "top" | null;
+
+export type WindowElevation = "front" | "right" | "left" | "back" | "other";
+
+export type WindowSection = {
+  operation: WindowOperation;
+  handing: WindowHanding;
+};
+
+/**
+ * Order-checklist details for a window line. Presentation only: never sent to
+ * the pricing engine and not part of the pricing hash.
+ */
+export type WindowDetails = {
+  /** Opening number printed on the estimate / order, e.g. "1", "14". */
+  tag?: string | null;
+  elevation?: WindowElevation | null;
+  /** One entry per lite, same order as spec.lites (one entry for a single window). */
+  sections?: WindowSection[] | null;
+  /** null = no screen. */
+  screen?: { frame_colour?: string | null; mesh_colour?: string | null } | null;
+  hardware?: string | null;
+  spacer?: string | null;
+  jamb_finish?: string | null;
+  notes?: string | null;
+};
+
 export type CustomerWindowLine = {
   id: string;
   location: string;
   description: string;
+  /** The priced engine line. */
   spec: QuoteLineInput;
+  details?: WindowDetails | null;
 };
 
 export type CustomerDoorOpening = {
@@ -553,13 +592,11 @@ export type CustomerEstimateSummary = {
 };
 
 /**
- * Prefer same-origin (empty string) so Next.js rewrites proxy to the FastAPI backend.
+ * Always same-origin: middleware.ts forwards /api/* to the FastAPI backend and
+ * adds the API token server-side, so the browser never calls the API directly.
  */
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-
 function apiPath(path: string): string {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  return `${API_URL}${p}`;
+  return path.startsWith("/") ? path : `/${path}`;
 }
 
 function formatApiError(status: number, body: string): string {

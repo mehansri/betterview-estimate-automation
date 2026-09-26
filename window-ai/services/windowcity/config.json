@@ -32,7 +32,8 @@
     "colour": {"base": "base_only", "pct_scale": 0.75},
     "triple_loe_panes": 2,
     "brickmould_override": {"code": "EP326", "rate_white_lf": 5.0, "rate_colour_lf": 5.6},
+    "nailing_flange_override": {"code": "eP-106", "rate_white_lf": 3.0, "rate_colour_lf": 3.0},
     "oversize_glass": {"threshold_sqft": 35, "rate_sqft": 8.0}
   },
-  "_engine": "Rules the book leaves ambiguous, calibrated to the cent against Cantor orders 125401135 + 125401159 (2026-08-04). Without brickmould: accessory footage = exact perimeter. With brickmould: billed window size = BM outer dims (W+2x width) and footage = 2(W+H)+8x width — handled automatically. colour: capstock % billed on the base column only at 3/4 of the book pct (Jet Black 20% -> 15%; only black verified). brickmould_override: Cantor's installed 1-inch Classic BM is EP326 at 5.00/5.60 per lf, not the book's EP-226 4.00 row. oversize_glass: 6mm at $8.00/sqft list past 35 sqft (double)."
+  "_engine": "Rules the book leaves ambiguous, calibrated to the cent against Cantor orders 125401135 + 125401159 (2026-08-04). Without brickmould: accessory footage = exact perimeter. With brickmould: billed window size = BM outer dims (W+2x width) and footage = 2(W+H)+8x width — handled automatically. colour: capstock % billed on the base column only at 3/4 of the book pct (Jet Black 20% -> 15%; only black verified). brickmould_override: Cantor's installed 1-inch Classic BM is EP326 at 5.00/5.60 per lf, not the book's EP-226 4.00 row. oversize_glass: 6mm at $8.00/sqft list past 35 sqft (double). nailing_flange_override: Window City order 125401151 (Ranj triplex, 2026-07-17, all Jet Black with 5 1/2-inch wood jamb) billed jamb + flange at $8.00/lf list vs the book's 5.00 + 2.00; the extra $1/lf goes on the flange for white and colour alike (white unverified; erring high because under-quoting costs margin). Argon on triple was not billed on that order but is still charged here (over-quoting accepted)."
 }

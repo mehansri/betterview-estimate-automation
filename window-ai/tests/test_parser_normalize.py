@@ -1,4 +1,9 @@
-from parser.base import ParsedEstimate, ParsedWindow
+import pytest
+
+# Optional ML/import dependency (requirements-ml.txt); the deploy/CI image installs requirements.txt only.
+pytest.importorskip("pdfplumber")
+
+from parser.base import ParsedEstimate, ParsedWindow  # noqa: E402
 from parser.normalize import normalize_estimate, normalize_window, parse_inches
 
 
