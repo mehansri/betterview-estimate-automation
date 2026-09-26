@@ -12,7 +12,8 @@ import { updateSession } from "@/utils/supabase/middleware";
  * case in production by choice); setting it turns the sign-in prompt on.
  */
 const LOCAL_API_ROUTES = ["/api/addresses"];
-const API_UPSTREAM = process.env.API_PROXY_URL || "http://localhost:8000";
+// Same resolution as the next.config.js rewrites (production sets NEXT_PUBLIC_API_URL).
+const API_UPSTREAM = process.env.API_PROXY_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 function safeEqual(left: string, right: string) {
   if (left.length !== right.length) return false;
