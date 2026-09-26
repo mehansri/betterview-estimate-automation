@@ -30,6 +30,9 @@ import { describeDoorLine, describeWindowSpec, descriptionWithProductDetails } f
 import { groupWindowStyles, windowStyleLabel } from "@/lib/styleOptions";
 import { getCombinationSuggestion } from "@/lib/windowSuggestions";
 
+// Better View CRM base URL; the "Send to CRM" action is hidden when unset.
+const CRM_URL = (process.env.NEXT_PUBLIC_CRM_URL || "").trim().replace(/\/+$/, "");
+
 type WindowEditor = {
   type: QuoteLineType;
   style: string;
@@ -215,7 +218,7 @@ function buildWindowSpec(editor: WindowEditor, catalog: QuoteCatalog | null): Qu
 function windowLabel(line: CustomerWindowLine) {
   const spec = line.spec;
   if (line.description) return line.description;
-  return describeWindowSpec(spec);
+  return describeWindowSpec(spec, null, line.details);
 }
 
 function partFromRow(row: DoorCatalog["materials"][number]["slabs"][number] | undefined) {
@@ -595,6 +598,13 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     }
   }
 
+  // The CRM imports the saved pricing snapshot, so only offer it once the
+  // project is priced (or finalized) and has no unsaved product changes.
+  const crmImportUrl = CRM_URL && estimate.id
+    ? `${CRM_URL}/estimates/import?source=estimator&project=${encodeURIComponent(estimate.id)}`
+    : null;
+  const crmReady = (estimate.status === "priced" || estimate.status === "finalized") && !needsReprice && !autoPricing;
+
   if (loading) return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading estimate…</p>;
 
   return (
@@ -602,6 +612,11 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       <div className="project-toolbar no-print">
         <div><p className="eyebrow">Project estimate</p><h2>{estimate.estimate_number || "New Better View estimate"}</h2><p className="text-muted">{estimate.status === "finalized" ? "Finalized customer document" : autoPricing ? "Updating the live price…" : "Window and door prices update automatically as selections change."}</p></div>
         <div className="project-actions">
+          {crmImportUrl ? (
+            crmReady
+              ? <a className="button secondary inline-flex items-center justify-center" href={crmImportUrl} target="_blank" rel="noopener noreferrer" title="Open the Better View CRM and import this priced project">Send to CRM</a>
+              : <button className="button secondary" type="button" disabled title="Price the project before sending it to the CRM">Send to CRM</button>
+          ) : null}
           {estimate.status === "finalized" ? <><button className="button secondary" type="button" onClick={() => window.print()}>Print / Save PDF</button><button className="button primary" type="button" onClick={duplicateProject} disabled={busy}>Duplicate as draft</button></> : <><button className="button secondary" type="button" onClick={saveDraft} disabled={busy || autoPricing}>Save draft</button>{error && needsReprice ? <button className="button secondary" type="button" onClick={priceProject} disabled={busy || autoPricing || (!estimate.windows.length && !estimate.doors.length)}>{autoPricing ? "Updating…" : "Retry pricing"}</button> : null}<button className="button primary" type="button" title={missingLocationLabels.length ? `Add a location to ${missingLocationLabels.join(", ")}` : undefined} onClick={finalizeProject} disabled={busy || autoPricing || !estimate.id || estimate.status !== "priced" || needsReprice || Boolean(estimate.pricing?.review_required) || missingLocationLabels.length > 0}>{busy || autoPricing ? "Working…" : "Finalize estimate"}</button></>}
         </div>
       </div>

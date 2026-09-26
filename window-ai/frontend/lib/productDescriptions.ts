@@ -3,6 +3,7 @@ import type {
   DoorOpeningSpec,
   QuoteCatalog,
   QuoteLineInput,
+  WindowDetails,
 } from "@/lib/api";
 
 function text(value: unknown) {
@@ -72,12 +73,37 @@ function windowStyle(style: unknown) {
   return text(style);
 }
 
-export function describeWindowSpec(spec: QuoteLineInput, catalog?: QuoteCatalog | null) {
+function isWhite(value: string) {
+  return !value || value.toLocaleLowerCase() === "white";
+}
+
+/** "Left hinge" for a single casement; "Lite 2 right hinge" inside a combination. */
+function handingNotes(details: WindowDetails | null | undefined, combination: boolean) {
+  const sections = Array.isArray(details?.sections) ? details.sections : [];
+  return sections.flatMap((section, index) => {
+    if (!section || (section.handing !== "left" && section.handing !== "right")) return [];
+    const kind = section.operation === "casement" ? "hinge" : section.operation === "single_slider" ? "hand" : "";
+    if (!kind) return [];
+    const side = `${section.handing === "left" ? "Left" : "Right"} ${kind}`;
+    return [combination ? `Lite ${index + 1} ${side.toLocaleLowerCase()}` : side];
+  });
+}
+
+export function describeWindowSpec(spec: QuoteLineInput, catalog?: QuoteCatalog | null, details?: WindowDetails | null) {
   const value = spec as Record<string, unknown>;
   const nestedLites = (Array.isArray(value.lites) ? value.lites : []).filter((lite): lite is Record<string, unknown> => Boolean(lite && typeof lite === "object"));
   const allSpecs = [value, ...nestedLites];
   const colours = join(allSpecs.map((item) => text(item.colour_ext || item.color)));
+  const interior = join(allSpecs.map((item) => text(item.colour_int)).filter((colour) => !isWhite(colour)));
   const common = [colours ? `Exterior colour: ${colours}` : "", ...allSpecs.flatMap(windowOptions)];
+  // Appended last so the server's generated description (which has no
+  // interior colour or handing) stays a substring and is not repeated.
+  const extras = [interior ? `Interior colour: ${interior}` : "", ...handingNotes(details, value.type === "combination")];
+  const described = describeByType(value, nestedLites, common);
+  return extras.some(Boolean) ? join([described, ...extras]) : described;
+}
+
+function describeByType(value: Record<string, unknown>, nestedLites: Record<string, unknown>[], common: string[]) {
   switch (value.type) {
     case "window":
       return join([windowStyle(value.style) || "Window", size(value), ...common]);

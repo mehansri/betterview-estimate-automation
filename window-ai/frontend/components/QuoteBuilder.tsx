@@ -19,6 +19,10 @@ import {
   fetchSalesPresets,
   priceDeterministicQuote,
   updateCustomerEstimate,
+  WindowDetails,
+  WindowElevation,
+  WindowHanding,
+  WindowOperation,
 } from "@/lib/api";
 import { newEstimateLineId } from "@/lib/quoteHandoff";
 import { describeWindowSpec } from "@/lib/productDescriptions";
@@ -27,9 +31,46 @@ import LocationInput from "@/components/LocationInput";
 import { isBetween, isAtLeast, numericInputValue, NumericInputValue } from "@/lib/numericInput";
 import { groupWindowStyles, windowStyleLabel } from "@/lib/styleOptions";
 import { getCombinationSuggestion } from "@/lib/windowSuggestions";
+import {
+  brickmouldOptions,
+  DEFAULT_BRICKMOULD,
+  DEFAULT_JAMB,
+  defaultHardware,
+  defaultScreen,
+  defaultSide,
+  ELEVATIONS,
+  handingLabel,
+  hasReinforcement,
+  hasSideHanding,
+  HARDWARE_SUGGESTIONS,
+  JAMB_FINISHES,
+  JambKind,
+  jambOptions,
+  NAILING_FLANGE,
+  normalizeHanding,
+  OPERATION_LABELS,
+  operationForStyle,
+  resolveJambName,
+  round2,
+  SASH_REINFORCEMENT,
+  SCREEN_MESH_COLOURS,
+  SPACERS,
+  supportsReinforcement,
+  withCurrent,
+} from "@/lib/windowDetails";
 
 const COLORS = ["white", "black", "dark bronze", "charcoal", "sandstone"];
 const GAS = ["argon", "50/50", "krypton"];
+const MIN_COMBINATION_LITES = 2;
+const MAX_COMBINATION_LITES = 4;
+
+/** One lite of a combination, left to right as viewed from outside. */
+type LiteDraft = {
+  style: string;
+  width: NumericInputValue;
+  handing: WindowHanding;
+  reinforcement: boolean;
+};
 
 type Draft = {
   type: QuoteLineType;
@@ -38,14 +79,33 @@ type Draft = {
   height: NumericInputValue;
   qty: NumericInputValue;
   colour_ext: string;
+  colour_int: string;
   loe180: boolean;
   i89: boolean;
   gas: string;
   triple: boolean;
   tri_pane_lami: boolean;
   frost_tint: boolean;
+  // Single window operation (combinations keep theirs per lite).
+  handing: WindowHanding;
+  reinforcement: boolean;
+  lites: LiteDraft[];
+  // Priced trim (window + combination).
+  jamb_kind: "none" | JambKind;
+  jamb_name: string;
   brickmould: boolean;
-  wood_jamb: boolean;
+  brickmould_name: string;
+  nailing_flange: boolean;
+  // Presentation-only order details.
+  jamb_finish: string;
+  screen: boolean;
+  screen_frame: string;
+  screen_mesh: string;
+  hardware: string;
+  spacer: string;
+  tag: string;
+  elevation: WindowElevation | "";
+  notes: string;
   sliding_ft: number;
   swing_kind: string;
   head_seat: string;
@@ -55,11 +115,79 @@ type Draft = {
 type QuoteLineDraft = {
   id: string;
   spec: QuoteLineInput;
+  details: WindowDetails | null;
   location: string;
   description: string;
 };
 
+type Accessory = { kind: string; name: string; lineal_ft?: number };
+
+function liteDraft(style: string, width: NumericInputValue, index: number, count: number, catalog?: QuoteCatalog | null): LiteDraft {
+  const operation = operationForStyle(style, catalog);
+  return { style, width, handing: normalizeHanding(operation, null, defaultSide(index, count)), reinforcement: false };
+}
+
+function splitWidth(width: NumericInputValue, count: number): NumericInputValue {
+  return width === "" ? "" : Math.round((width / count) * 1000) / 1000;
+}
+
+function draftOperations(draft: Pick<Draft, "type" | "style" | "lites">, catalog?: QuoteCatalog | null): WindowOperation[] {
+  if (draft.type === "window") return [operationForStyle(draft.style, catalog)];
+  if (draft.type === "combination") return draft.lites.map((lite) => operationForStyle(lite.style, catalog));
+  return [];
+}
+
+/**
+ * Keep the operation-driven defaults (screen, hardware) in step with the
+ * chosen styles unless the rep has already overridden them.
+ */
+function withOperationDefaults(previous: Draft, next: Draft, catalog?: QuoteCatalog | null): Draft {
+  const before = draftOperations(previous, catalog);
+  const after = draftOperations(next, catalog);
+  return {
+    ...next,
+    screen: previous.screen === defaultScreen(before) ? defaultScreen(after) : next.screen,
+    hardware: previous.hardware === defaultHardware(before) ? defaultHardware(after) : next.hardware,
+  };
+}
+
+function withStyle(draft: Draft, style: string, catalog?: QuoteCatalog | null): Draft {
+  const operation = operationForStyle(style, catalog);
+  return withOperationDefaults(draft, {
+    ...draft,
+    style,
+    handing: normalizeHanding(operation, draft.handing),
+    reinforcement: supportsReinforcement(operation) && draft.reinforcement,
+  }, catalog);
+}
+
+function withLites(draft: Draft, lites: LiteDraft[], catalog?: QuoteCatalog | null): Draft {
+  const normalized = lites.map((lite, index) => {
+    const operation = operationForStyle(lite.style, catalog);
+    return {
+      ...lite,
+      handing: normalizeHanding(operation, lite.handing, defaultSide(index, lites.length)),
+      reinforcement: supportsReinforcement(operation) && lite.reinforcement,
+    };
+  });
+  return withOperationDefaults(draft, { ...draft, lites: normalized }, catalog);
+}
+
+function withType(draft: Draft, type: QuoteLineType, catalog?: QuoteCatalog | null): Draft {
+  if (type === draft.type) return draft;
+  const next = { ...draft, type };
+  if (type === "combination" && draft.type !== "combination") {
+    // Start from the current style split into two equal lites.
+    const width = splitWidth(draft.width, MIN_COMBINATION_LITES);
+    next.lites = [0, 1].map((index) => liteDraft(draft.style, width, index, MIN_COMBINATION_LITES, catalog));
+  }
+  return withOperationDefaults(draft, next, catalog);
+}
+
 function emptyDraft(style = "WC-100", type: QuoteLineType = "window"): Draft {
+  const operation = operationForStyle(style);
+  const lites = [liteDraft(style, 30, 0, 2), liteDraft(style, 30, 1, 2)];
+  const operations = draftOperations({ type, style, lites });
   return {
     type,
     style,
@@ -67,14 +195,30 @@ function emptyDraft(style = "WC-100", type: QuoteLineType = "window"): Draft {
     height: 60,
     qty: 1,
     colour_ext: "white",
+    colour_int: "white",
     loe180: true,
     i89: false,
     gas: "argon",
     triple: false,
     tri_pane_lami: false,
     frost_tint: false,
+    handing: normalizeHanding(operation, null),
+    reinforcement: false,
+    lites,
+    jamb_kind: DEFAULT_JAMB.kind,
+    jamb_name: DEFAULT_JAMB.name,
     brickmould: false,
-    wood_jamb: false,
+    brickmould_name: DEFAULT_BRICKMOULD,
+    nailing_flange: true,
+    jamb_finish: "primed",
+    screen: defaultScreen(operations),
+    screen_frame: "white",
+    screen_mesh: "black",
+    hardware: defaultHardware(operations),
+    spacer: "Black",
+    tag: "",
+    elevation: "",
+    notes: "",
     sliding_ft: 6,
     swing_kind: "single",
     head_seat: "up to 8ft wide",
@@ -91,7 +235,7 @@ function recordValue(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
-function draftFromSpec(spec: QuoteLineInput, catalog: QuoteCatalog): Draft {
+function draftFromSpec(spec: QuoteLineInput, catalog: QuoteCatalog, details?: WindowDetails | null): Draft {
   const raw = recordValue(spec);
   const nestedLites = Array.isArray(raw.lites)
     ? raw.lites.map(recordValue).filter((lite) => Object.keys(lite).length > 0)
@@ -100,8 +244,33 @@ function draftFromSpec(spec: QuoteLineInput, catalog: QuoteCatalog): Draft {
   const glazing = recordValue(source.glazing);
   const accessories = Array.isArray(source.accessories) ? source.accessories.map(recordValue) : [];
   const type = spec.type;
-  const defaultDraft = emptyDraft(String(source.style || raw.style || catalog.styles[0]?.code || "WC-100"), type);
+  const style = String(source.style || raw.style || catalog.styles[0]?.code || "WC-100");
+  const defaultDraft = emptyDraft(style, type);
   const bayWidth = nestedLites.reduce((total, lite) => total + finiteNumber(lite.width, 0), 0);
+  const saved = details || null;
+  const sections = Array.isArray(saved?.sections) ? saved.sections : [];
+
+  const operation = operationForStyle(style, catalog);
+  const lites: LiteDraft[] = type === "combination" && nestedLites.length
+    ? nestedLites.map((lite, index) => {
+        const liteStyle = String(lite.style || style);
+        const liteOperation = operationForStyle(liteStyle, catalog);
+        return {
+          style: liteStyle,
+          width: finiteNumber(lite.width, 30),
+          handing: normalizeHanding(liteOperation, sections[index]?.handing, defaultSide(index, nestedLites.length)),
+          reinforcement: supportsReinforcement(liteOperation) && hasReinforcement(lite.adders),
+        };
+      })
+    : defaultDraft.lites;
+  const operations = draftOperations({ type, style, lites }, catalog);
+
+  const kindOf = (item: Record<string, unknown>) => String(item.kind || "");
+  const jamb = accessories.find((item) => kindOf(item) === "wood_jamb" || kindOf(item) === "pvc_jamb");
+  const jambKind: Draft["jamb_kind"] = jamb ? kindOf(jamb) as JambKind : "none";
+  const brickmould = accessories.find((item) => kindOf(item) === "brickmould");
+  const flange = accessories.some((item) => kindOf(item) === "misc" && /nailing flange/i.test(String(item.name || "")));
+  const elevation = ELEVATIONS.find((item) => item.value === saved?.elevation)?.value || "";
 
   return {
     ...defaultDraft,
@@ -109,14 +278,31 @@ function draftFromSpec(spec: QuoteLineInput, catalog: QuoteCatalog): Draft {
     height: finiteNumber(source.height, defaultDraft.height as number),
     qty: finiteNumber(raw.qty, defaultDraft.qty as number),
     colour_ext: String(source.colour_ext || raw.colour_ext || defaultDraft.colour_ext),
+    colour_int: String(source.colour_int || raw.colour_int || defaultDraft.colour_int),
     loe180: Boolean(glazing.loe180),
     i89: Boolean(glazing.i89),
     gas: String(glazing.gas || defaultDraft.gas),
     triple: Boolean(glazing.triple),
     tri_pane_lami: Boolean(glazing.tri_pane_lami),
     frost_tint: Boolean(glazing.frost_tint),
-    brickmould: accessories.some((item) => String(item.kind || "") === "brickmould"),
-    wood_jamb: accessories.some((item) => String(item.kind || "") === "wood_jamb"),
+    handing: normalizeHanding(operation, sections[0]?.handing),
+    reinforcement: type === "window" && supportsReinforcement(operation) && hasReinforcement(source.adders),
+    lites,
+    jamb_kind: jambKind,
+    jamb_name: jamb && jambKind !== "none" ? resolveJambName(catalog, jambKind, String(jamb.name || "")) : defaultDraft.jamb_name,
+    brickmould: Boolean(brickmould),
+    brickmould_name: brickmould ? String(brickmould.name || DEFAULT_BRICKMOULD) : defaultDraft.brickmould_name,
+    nailing_flange: flange,
+    // Lines saved before order details existed fall back to the defaults.
+    jamb_finish: saved?.jamb_finish || defaultDraft.jamb_finish,
+    screen: saved ? Boolean(saved.screen) : defaultScreen(operations),
+    screen_frame: saved?.screen?.frame_colour || defaultDraft.screen_frame,
+    screen_mesh: saved?.screen?.mesh_colour || defaultDraft.screen_mesh,
+    hardware: saved ? saved.hardware || "" : defaultHardware(operations),
+    spacer: saved?.spacer || defaultDraft.spacer,
+    tag: saved?.tag || "",
+    elevation,
+    notes: saved?.notes || "",
     sliding_ft: finiteNumber(raw.nominal_ft, defaultDraft.sliding_ft),
     swing_kind: String(raw.kind || defaultDraft.swing_kind),
     head_seat: String(raw.head_seat || defaultDraft.head_seat),
@@ -124,11 +310,17 @@ function draftFromSpec(spec: QuoteLineInput, catalog: QuoteCatalog): Draft {
   };
 }
 
-function descriptionForUpdatedSpec(line: CustomerWindowLine, nextSpec: QuoteLineInput, catalog: QuoteCatalog | null, description = line.description) {
+function descriptionForUpdatedSpec(
+  line: CustomerWindowLine,
+  nextSpec: QuoteLineInput,
+  nextDetails: WindowDetails | null | undefined,
+  catalog: QuoteCatalog | null,
+  description = line.description,
+) {
   const existingDescription = description.trim();
-  const generatedDescription = describeWindowSpec(line.spec, catalog);
+  const generatedDescription = describeWindowSpec(line.spec, catalog, line.details);
   return existingDescription === generatedDescription.trim()
-    ? describeWindowSpec(nextSpec, catalog)
+    ? describeWindowSpec(nextSpec, catalog, nextDetails)
     : description;
 }
 
@@ -140,50 +332,73 @@ function money(n: number, currency = "CAD") {
   }).format(n);
 }
 
-function windowLine(draft: Draft, qty: NumericInputValue = 1): QuoteLineInput {
-  const accessories: Array<{ kind: string; name: string }> = [];
+function glazingFor(draft: Draft) {
+  return {
+    loe180: draft.loe180,
+    i89: draft.i89,
+    gas: draft.gas,
+    triple: draft.triple,
+    tri_pane_lami: draft.tri_pane_lami,
+    frost_tint: draft.frost_tint,
+  };
+}
+
+function windowLine(
+  draft: Draft,
+  lite: Pick<LiteDraft, "style" | "width" | "reinforcement">,
+  qty: NumericInputValue = 1,
+  accessories: Accessory[] = [],
+  catalog?: QuoteCatalog | null,
+): QuoteLineInput {
+  const reinforced = lite.reinforcement && supportsReinforcement(operationForStyle(lite.style, catalog));
   return {
     type: "window",
-    style: draft.style,
-    width: draft.width,
+    style: lite.style,
+    width: lite.width,
     height: draft.height,
     qty,
     colour_ext: draft.colour_ext,
-    glazing: {
-      loe180: draft.loe180,
-      i89: draft.i89,
-      gas: draft.gas,
-      triple: draft.triple,
-      tri_pane_lami: draft.tri_pane_lami,
-      frost_tint: draft.frost_tint,
-    },
+    colour_int: draft.colour_int,
+    glazing: glazingFor(draft),
+    adders: reinforced ? [SASH_REINFORCEMENT] : [],
     accessories,
   };
 }
 
+/** Jamb, brickmould and nailing flange as engine accessories. */
+function trimAccessories(draft: Draft, linealFt?: number): Accessory[] {
+  const accessories: Accessory[] = [];
+  if (draft.jamb_kind !== "none" && draft.jamb_name) accessories.push({ kind: draft.jamb_kind, name: draft.jamb_name });
+  if (draft.brickmould && draft.brickmould_name) accessories.push({ kind: "brickmould", name: draft.brickmould_name });
+  if (draft.nailing_flange) accessories.push({ kind: "misc", name: NAILING_FLANGE });
+  return linealFt == null ? accessories : accessories.map((accessory) => ({ ...accessory, lineal_ft: linealFt }));
+}
+
+/**
+ * Overall assembly width, rounded to the nearest 1/8": Window City sizes mulled
+ * lites a hair under nominal (47.975 + 23.975 on a 72" frame) and bills trim on
+ * the nominal frame (23.00 ft for 72 x 66). The CRM rounds the same way.
+ */
+function combinationWidth(lites: LiteDraft[]): NumericInputValue {
+  if (lites.some((lite) => lite.width === "")) return "";
+  return Math.round(lites.reduce((total, lite) => total + (lite.width as number), 0) * 8) / 8;
+}
+
 function toQuoteLine(draft: Draft, catalog: QuoteCatalog | null): QuoteLineInput {
   if (draft.type === "window") {
-    const line = windowLine(draft, draft.qty);
-    const accessories: Array<{ kind: string; name: string }> = [];
-    if (draft.brickmould) {
-      const name = catalog?.accessories.brickmould?.[0]?.name;
-      if (name) accessories.push({ kind: "brickmould", name });
-    }
-    if (draft.wood_jamb) {
-      const name = catalog?.accessories.wood_jamb?.[0]?.name;
-      if (name) accessories.push({ kind: "wood_jamb", name });
-    }
-    return { ...line, accessories };
+    return windowLine(draft, draft, draft.qty, trimAccessories(draft), catalog);
   }
 
   if (draft.type === "combination") {
-    const first = windowLine(draft);
-    const second = windowLine(draft);
+    // Window City bills trim once around the whole assembly: lite 1 carries
+    // it with the assembly perimeter, the other lites carry none.
+    const overallWidth = combinationWidth(draft.lites);
+    const linealFt = overallWidth === "" || draft.height === "" ? undefined : round2((2 * (overallWidth + draft.height)) / 12);
     return {
       type: "combination",
       qty: draft.qty,
-      layout: { cols: 2, rows: 1 },
-      lites: [first, second],
+      layout: { cols: draft.lites.length, rows: 1 },
+      lites: draft.lites.map((lite, index) => windowLine(draft, lite, 1, index === 0 ? trimAccessories(draft, linealFt) : [], catalog)),
     };
   }
 
@@ -193,6 +408,7 @@ function toQuoteLine(draft: Draft, catalog: QuoteCatalog | null): QuoteLineInput
       qty: draft.qty,
       nominal_ft: draft.sliding_ft,
       colour_ext: draft.colour_ext,
+      colour_int: draft.colour_int,
       glazing: {
         loe180: draft.loe180,
         i89: draft.i89,
@@ -224,10 +440,10 @@ function toQuoteLine(draft: Draft, catalog: QuoteCatalog | null): QuoteLineInput
   const liteCount = draft.lite_count === "" ? 0 : draft.lite_count;
   const liteWidth = draft.width === "" || draft.lite_count === "" ? "" : draft.width / Math.max(draft.lite_count, 1);
   const lites = Array.from({ length: liteCount }, (_, index) =>
-    windowLine({
-      ...draft,
+    windowLine(draft, {
       width: liteWidth,
       style: catalog?.styles[index % Math.max(catalog.styles.length, 1)]?.code || draft.style,
+      reinforcement: false,
     })
   );
   return {
@@ -238,13 +454,57 @@ function toQuoteLine(draft: Draft, catalog: QuoteCatalog | null): QuoteLineInput
   };
 }
 
+/** Presentation-only order details; never part of the priced spec. */
+function toWindowDetails(draft: Draft, catalog: QuoteCatalog | null): WindowDetails {
+  const common: WindowDetails = {
+    tag: draft.tag.trim() || null,
+    elevation: draft.elevation || null,
+    notes: draft.notes.trim() || null,
+  };
+  if (draft.type !== "window" && draft.type !== "combination") return common;
+  const operation = operationForStyle(draft.style, catalog);
+  const sections = draft.type === "window"
+    ? [{ operation, handing: normalizeHanding(operation, draft.handing) }]
+    : draft.lites.map((lite, index) => {
+        const liteOperation = operationForStyle(lite.style, catalog);
+        return { operation: liteOperation, handing: normalizeHanding(liteOperation, lite.handing, defaultSide(index, draft.lites.length)) };
+      });
+  return {
+    ...common,
+    sections,
+    screen: draft.screen ? { frame_colour: draft.screen_frame || null, mesh_colour: draft.screen_mesh || null } : null,
+    hardware: draft.hardware.trim() || null,
+    spacer: draft.spacer || null,
+    jamb_finish: draft.jamb_kind !== "none" ? draft.jamb_finish.trim() || null : null,
+  };
+}
+
+/** Fill an unset opening number with the line's 1-based position in the project. */
+function withDefaultTag(details: WindowDetails | null | undefined, position: number): WindowDetails {
+  return { ...(details || {}), tag: details?.tag?.trim() || String(position) };
+}
+
+function sameLine(line: QuoteLineDraft | undefined, spec: QuoteLineInput, details: WindowDetails) {
+  return Boolean(line)
+    && JSON.stringify(line?.spec) === JSON.stringify(spec)
+    && JSON.stringify(line?.details ?? null) === JSON.stringify(details);
+}
+
 function lineLabel(line: QuoteLineInput) {
-  const lites = Array.isArray(line.lites) ? line.lites.length : 0;
+  const lites = Array.isArray(line.lites) ? line.lites.map(recordValue) : [];
   if (line.type === "window") return `${line.style} ${line.width}×${line.height}`;
   if (line.type === "patio_sliding") return `WC-500 ${line.nominal_ft}' sliding patio door`;
   if (line.type === "patio_swing") return `${line.kind} swing patio door ${line.width}×${line.height}`;
-  if (line.type === "combination") return `2×1 combination (${lites} lites)`;
-  return `Bay/bow (${lites} lites)`;
+  if (line.type === "combination") {
+    const width = Math.round(lites.reduce((total, lite) => total + finiteNumber(lite.width, 0), 0) * 1000) / 1000;
+    const styles = lites.map((lite) => String(lite.style || "?")).join(" + ");
+    return `${lites.length}-lite combination ${styles} ${width}×${lites[0]?.height ?? ""}`;
+  }
+  return `Bay/bow (${lites.length} lites)`;
+}
+
+function tagPrefix(details: WindowDetails | null | undefined) {
+  return details?.tag ? `#${details.tag} · ` : "";
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -262,6 +522,42 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
       <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>
+  );
+}
+
+/** Operation, handing and sash reinforcement for one section (lite) of a window. */
+function SectionOptions({
+  operation,
+  handing,
+  reinforcement,
+  onHanding,
+  onReinforcement,
+}: {
+  operation: WindowOperation;
+  handing: WindowHanding;
+  reinforcement: boolean;
+  onHanding: (value: "left" | "right") => void;
+  onReinforcement: (value: boolean) => void;
+}) {
+  return (
+    <>
+      {hasSideHanding(operation) ? (
+        <Field label={handingLabel(operation)}>
+          <select className="input" value={handing === "right" ? "right" : "left"} onChange={(e) => onHanding(e.target.value as "left" | "right")}>
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+          </select>
+        </Field>
+      ) : (
+        <div className="text-sm">
+          <span className="mb-1 block font-medium text-slate-700">Operation</span>
+          <p className="py-2 text-slate-600">{OPERATION_LABELS[operation]}{operation === "awning" ? " · hinged at top" : ""}</p>
+        </div>
+      )}
+      {supportsReinforcement(operation) ? (
+        <div className="flex items-end pb-2"><Toggle label="Sash reinforcement" value={reinforcement} onChange={onReinforcement} /></div>
+      ) : null}
+    </>
   );
 }
 
@@ -374,8 +670,10 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       .then(([catalogPayload, salesPayload]) => {
         setCatalog(catalogPayload);
         setSalesPresets(salesPayload.presets);
-        setDraft((current) => ({ ...current, style: catalogPayload.styles[0]?.code || current.style }));
         if (!editMode) {
+          // Edit mode hydrates the draft from the saved line; a late catalog
+          // response (e.g. the dev double-fetch) must not overwrite its style.
+          setDraft((current) => withStyle(current, catalogPayload.styles[0]?.code || current.style, catalogPayload));
           const standard = salesPayload.presets.find((preset) => preset.id === "standard") || salesPayload.presets[0];
           if (standard) {
             setSelectedPresetId(standard.id);
@@ -429,11 +727,12 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       location: line.location,
       description: line.description,
       spec: line.spec,
+      details: line.details ?? null,
     }));
     const selectedLine = requestedLine || project.windows[0];
     setLines(loadedLines);
     setSelectedEditLineId(selectedLine.id);
-    setDraft(draftFromSpec(selectedLine.spec, catalog));
+    setDraft(draftFromSpec(selectedLine.spec, catalog, selectedLine.details));
     setSelectedPresetId(project.commercial.preset_id || "standard");
     setNegotiatedDiscount(project.commercial.negotiated_discount_percent || 0);
     setResult(null);
@@ -441,6 +740,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
   }, [catalog, editMode, editHydrationKey, editWindowId, hydratedEditId, project]);
 
   const currentLine = useMemo(() => toQuoteLine(draft, catalog), [draft, catalog]);
+  const currentDetails = useMemo(() => toWindowDetails(draft, catalog), [draft, catalog]);
   const combinationSuggestion = useMemo(
     () => getCombinationSuggestion(catalog?.styles.find((style) => style.code === draft.style), draft.width, draft.height),
     [catalog, draft.style, draft.width, draft.height],
@@ -456,18 +756,53 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     setResult(null);
   }
 
+  function patchDraft(change: (current: Draft) => Draft) {
+    setDraft(change);
+    setResult(null);
+  }
+
+  function updateLite(index: number, patch: Partial<LiteDraft>) {
+    patchDraft((current) => withLites(current, current.lites.map((lite, liteIndex) => liteIndex === index ? { ...lite, ...patch } : lite), catalog));
+  }
+
+  function addLite() {
+    patchDraft((current) => {
+      if (current.lites.length >= MAX_COMBINATION_LITES) return current;
+      const last = current.lites[current.lites.length - 1];
+      const lites = [...current.lites, liteDraft(last?.style || current.style, last?.width ?? 30, current.lites.length, current.lites.length + 1, catalog)];
+      return withLites(current, lites, catalog);
+    });
+  }
+
+  function removeLite(index: number) {
+    patchDraft((current) => current.lites.length <= MIN_COMBINATION_LITES
+      ? current
+      : withLites(current, current.lites.filter((_, liteIndex) => liteIndex !== index), catalog));
+  }
+
   const draftIsValid =
     isAtLeast(draft.qty, 1) &&
     (draft.type === "patio_sliding" ||
-      (isAtLeast(draft.width, 1) &&
-        isAtLeast(draft.height, 1) &&
-        (draft.type !== "bay_bow" || isBetween(draft.lite_count, 3, 6))));
+      (draft.type === "combination"
+        ? isAtLeast(draft.height, 1) &&
+          draft.lites.length >= MIN_COMBINATION_LITES &&
+          draft.lites.length <= MAX_COMBINATION_LITES &&
+          draft.lites.every((lite) => isAtLeast(lite.width, 1))
+        : isAtLeast(draft.width, 1) &&
+          isAtLeast(draft.height, 1) &&
+          (draft.type !== "bay_bow" || isBetween(draft.lite_count, 3, 6))));
+
+  // Opening numbers default to the line's position in the project list.
+  const selectedEditIndex = editMode ? lines.findIndex((line) => line.id === selectedEditLineId) : -1;
+  const defaultTag = String(editMode
+    ? (selectedEditIndex >= 0 ? selectedEditIndex + 1 : lines.length + 1)
+    : (project?.windows.length ?? 0) + lines.length + 1);
 
   function addLine() {
     if (!draftIsValid) return;
     setLines((current) => [
       ...current,
-      { id: newEstimateLineId("window"), spec: currentLine, location: "", description: describeWindowSpec(currentLine, catalog) },
+      { id: newEstimateLineId("window"), spec: currentLine, details: currentDetails, location: "", description: describeWindowSpec(currentLine, catalog, currentDetails) },
     ]);
     setResult(null);
   }
@@ -486,10 +821,10 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     const nextLine = lines.find((line) => line.id === lineId);
     if (!nextLine) return;
     if (selectedEditLineId && draftIsValid) {
-      setLines((current) => current.map((line) => line.id === selectedEditLineId ? { ...line, spec: currentLine } : line));
+      setLines((current) => current.map((line) => line.id === selectedEditLineId ? { ...line, spec: currentLine, details: currentDetails } : line));
     }
     setSelectedEditLineId(lineId);
-    setDraft(draftFromSpec(nextLine.spec, catalog));
+    setDraft(draftFromSpec(nextLine.spec, catalog, nextLine.details));
     setResult(null);
   }
 
@@ -499,7 +834,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       return;
     }
     const savedSpecs = lines.map((line) => line.spec);
-    const currentAlreadyAdded = savedSpecs.length > 0 && JSON.stringify(savedSpecs[savedSpecs.length - 1]) === JSON.stringify(currentLine);
+    const currentAlreadyAdded = sameLine(lines[lines.length - 1], currentLine, currentDetails);
     const payload = editMode
       ? lines.map((line) => line.id === selectedEditLineId ? currentLine : line.spec)
       : currentAlreadyAdded ? savedSpecs : [...savedSpecs, currentLine];
@@ -530,14 +865,23 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
         },
       });
        if (editMode) {
-         setLines((current) => current.map((line, index) => ({ ...line, spec: payload[index] })));
-       } else {
-         setLines((current) => payload.map((spec, index) => ({
-           id: current[index]?.id || newEstimateLineId("window"),
-           location: current[index]?.location || "",
-           description: current[index]?.description || describeWindowSpec(spec, catalog),
-           spec,
+         setLines((current) => current.map((line, index) => ({
+           ...line,
+           spec: payload[index],
+           details: line.id === selectedEditLineId ? currentDetails : line.details,
          })));
+       } else {
+         setLines((current) => payload.map((spec, index) => {
+           // Past the saved lines, the payload's extra entry is the current draft.
+           const details = index < current.length ? current[index].details : currentDetails;
+           return {
+             id: current[index]?.id || newEstimateLineId("window"),
+             location: current[index]?.location || "",
+             description: current[index]?.description || describeWindowSpec(spec, catalog, details),
+             spec,
+             details,
+           };
+         }));
        }
        setResult(priced);
     } catch (err) {
@@ -562,7 +906,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     }
 
     const savedSpecs = lines.map((line) => line.spec);
-    const currentAlreadyAdded = savedSpecs.length > 0 && JSON.stringify(savedSpecs[savedSpecs.length - 1]) === JSON.stringify(currentLine);
+    const currentAlreadyAdded = sameLine(lines[lines.length - 1], currentLine, currentDetails);
     const payload = editMode
       ? lines.map((line) => line.id === selectedEditLineId ? currentLine : line.spec)
       : currentAlreadyAdded ? savedSpecs : [...savedSpecs, currentLine];
@@ -600,7 +944,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     }, 600);
 
     return () => window.clearTimeout(timer);
-  }, [autoPricingDiscountLimit, catalog, currentLine, draftIsValid, editHydrationKey, editMode, editingLine, hydratedEditId, lines, negotiatedDiscount, overrideReason, selectedEditLineId, selectedPreset, selectedPresetId]);
+  }, [autoPricingDiscountLimit, catalog, currentDetails, currentLine, draftIsValid, editHydrationKey, editMode, editingLine, hydratedEditId, lines, negotiatedDiscount, overrideReason, selectedEditLineId, selectedPreset, selectedPresetId]);
 
   async function saveEditedWindows() {
     if (!projectId || !project || !editMode || !editingLine || project.status === "finalized" || !result) return;
@@ -611,16 +955,18 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
-    const updatedWindows = project.windows.map((line) => {
+    const updatedWindows = project.windows.map((line, index) => {
       const bufferedLine = lines.find((item) => item.id === line.id);
       const nextSpec = line.id === selectedEditLineId ? currentLine : bufferedLine?.spec || line.spec;
+      const nextDetails = line.id === selectedEditLineId ? currentDetails : bufferedLine ? bufferedLine.details : line.details;
       const nextDescription = descriptionForUpdatedSpec(
         line,
         nextSpec,
+        nextDetails,
         catalog,
         bufferedLine ? bufferedLine.description : line.description,
       );
-      return { ...line, description: nextDescription, spec: nextSpec };
+      return { ...line, description: nextDescription, spec: nextSpec, details: withDefaultTag(nextDetails, index + 1) };
     });
     const draftPayload: CustomerEstimateDraft = {
       customer_name: project.customer_name,
@@ -670,11 +1016,12 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
-    const windows: CustomerWindowLine[] = lines.map((line) => ({
+    const windows: CustomerWindowLine[] = lines.map((line, index) => ({
       id: line.id,
       location: line.location,
       description: line.description,
       spec: line.spec,
+      details: withDefaultTag(line.details, project.windows.length + index + 1),
     }));
     const projectHasProducts = project.windows.length > 0 || project.doors.length > 0;
     try {
@@ -702,7 +1049,13 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     }
   }
 
-  const accessories = catalog?.accessories || {};
+  const singleOperation = operationForStyle(draft.style, catalog);
+  const trimmed = draft.type === "window" || draft.type === "combination";
+  const woodJambOptions = withCurrent(jambOptions(catalog, "wood_jamb"), draft.jamb_kind === "wood_jamb" ? draft.jamb_name : "");
+  const pvcJambOptions = withCurrent(jambOptions(catalog, "pvc_jamb"), draft.jamb_kind === "pvc_jamb" ? draft.jamb_name : "");
+  const brickmouldChoices = withCurrent(brickmouldOptions(catalog), draft.brickmould_name);
+  const comboWidth = combinationWidth(draft.lites);
+  const comboLinealFt = comboWidth === "" || draft.height === "" ? null : round2((2 * (comboWidth + draft.height)) / 12);
 
   // --- Sales strategy: live negotiation preview (recomputed from the last price) ---
   const sp = result?.sales_pricing;
@@ -740,7 +1093,9 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     ? (cp.lines as Array<{ line: number; type: string; qty: number; unit_price: number; line_total: number }>).map((line, index) => ({
         ...line,
         location: visibleLines[index]?.location || "",
-        description: visibleLines[index]?.description || describeWindowSpec(visibleLines[index]?.spec || currentLine, catalog),
+        description: visibleLines[index]?.description || (visibleLines[index]
+          ? describeWindowSpec(visibleLines[index].spec, catalog, visibleLines[index].details)
+          : describeWindowSpec(currentLine, catalog, currentDetails)),
       }))
     : [];
   // A discount that no longer matches the generated quote → quote is stale, needs regenerating.
@@ -791,7 +1146,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <Field label="Line type">
-              <select className="input" value={draft.type} onChange={(e) => update("type", e.target.value as QuoteLineType)}>
+              <select className="input" value={draft.type} onChange={(e) => { const type = e.target.value as QuoteLineType; patchDraft((current) => withType(current, type, catalog)); }}>
                 <option value="window">Window</option>
                 <option value="combination">Combination</option>
                 <option value="patio_sliding">Sliding patio door</option>
@@ -800,9 +1155,9 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
               </select>
             </Field>
 
-            {(draft.type === "window" || draft.type === "combination" || draft.type === "bay_bow") && (
+            {(draft.type === "window" || draft.type === "bay_bow") && (
               <Field label="Window style">
-                <select className="input" value={draft.style} onChange={(e) => update("style", e.target.value)}>
+                <select className="input" value={draft.style} onChange={(e) => { const style = e.target.value; patchDraft((current) => withStyle(current, style, catalog)); }}>
                   {catalog ? groupWindowStyles(catalog.styles).map((group) => (
                     <optgroup key={group.collection} label={group.label}>
                       {group.styles.map((style) => <option key={style.code} value={style.code}>{windowStyleLabel(style)}</option>)}
@@ -811,6 +1166,16 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
                 </select>
               </Field>
             )}
+
+            {draft.type === "window" ? (
+              <SectionOptions
+                operation={singleOperation}
+                handing={draft.handing}
+                reinforcement={draft.reinforcement}
+                onHanding={(value) => update("handing", value)}
+                onReinforcement={(value) => update("reinforcement", value)}
+              />
+            ) : null}
 
             {draft.type === "patio_sliding" ? (
               <Field label="Nominal size">
@@ -828,23 +1193,71 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
               </Field>
             ) : null}
 
-            {draft.type !== "patio_sliding" && (
-              <>
-                <Field label={draft.type === "combination" ? "Lite width (in)" : "Width (in)"}><input className="input" type="number" min={1} step={0.125} value={draft.width} onChange={(e) => update("width", numericInputValue(e.target.value))} /></Field>
-                <Field label="Height (in)"><input className="input" type="number" min={1} step={0.125} value={draft.height} onChange={(e) => update("height", numericInputValue(e.target.value))} /></Field>
-              </>
-            )}
+            {draft.type !== "patio_sliding" && draft.type !== "combination" ? (
+              <Field label="Width (in)"><input className="input" type="number" min={1} step={0.125} value={draft.width} onChange={(e) => update("width", numericInputValue(e.target.value))} /></Field>
+            ) : null}
+            {draft.type !== "patio_sliding" ? (
+              <Field label="Height (in)"><input className="input" type="number" min={1} step={0.125} value={draft.height} onChange={(e) => update("height", numericInputValue(e.target.value))} /></Field>
+            ) : null}
 
             <Field label="Quantity"><input className="input" type="number" min={1} step={1} value={draft.qty} onChange={(e) => update("qty", numericInputValue(e.target.value))} /></Field>
             <Field label="Exterior colour">
               <select className="input" value={draft.colour_ext} onChange={(e) => update("colour_ext", e.target.value)}>
-                {COLORS.map((color) => <option key={color} value={color}>{color}</option>)}
+                {withCurrent(COLORS, draft.colour_ext).map((color) => <option key={color} value={color}>{color}</option>)}
               </select>
             </Field>
-            {draft.type === "window" && combinationSuggestion ? <div className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><p className="font-semibold">This {combinationSuggestion.styleCode} size may be a two-lite combination.</p><p className="mt-1">For {combinationSuggestion.overallWidth} × {combinationSuggestion.height} overall, price two {combinationSuggestion.styleCode} lites at {combinationSuggestion.liteWidth} × {combinationSuggestion.height} each.</p><button type="button" className="mt-2 rounded-md border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-900 hover:bg-amber-100" onClick={() => { update("type", "combination"); update("width", combinationSuggestion.liteWidth); }}>Use two-lite combination</button></div> : null}
+            {draft.type !== "patio_swing" ? (
+              <Field label="Interior colour">
+                <select className="input" value={draft.colour_int} onChange={(e) => update("colour_int", e.target.value)}>
+                  {withCurrent(COLORS, draft.colour_int).map((color) => <option key={color} value={color}>{color}</option>)}
+                </select>
+              </Field>
+            ) : null}
+            {draft.type === "window" && combinationSuggestion ? <div className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><p className="font-semibold">This {combinationSuggestion.styleCode} size may be a two-lite combination.</p><p className="mt-1">For {combinationSuggestion.overallWidth} × {combinationSuggestion.height} overall, price two {combinationSuggestion.styleCode} lites at {combinationSuggestion.liteWidth} × {combinationSuggestion.height} each.</p><button type="button" className="mt-2 rounded-md border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-900 hover:bg-amber-100" onClick={() => patchDraft((current) => withLites(withType(current, "combination", catalog), [0, 1].map((index) => liteDraft(current.style, combinationSuggestion.liteWidth, index, 2, catalog)), catalog))}>Use two-lite combination</button></div> : null}
           </div>
 
-          {draft.type === "combination" ? <p className="mt-3 text-xs text-slate-500">Combination uses two equal lites with the selected style. For a 64 in overall width, enter 32 in as the lite width.</p> : null}
+          {draft.type === "combination" ? (
+            <div className="mt-6 rounded-xl bg-slate-50 p-4">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-semibold text-slate-800">Lites, left to right (viewed from outside)</p>
+                <span className="text-xs text-slate-500">Overall {comboWidth === "" ? "—" : comboWidth} × {draft.height === "" ? "—" : draft.height} in</span>
+              </div>
+              <div className="space-y-3">
+                {draft.lites.map((lite, index) => {
+                  const operation = operationForStyle(lite.style, catalog);
+                  return (
+                    <div key={index} className="rounded-lg border border-slate-200 bg-white p-3">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Lite {index + 1}</p>
+                        {draft.lites.length > MIN_COMBINATION_LITES ? <button type="button" className="text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLite(index)}>Remove lite</button> : null}
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field label="Style">
+                          <select className="input" value={lite.style} onChange={(e) => updateLite(index, { style: e.target.value })}>
+                            {catalog ? groupWindowStyles(catalog.styles).map((group) => (
+                              <optgroup key={group.collection} label={group.label}>
+                                {group.styles.map((style) => <option key={style.code} value={style.code}>{windowStyleLabel(style)}</option>)}
+                              </optgroup>
+                            )) : <option value={lite.style}>{lite.style}</option>}
+                          </select>
+                        </Field>
+                        <Field label="Width (in)"><input className="input" type="number" min={1} step={0.125} value={lite.width} onChange={(e) => updateLite(index, { width: numericInputValue(e.target.value) })} /></Field>
+                        <SectionOptions
+                          operation={operation}
+                          handing={lite.handing}
+                          reinforcement={lite.reinforcement}
+                          onHanding={(value) => updateLite(index, { handing: value })}
+                          onReinforcement={(value) => updateLite(index, { reinforcement: value })}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <button type="button" className="mt-3 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60" onClick={addLite} disabled={draft.lites.length >= MAX_COMBINATION_LITES}>Add lite</button>
+              <p className="mt-2 text-xs text-slate-500">Height, colours and glazing are shared by every lite. Up to {MAX_COMBINATION_LITES} lites in one row.</p>
+            </div>
+          ) : null}
 
           {draft.type !== "bay_bow" ? (
             <div className="mt-6 rounded-xl bg-slate-50 p-4">
@@ -855,19 +1268,55 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
                 <Toggle label="Triple pane" value={draft.triple} onChange={(value) => update("triple", value)} />
                 <Toggle label="Tri-pane laminated" value={draft.tri_pane_lami} onChange={(value) => update("tri_pane_lami", value)} />
                 <Toggle label="Frost / tint" value={draft.frost_tint} onChange={(value) => update("frost_tint", value)} />
-                <Field label="Gas"><select className="input" value={draft.gas} onChange={(e) => update("gas", e.target.value)}>{GAS.map((gas) => <option key={gas} value={gas}>{gas}</option>)}</select></Field>
+                <Field label="Gas"><select className="input" value={draft.gas} onChange={(e) => update("gas", e.target.value)}>{withCurrent(GAS, draft.gas).map((gas) => <option key={gas} value={gas}>{gas}</option>)}</select></Field>
               </div>
             </div>
           ) : null}
 
-          {draft.type === "window" ? (
+          {trimmed ? (
             <div className="mt-6 rounded-xl bg-slate-50 p-4">
-              <p className="mb-3 text-sm font-semibold text-slate-800">Catalog accessories</p>
+              <p className="mb-3 text-sm font-semibold text-slate-800">Trim</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Toggle label="Brickmould" value={draft.brickmould} onChange={(value) => update("brickmould", value)} />
-                <Toggle label="Wood jamb" value={draft.wood_jamb} onChange={(value) => update("wood_jamb", value)} />
+                <Field label="Jamb">
+                  <select
+                    className="input"
+                    value={draft.jamb_kind === "none" ? "none" : `${draft.jamb_kind}::${draft.jamb_name}`}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "none") {
+                        update("jamb_kind", "none");
+                        return;
+                      }
+                      const [kind, ...name] = value.split("::");
+                      patchDraft((current) => ({ ...current, jamb_kind: kind as JambKind, jamb_name: name.join("::") }));
+                    }}
+                  >
+                    <option value="none">No jamb</option>
+                    <optgroup label="Wood jamb">
+                      {woodJambOptions.map((name) => <option key={name} value={`wood_jamb::${name}`}>{name}</option>)}
+                    </optgroup>
+                    <optgroup label="PVC jamb">
+                      {pvcJambOptions.map((name) => <option key={name} value={`pvc_jamb::${name}`}>{name}</option>)}
+                    </optgroup>
+                  </select>
+                </Field>
+                {draft.jamb_kind !== "none" ? (
+                  <Field label="Jamb finish">
+                    <input className="input" list="jamb-finish-options" value={draft.jamb_finish} onChange={(e) => update("jamb_finish", e.target.value)} placeholder="primed" />
+                    <datalist id="jamb-finish-options">{JAMB_FINISHES.map((finish) => <option key={finish} value={finish} />)}</datalist>
+                  </Field>
+                ) : <div className="hidden sm:block" />}
+                <div className="flex items-end pb-2"><Toggle label="Brickmould" value={draft.brickmould} onChange={(value) => update("brickmould", value)} /></div>
+                {draft.brickmould ? (
+                  <Field label="Brickmould profile">
+                    <select className="input" value={draft.brickmould_name} onChange={(e) => update("brickmould_name", e.target.value)}>
+                      {brickmouldChoices.map((name) => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                  </Field>
+                ) : <div className="hidden sm:block" />}
+                <Toggle label="Nailing flange" value={draft.nailing_flange} onChange={(value) => update("nailing_flange", value)} />
               </div>
-              <p className="mt-3 text-xs text-slate-500">{accessories.brickmould?.[0]?.name || "Catalog accessory rows load with the price book."}</p>
+              {draft.type === "combination" ? <p className="mt-3 text-xs text-slate-500">Trim is billed once around the whole assembly{comboLinealFt != null ? ` (${comboLinealFt} lf)` : ""} and carried on lite 1.</p> : null}
             </div>
           ) : null}
 
@@ -877,6 +1326,52 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
               <Field label="Head / seat"><select className="input" value={draft.head_seat} onChange={(e) => update("head_seat", e.target.value)}>{catalog?.baybow.head_seat_sizes.map((size) => <option key={size} value={size}>{size}</option>)}</select></Field>
             </div>
           ) : null}
+
+          <div className="mt-6 rounded-xl bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-800">Order details</p>
+            <p className="mb-3 mt-1 text-xs text-slate-500">Printed on the estimate and the manufacturer order. These do not change the price.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Opening #"><input className="input" value={draft.tag} onChange={(e) => update("tag", e.target.value)} placeholder={defaultTag} /></Field>
+              <Field label="Elevation">
+                <select className="input" value={draft.elevation} onChange={(e) => update("elevation", e.target.value as Draft["elevation"])}>
+                  <option value="">Not set</option>
+                  {ELEVATIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                </select>
+              </Field>
+              {trimmed ? (
+                <>
+                  <div className="flex items-end pb-2 sm:col-span-2"><Toggle label="Screen" value={draft.screen} onChange={(value) => update("screen", value)} /></div>
+                  {draft.screen ? (
+                    <>
+                      <Field label="Screen frame colour">
+                        <select className="input" value={draft.screen_frame} onChange={(e) => update("screen_frame", e.target.value)}>
+                          {withCurrent(COLORS, draft.screen_frame).map((color) => <option key={color} value={color}>{color}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Screen mesh colour">
+                        <select className="input" value={draft.screen_mesh} onChange={(e) => update("screen_mesh", e.target.value)}>
+                          {withCurrent(SCREEN_MESH_COLOURS, draft.screen_mesh).map((color) => <option key={color} value={color}>{color}</option>)}
+                        </select>
+                      </Field>
+                    </>
+                  ) : null}
+                  <Field label="Hardware">
+                    <input className="input" list="hardware-options" value={draft.hardware} onChange={(e) => update("hardware", e.target.value)} placeholder="None" />
+                    <datalist id="hardware-options">{HARDWARE_SUGGESTIONS.map((item) => <option key={item} value={item} />)}</datalist>
+                  </Field>
+                  <Field label="Spacer">
+                    <select className="input" value={draft.spacer} onChange={(e) => update("spacer", e.target.value)}>
+                      {withCurrent(SPACERS, draft.spacer).map((spacer) => <option key={spacer} value={spacer}>{spacer}</option>)}
+                    </select>
+                  </Field>
+                </>
+              ) : null}
+              <label className="block text-sm sm:col-span-2">
+                <span className="mb-1 block font-medium text-slate-700">Notes</span>
+                <textarea className="input" rows={2} value={draft.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Order notes for this opening" />
+              </label>
+            </div>
+          </div>
 
           <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50 p-4">
             <div className="flex items-start justify-between gap-3">
@@ -1037,7 +1532,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
              <div className="flex items-center justify-between"><h2 className="text-base font-semibold text-slate-900">{editMode ? "Project windows" : "Window quote lines"}</h2><span className="text-sm text-slate-500">{lines.length} line{lines.length === 1 ? "" : "s"}</span></div>
             <div className="mt-4 space-y-2">
                {lines.map((line, index) => <div key={line.id} className={`rounded-lg px-3 py-3 text-sm ${editMode && line.id === selectedEditLineId ? "border border-brand-300 bg-brand-50" : "bg-slate-50"}`}>
-                 <div className="flex items-center justify-between gap-3"><div><button type="button" className={`font-medium ${editMode ? "text-left text-brand-800 hover:underline" : "text-slate-800"}`} onClick={() => editMode ? selectEditLine(line.id) : undefined}>{line.description || lineLabel(line.spec)}</button>{line.description ? <p className="mt-1 text-xs text-slate-500">{lineLabel(line.spec)}</p> : null}</div>{editMode ? <span className="text-xs font-semibold text-brand-700">{line.id === selectedEditLineId ? "Editing" : "Select to edit"}</span> : <button type="button" className="text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)}>Remove</button>}</div>
+                 <div className="flex items-center justify-between gap-3"><div><button type="button" className={`font-medium ${editMode ? "text-left text-brand-800 hover:underline" : "text-slate-800"}`} onClick={() => editMode ? selectEditLine(line.id) : undefined}>{tagPrefix(line.details)}{line.description || lineLabel(line.spec)}</button>{line.description ? <p className="mt-1 text-xs text-slate-500">{lineLabel(line.spec)}</p> : null}</div>{editMode ? <span className="text-xs font-semibold text-brand-700">{line.id === selectedEditLineId ? "Editing" : "Select to edit"}</span> : <button type="button" className="text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)}>Remove</button>}</div>
                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
                    <LocationInput className="input" value={line.location} onChange={(value) => updateLine(index, { location: value })} placeholder="Location (e.g. Bedroom)" />
                    <input className="input" value={line.description} onChange={(event) => updateLine(index, { description: event.target.value })} placeholder="Customer description (optional)" />

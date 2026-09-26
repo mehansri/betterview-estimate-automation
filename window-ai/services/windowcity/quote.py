@@ -201,6 +201,12 @@ def price_window(line: dict, cfg: dict, warnings: list[str],
             ov = cfg["engine"].get("brickmould_override")
             if ov:
                 white_lf, colour_lf = ov["rate_white_lf"], ov["rate_colour_lf"]
+        elif acc["kind"] == "misc" and "nailing flange" in row["name"].lower():
+            # Window City bills the flange $1/lf above the book's 2.00 row
+            # (order 125401151)
+            ov = cfg["engine"].get("nailing_flange_override")
+            if ov:
+                white_lf, colour_lf = ov["rate_white_lf"], ov["rate_colour_lf"]
         rate = colour_lf if (pct and colour_lf) else white_lf
         comps.append(Component(f"{row['name']} {lf:.2f} lf @ {rate:.2f}", lf * rate))
 

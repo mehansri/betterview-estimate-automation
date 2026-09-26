@@ -1,9 +1,10 @@
 """Small deterministic-only FastAPI app for the Vercel deployment."""
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.security import require_api_token
 from api.routes import admin, customer_estimates, doors, quote
 
 
@@ -27,7 +28,9 @@ def health() -> dict[str, object]:
     return {"status": "ok", "model_loaded": False, "mode": "deterministic"}
 
 
-app.include_router(quote.router)
-app.include_router(doors.router)
-app.include_router(customer_estimates.router)
-app.include_router(admin.router)
+# Everything except the health check requires the shared API token (api/security.py).
+protected = [Depends(require_api_token)]
+app.include_router(quote.router, dependencies=protected)
+app.include_router(doors.router, dependencies=protected)
+app.include_router(customer_estimates.router, dependencies=protected)
+app.include_router(admin.router, dependencies=protected)
