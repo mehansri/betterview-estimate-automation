@@ -16,7 +16,7 @@ from fastapi import Header, HTTPException
 
 
 def require_api_token(authorization: str | None = Header(default=None)) -> None:
-    expected = os.getenv("API_ACCESS_TOKEN", "")
+    expected = os.getenv("API_ACCESS_TOKEN", "").strip()
     if not expected:
         if os.getenv("VERCEL"):
             raise HTTPException(status_code=503, detail="API access token is not configured")
