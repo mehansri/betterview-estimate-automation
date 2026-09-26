@@ -162,6 +162,7 @@ def test_import_json_fixture(sqlite_db):
     fixture = Path(__file__).parent / "fixtures" / "sample_estimate.json"
     if not fixture.exists():
         pytest.skip("no fixture")
+    pytest.importorskip("pdfplumber")  # optional import dependency (requirements-ml.txt)
     from services.import_pipeline import import_estimate_file
 
     result = import_estimate_file(fixture)

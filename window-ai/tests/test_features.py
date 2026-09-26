@@ -1,4 +1,9 @@
-import pandas as pd
+import pytest
+
+# Optional ML/import dependency (requirements-ml.txt); the deploy/CI image installs requirements.txt only.
+pytest.importorskip("pandas")
+
+import pandas as pd  # noqa: E402
 
 from training.features import engineer, row_to_feature_frame
 
