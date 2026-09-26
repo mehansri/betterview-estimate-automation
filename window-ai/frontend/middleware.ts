@@ -8,8 +8,8 @@ import { updateSession } from "@/utils/supabase/middleware";
  *  - API_ACCESS_TOKEN: server-to-server callers (the Better View CRM) send it as
  *    a Bearer token instead. Every /api request is forwarded to API_PROXY_URL
  *    with the token added here, so browsers never hold it.
- * Local development without these variables is not gated. A Vercel deployment
- * without a password refuses browsers rather than serve customer data openly.
+ * Without ESTIMATOR_ACCESS_PASSWORD the website is not gated (currently the
+ * case in production by choice); setting it turns the sign-in prompt on.
  */
 const LOCAL_API_ROUTES = ["/api/addresses"];
 const API_UPSTREAM = process.env.API_PROXY_URL || "http://localhost:8000";
@@ -26,7 +26,7 @@ function hasAccess(request: NextRequest) {
   const token = process.env.API_ACCESS_TOKEN;
   if (token && scheme.toLowerCase() === "bearer" && safeEqual(value.trim(), token)) return true;
   const password = process.env.ESTIMATOR_ACCESS_PASSWORD;
-  if (!password) return !process.env.VERCEL;
+  if (!password) return true;
   if (scheme.toLowerCase() !== "basic") return false;
   try {
     const decoded = atob(value.trim());
