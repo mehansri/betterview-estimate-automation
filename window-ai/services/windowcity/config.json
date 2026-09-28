@@ -32,6 +32,11 @@
       "rate_white_lf": 5.0,
       "rate_colour_lf": 5.6
     },
+    "nailing_flange_override": {
+      "code": "eP-106",
+      "rate_white_lf": 3.0,
+      "rate_colour_lf": 3.0
+    },
     "oversize_glass": {
       "threshold_sqft": 35,
       "rate_sqft": 8.0
@@ -56,7 +61,7 @@
       }
     }
   },
-  "_engine": "Rules the book leaves ambiguous, calibrated to the cent against Cantor orders 125401135 + 125401159 (2026-08-04). Without brickmould: accessory footage = exact perimeter. With brickmould: billed window size = BM outer dims (W+2x width) and footage = 2(W+H)+8x width — handled automatically. colour: capstock % billed on the base column only at 3/4 of the book pct (Jet Black 20% -> 15%; only black verified). brickmould_override: Cantor's installed 1-inch Classic BM is EP326 at 5.00/5.60 per lf, not the book's EP-226 4.00 row. oversize_glass: 6mm at $8.00/sqft list past 35 sqft (double). mullion: order 125401186 (AW5 72x72) billed the horizontal steel mullion as 1\" EP-155 at the 22.00/lf vertical rate, not the book's 2\" EP-156 at 30.00; mulled lites are billed at division + 2x assembly brickmould.",
+  "_engine": "Rules the book leaves ambiguous, calibrated to the cent against Cantor orders 125401135 + 125401159 (2026-08-04). Without brickmould: accessory footage = exact perimeter. With brickmould: billed window size = BM outer dims (W+2x width) and footage = 2(W+H)+8x width — handled automatically. colour: capstock % billed on the base column only at 3/4 of the book pct (Jet Black 20% -> 15%; only black verified). brickmould_override: Cantor's installed 1-inch Classic BM is EP326 at 5.00/5.60 per lf, not the book's EP-226 4.00 row. oversize_glass: 6mm at $8.00/sqft list past 35 sqft (double). mullion: order 125401186 (AW5 72x72) billed the horizontal steel mullion as 1\" EP-155 at the 22.00/lf vertical rate, not the book's 2\" EP-156 at 30.00; mulled lites are billed at division + 2x assembly brickmould. nailing_flange_override: Window City order 125401151 (Ranj triplex, 2026-07-17, all Jet Black with 5 1/2-inch wood jamb) billed jamb + flange at $8.00/lf list vs the book's 5.00 + 2.00; the extra $1/lf goes on the flange for white and colour alike (white unverified; erring high because under-quoting costs margin). Argon on triple was not billed on that order but is still charged here (over-quoting accepted).",
   "_engine_patio": "WC-500 sliding doors, calibrated to the cent on orders 125401186 (Common Configs V2/V3, 24 standard doors, white and Jet Black/White) and 125401100/125401102 (April 2026). Door, glass, assembly, kick lock and colour are billed at 0.81 of list (not 0.77); brickmould and wood jamb at the normal discount. Brickmould EP326 is 5.00/lf white and 5.80/lf coloured on doors (5.60 on windows). A 4 1/2in patio jamb is 4.00/lf; deeper jambs use the window wood-jamb rows. Triple pane bills the LoE 180 add plus the triple package. Footage = W + 2H + 6in (2 panel) or + 8in (4 panel), rounded up to an even inch. Kick lock 40.00 per operating panel pair. Black in/out (order 125401100, one 6ft OX triple) carried 158.39 list on top of the book's black in/out add - black/black hardware and kick lock; confirm on a second black/black door, especially a 4-panel.",
   "defaults": {
     "wood_jamb": "5 1/2\"",

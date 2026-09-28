@@ -6,14 +6,10 @@ const API_PROXY_TARGET =
 
 const nextConfig = {
   reactStrictMode: true,
-  // Proxy API calls through Next so the browser uses same-origin requests.
-  // Avoids CORS / wrong-host / mixed-content failures when quoting from the UI.
+  // /api/* is proxied by app/api/[...path]/route.ts, which adds the API token
+  // server-side (a rewrite cannot). Only the public health check is rewritten.
   async rewrites() {
     return [
-      {
-        source: "/api/:path*",
-        destination: `${API_PROXY_TARGET}/api/:path*`,
-      },
       {
         source: "/health",
         destination: `${API_PROXY_TARGET}/health`,

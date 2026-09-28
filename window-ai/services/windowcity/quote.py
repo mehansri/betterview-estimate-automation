@@ -275,6 +275,12 @@ def _accessory_components(accessories: list[dict], w: float, h: float, bm_width:
             ov = cfg["engine"].get("brickmould_override")
             if ov:
                 white_lf, colour_lf = ov["rate_white_lf"], ov["rate_colour_lf"]
+        elif acc["kind"] == "misc" and "nailing flange" in row["name"].lower():
+            # Window City bills the flange $1/lf above the book's 2.00 row
+            # (order 125401151)
+            ov = cfg["engine"].get("nailing_flange_override")
+            if ov:
+                white_lf, colour_lf = ov["rate_white_lf"], ov["rate_colour_lf"]
         rate = colour_lf if (coloured and colour_lf) else white_lf
         comps.append(Component(f"{_accessory_label(acc, row)} {lf:.2f} lf @ {rate:.2f}", lf * rate))
     return comps

@@ -33,8 +33,8 @@ import ProfitPanel from "@/components/estimate/ProfitPanel";
 import { estimateToDraft, newEstimateLineId } from "@/lib/quoteHandoff";
 import { useViewMode } from "@/lib/viewMode";
 
-/** The CRM's origin; "Send to CRM" is hidden when unset. */
-const CRM_URL = (process.env.NEXT_PUBLIC_CRM_URL || "").replace(/\/$/, "");
+/** Better View CRM origin; "Send to CRM" is hidden when unset. */
+const CRM_URL = (process.env.NEXT_PUBLIC_CRM_URL || "").trim().replace(/\/+$/, "");
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -497,6 +497,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       setBusy(false);
     }
   }
+
+  // The CRM imports the saved pricing snapshot, so only offer it once the
+  // project is priced (or finalized) and has no unsaved product changes.
 
   if (loading) return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading estimate…</p>;
 

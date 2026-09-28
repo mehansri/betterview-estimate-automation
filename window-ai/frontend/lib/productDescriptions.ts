@@ -3,6 +3,7 @@ import type {
   DoorOpeningSpec,
   QuoteCatalog,
   QuoteLineInput,
+  WindowDetails,
 } from "@/lib/api";
 import { fmt, LayoutNode, layoutSummary, sectionLabel, SERIES_LABELS, tryResolveLayout } from "@/lib/windowLayout";
 
@@ -143,11 +144,31 @@ function bayParts(spec: Record<string, unknown>): string[] {
   ];
 }
 
-export function describeWindowSpec(spec: QuoteLineInput, catalog?: QuoteCatalog | null) {
+/** "Left hinge" for a single casement; "Lite 2 right hinge" inside a combination. */
+function handingNotes(details: WindowDetails | null | undefined, combination: boolean) {
+  const sections = Array.isArray(details?.sections) ? details.sections : [];
+  return sections.flatMap((section, index) => {
+    if (!section || (section.handing !== "left" && section.handing !== "right")) return [];
+    const kind = section.operation === "casement" ? "hinge" : section.operation === "single_slider" ? "hand" : "";
+    if (!kind) return [];
+    const side = `${section.handing === "left" ? "Left" : "Right"} ${kind}`;
+    return [combination ? `Lite ${index + 1} ${side.toLocaleLowerCase()}` : side];
+  });
+}
+
+export function describeWindowSpec(spec: QuoteLineInput, catalog?: QuoteCatalog | null, details?: WindowDetails | null) {
   const value = spec as Record<string, unknown>;
   const nestedLites = (Array.isArray(value.lites) ? value.lites : []).filter((lite): lite is Record<string, unknown> => Boolean(lite && typeof lite === "object"));
   const allSpecs = [value, ...nestedLites];
   const common = [...colourText(allSpecs), ...allSpecs.flatMap(windowOptions)];
+  // Appended last so the server's generated description (which has no
+  // handing) stays a substring and is not repeated.
+  const extras = handingNotes(details, value.type === "combination");
+  const described = describeByType(value, nestedLites, common);
+  return extras.length ? join([described, ...extras]) : described;
+}
+
+function describeByType(value: Record<string, unknown>, nestedLites: Record<string, unknown>[], common: string[]) {
   switch (value.type) {
     case "unit":
       return join([...unitParts(value), ...common]);

@@ -353,3 +353,75 @@ def test_quote_first_project_can_be_linked_after_finalizing(tmp_path, monkeypatc
     assert client.put(f"/api/customer-estimates/{estimate_id}/crm-link", json={"crm_opportunity_id": ""}).status_code == 422
     events = [event["kind"] for event in client.get(f"/api/customer-estimates/{estimate_id}/events").json()]
     assert "crm_linked" in events
+
+
+def _casement_details() -> dict:
+    return {
+        "tag": "7",
+        "elevation": "front",
+        "sections": [{"operation": "casement", "handing": "left"}],
+        "screen": {"frame_colour": "white", "mesh_colour": "black"},
+        "hardware": "Fold-away handle (white)",
+        "spacer": "Black",
+        "jamb_finish": "primed",
+        "notes": "Egress bedroom window",
+    }
+
+
+def test_window_details_round_trip_and_do_not_affect_pricing(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=False)
+    draft["windows"][0]["details"] = _casement_details()
+    created = client.post("/api/customer-estimates", json=draft)
+    assert created.status_code == 200, created.text
+    estimate_id = created.json()["id"]
+
+    fetched = client.get(f"/api/customer-estimates/{estimate_id}").json()
+    assert fetched["windows"][0]["details"] == _casement_details()
+    # details stay out of the engine line
+    assert "details" not in fetched["windows"][0]["spec"]
+
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+    priced_body = priced.json()
+    assert priced_body["pricing"]["review_required"] is False
+    original_hash = priced_body["pricing_hash"]
+
+    # Same spec, no details at all: identical pricing hash.
+    bare = client.post("/api/customer-estimates", json=_draft(mixed=False)).json()
+    bare_priced = client.post(f"/api/customer-estimates/{bare['id']}/price").json()
+    assert bare_priced["windows"][0]["details"] is None
+    assert bare_priced["pricing_hash"] == original_hash
+    assert bare_priced["pricing"]["totals"] == priced_body["pricing"]["totals"]
+
+    # Editing only details keeps the saved pricing snapshot current.
+    changed = _draft(mixed=False)
+    changed["windows"][0]["details"] = {**_casement_details(), "tag": "8", "screen": None, "sections": [{"operation": "casement", "handing": "right"}]}
+    saved = client.put(f"/api/customer-estimates/{estimate_id}", json=changed)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["status"] == "priced"
+    assert saved.json()["pricing_hash"] == original_hash
+    refetched = client.get(f"/api/customer-estimates/{estimate_id}").json()
+    assert refetched["windows"][0]["details"]["tag"] == "8"
+    assert refetched["windows"][0]["details"]["screen"] is None
+    assert refetched["windows"][0]["details"]["sections"] == [{"operation": "casement", "handing": "right"}]
+
+
+def test_window_details_append_through_lines_endpoint(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=False)
+    draft["windows"] = []
+    draft["doors"] = [_door_opening()]
+    estimate_id = client.post("/api/customer-estimates", json=draft).json()["id"]
+    line = _window_line("w-details")
+    line["details"] = _casement_details()
+    assigned = client.post(f"/api/customer-estimates/{estimate_id}/lines", json={"windows": [line]})
+    assert assigned.status_code == 200, assigned.text
+    assert assigned.json()["windows"][0]["details"] == _casement_details()
+
+
+def test_window_details_reject_unknown_operation(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=False)
+    draft["windows"][0]["details"] = {"sections": [{"operation": "pivot", "handing": None}]}
+    assert client.post("/api/customer-estimates", json=draft).status_code == 422

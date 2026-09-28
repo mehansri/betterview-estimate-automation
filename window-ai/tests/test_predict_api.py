@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 
 import pytest
+
+# Optional ML/import dependency (requirements-ml.txt); the deploy/CI image installs requirements.txt only.
+pytest.importorskip("numpy")
 from fastapi.testclient import TestClient
 
 # Use sqlite + train a tiny model if needed is heavy; unit-test confidence + schema instead

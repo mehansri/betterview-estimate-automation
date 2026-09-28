@@ -105,6 +105,12 @@ def accessory(section: str, name_frag: str) -> dict:
     hits = [r for r in rows if f in r["name"].lower()]
     if len(hits) == 1:
         return hits[0]
+    # A full row name can be a substring of another row ('2" brickmould
+    # (heritage)' sits inside '1 1/2" brickmould (heritage)'); an exact name
+    # still identifies one row.
+    exact = [r for r in hits if r["name"].lower() == f]
+    if len(exact) == 1:
+        return exact[0]
     if not hits:
         raise CatalogError(f"no {section} row matches {name_frag!r}; "
                            f"available: {[r['name'] for r in rows]}")

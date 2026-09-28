@@ -24,6 +24,9 @@ import {
   priceDeterministicQuote,
   isLockedStatus,
   updateCustomerEstimate,
+  WindowDetails,
+  WindowElevation,
+  WindowSectionOperation,
 } from "@/lib/api";
 import { estimateToDraft, newEstimateLineId } from "@/lib/quoteHandoff";
 import { describeWindowSpec } from "@/lib/productDescriptions";
@@ -50,6 +53,16 @@ import {
 } from "@/lib/productOptions";
 import { bayProblem, DEFAULT_BAY, headSeatFor } from "@/lib/bayLayout";
 import { slidingPanels, swingPanels } from "@/lib/patioLayout";
+import {
+  defaultHardware,
+  defaultScreen,
+  ELEVATIONS,
+  HARDWARE_SUGGESTIONS,
+  operationForStyle,
+  SCREEN_MESH_COLOURS,
+  SPACERS,
+  withCurrent,
+} from "@/lib/windowDetails";
 
 const COLORS = EXTERIOR_COLOURS;
 const GAS = ["argon", "90/5", "50/50", "krypton"];
@@ -91,8 +104,23 @@ type Draft = {
 type QuoteLineDraft = {
   id: string;
   spec: QuoteLineInput;
+  details: WindowDetails | null;
   location: string;
   description: string;
+};
+
+/** Presentation-only order details for the line being built; never priced. */
+type OrderDetails = {
+  tag: string;
+  elevation: WindowElevation | "";
+  /** null follows the default for the line's operations. */
+  screen: boolean | null;
+  screen_frame: string;
+  screen_mesh: string;
+  /** null follows the default for the line's operations. */
+  hardware: string | null;
+  spacer: string;
+  notes: string;
 };
 
 const DEFAULT_LAYOUT: LayoutNode = { op: "casement", hinge: "left" };
@@ -134,6 +162,82 @@ function emptyDraft(style = "WC-100", type: QuoteLineType = "unit"): Draft {
     layout: DEFAULT_LAYOUT,
     preset: "",
   };
+}
+
+function emptyOrderDetails(): OrderDetails {
+  return { tag: "", elevation: "", screen: null, screen_frame: "white", screen_mesh: "black", hardware: null, spacer: "Black", notes: "" };
+}
+
+function orderDetailsFrom(saved: WindowDetails | null | undefined): OrderDetails {
+  const blank = emptyOrderDetails();
+  if (!saved) return blank;
+  return {
+    tag: saved.tag || "",
+    elevation: ELEVATIONS.find((item) => item.value === saved.elevation)?.value || "",
+    screen: Boolean(saved.screen),
+    screen_frame: saved.screen?.frame_colour || blank.screen_frame,
+    screen_mesh: saved.screen?.mesh_colour || blank.screen_mesh,
+    hardware: saved.hardware || "",
+    spacer: saved.spacer || blank.spacer,
+    notes: saved.notes || "",
+  };
+}
+
+/** Each section's operation, left to right, for the screen / hardware defaults. */
+function lineOperations(spec: QuoteLineInput, catalog: QuoteCatalog | null): WindowSectionOperation[] {
+  const raw = recordValue(spec);
+  if (spec.type === "unit" || (spec.type === "bay_bow" && raw.layout)) {
+    const sections = tryResolveLayout(raw.layout as LayoutNode, raw.width, raw.height).resolved?.sections || [];
+    return sections.map((section): WindowSectionOperation => section.node.op === "slim_fixed" ? "fixed" : section.node.op);
+  }
+  if (spec.type === "window") return [operationForStyle(String(raw.style || ""), catalog)];
+  if (spec.type === "combination" || spec.type === "bay_bow") {
+    return (Array.isArray(raw.lites) ? raw.lites : []).map((lite) => operationForStyle(String(recordValue(lite).style || ""), catalog));
+  }
+  return [];
+}
+
+function hasJamb(spec: QuoteLineInput) {
+  const raw = recordValue(spec);
+  const lites = Array.isArray(raw.lites) ? raw.lites.map(recordValue) : [];
+  return [raw, ...lites].some((item) => (Array.isArray(item.accessories) ? item.accessories : [])
+    .some((accessory) => ["wood_jamb", "pvc_jamb"].includes(String(recordValue(accessory).kind || ""))));
+}
+
+/**
+ * Order details for a line. Saved per-lite handing is kept only while the
+ * line still has the same section operations.
+ */
+function toWindowDetails(order: OrderDetails, spec: QuoteLineInput, catalog: QuoteCatalog | null, saved?: WindowDetails | null): WindowDetails {
+  const common: WindowDetails = {
+    tag: order.tag.trim() || null,
+    elevation: order.elevation || null,
+    notes: order.notes.trim() || null,
+  };
+  if (isPatio(spec.type)) return common;
+  const operations = lineOperations(spec, catalog);
+  const savedSections = saved?.sections || [];
+  const sectionsMatch = savedSections.length > 0 && savedSections.length === operations.length
+    && savedSections.every((section, index) => section.operation === operations[index]);
+  const screen = order.screen ?? defaultScreen(operations);
+  const hardware = order.hardware ?? defaultHardware(operations);
+  return {
+    ...common,
+    sections: sectionsMatch ? savedSections : null,
+    screen: screen ? { frame_colour: order.screen_frame || null, mesh_colour: order.screen_mesh || null } : null,
+    hardware: hardware.trim() || null,
+    spacer: order.spacer || null,
+    jamb_finish: hasJamb(spec) ? saved?.jamb_finish || "primed" : null,
+  };
+}
+
+/** Fill an unset opening number with the line's 1-based position in the project. */
+function withDefaultTag(details: WindowDetails | null | undefined, position: number): WindowDetails {
+  return { ...(details || {}), tag: details?.tag?.trim() || String(position) };
+}
+
+function tagPrefix(details: WindowDetails | null | undefined) {
+  return details?.tag ? `#${details.tag} · ` : "";
 }
 
 function finiteNumber(value: unknown, fallback: number): number {
@@ -211,11 +315,17 @@ function draftFromSpec(spec: QuoteLineInput, catalog: QuoteCatalog): Draft {
   };
 }
 
-function descriptionForUpdatedSpec(line: CustomerWindowLine, nextSpec: QuoteLineInput, catalog: QuoteCatalog | null, description = line.description) {
+function descriptionForUpdatedSpec(
+  line: Pick<CustomerWindowLine, "spec" | "details" | "description">,
+  nextSpec: QuoteLineInput,
+  nextDetails: WindowDetails | null | undefined,
+  catalog: QuoteCatalog | null,
+  description = line.description,
+) {
   const existingDescription = description.trim();
-  const generatedDescription = describeWindowSpec(line.spec, catalog);
+  const generatedDescription = describeWindowSpec(line.spec, catalog, line.details);
   return existingDescription === generatedDescription.trim()
-    ? describeWindowSpec(nextSpec, catalog)
+    ? describeWindowSpec(nextSpec, catalog, nextDetails)
     : description;
 }
 
@@ -740,6 +850,9 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
   const [hydratedEditId, setHydratedEditId] = useState<string | null>(null);
   const [selectedEditLineId, setSelectedEditLineId] = useState<string | null>(editWindowId || null);
   const [draftLocation, setDraftLocation] = useState("");
+  const [orderDetails, setOrderDetails] = useState<OrderDetails>(emptyOrderDetails());
+  // The saved details of the line being edited (keeps its handing and jamb finish).
+  const [savedDetails, setSavedDetails] = useState<WindowDetails | null>(null);
   const autoPriceRequestRef = useRef(0);
   const editMode = Boolean(editWindows || editWindowId);
 
@@ -823,11 +936,14 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       location: line.location,
       description: line.description,
       spec: line.spec,
+      details: line.details ?? null,
     }));
     const selectedLine = requestedLine || project.windows[0];
     setLines(loadedLines);
     setSelectedEditLineId(selectedLine.id);
     setDraft(draftFromSpec(selectedLine.spec, catalog));
+    setOrderDetails(orderDetailsFrom(selectedLine.details));
+    setSavedDetails(selectedLine.details ?? null);
     setSelectedPresetId(project.commercial.preset_id || "standard");
     setNegotiatedDiscount(project.commercial.negotiated_discount_percent || 0);
     setResult(null);
@@ -835,6 +951,11 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
   }, [catalog, editMode, editHydrationKey, editWindowId, hydratedEditId, project]);
 
   const currentLine = useMemo(() => toQuoteLine(draft, catalog), [draft, catalog]);
+  const currentDetails = useMemo(
+    () => toWindowDetails(orderDetails, currentLine, catalog, savedDetails),
+    [orderDetails, currentLine, catalog, savedDetails],
+  );
+  const currentOperations = useMemo(() => lineOperations(currentLine, catalog), [currentLine, catalog]);
   // The priced result line that corresponds to the line being edited.
   const currentResultLine = useMemo(() => {
     if (!result) return null;
@@ -874,6 +995,10 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     setResult(null);
   }
 
+  function updateOrderDetails(patch: Partial<OrderDetails>) {
+    setOrderDetails((current) => ({ ...current, ...patch }));
+  }
+
   function changeProduct(type: QuoteLineType) {
     setDraft((current) => switchProduct(current, type, catalog));
     setResult(null);
@@ -900,9 +1025,11 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     if (!draftIsValid) return;
     setLines((current) => [
       ...current,
-      { id: newEstimateLineId("window"), spec: currentLine, location: draftLocation.trim(), description: describeWindowSpec(currentLine, catalog) },
+      { id: newEstimateLineId("window"), spec: currentLine, details: currentDetails, location: draftLocation.trim(), description: describeWindowSpec(currentLine, catalog, currentDetails) },
     ]);
     setDraftLocation("");
+    // The next opening gets its own number and notes; the other details carry over.
+    setOrderDetails((current) => ({ ...current, tag: "", notes: "" }));
     setResult(null);
   }
 
@@ -922,6 +1049,8 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       const copy: QuoteLineDraft = {
         id: newEstimateLineId("window"),
         spec: JSON.parse(JSON.stringify(source.spec)) as QuoteLineInput,
+        // A copy is a different opening, so it takes its own number.
+        details: source.details ? { ...JSON.parse(JSON.stringify(source.details)), tag: null } : null,
         location: source.location,
         description: source.description,
       };
@@ -949,7 +1078,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     if (!confirmed) return;
     setLines((current) => current.map((line) => {
       const nextSpec = applyDraftOptions(line.spec, draft, catalog);
-      return { ...line, spec: nextSpec, description: descriptionForUpdatedSpec(line, nextSpec, catalog) };
+      return { ...line, spec: nextSpec, description: descriptionForUpdatedSpec(line, nextSpec, line.details, catalog) };
     }));
     setResult(null);
   }
@@ -1003,10 +1132,12 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     const nextLine = lines.find((line) => line.id === lineId);
     if (!nextLine) return;
     if (selectedEditLineId && draftIsValid) {
-      setLines((current) => current.map((line) => line.id === selectedEditLineId ? { ...line, spec: currentLine } : line));
+      setLines((current) => current.map((line) => line.id === selectedEditLineId ? { ...line, spec: currentLine, details: currentDetails } : line));
     }
     setSelectedEditLineId(lineId);
     setDraft(draftFromSpec(nextLine.spec, catalog));
+    setOrderDetails(orderDetailsFrom(nextLine.details));
+    setSavedDetails(nextLine.details);
     setResult(null);
   }
 
@@ -1050,14 +1181,23 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       }, needsOverride ? managerToken.trim() : undefined);
       setAutoPriceError(null);
        if (editMode) {
-         setLines((current) => current.map((line, index) => ({ ...line, spec: payload[index] })));
-       } else {
-         setLines((current) => payload.map((spec, index) => ({
-           id: current[index]?.id || newEstimateLineId("window"),
-           location: current[index]?.location || "",
-           description: current[index]?.description || describeWindowSpec(spec, catalog),
-           spec,
+         setLines((current) => current.map((line, index) => ({
+           ...line,
+           spec: payload[index],
+           details: line.id === selectedEditLineId ? currentDetails : line.details,
          })));
+       } else {
+         setLines((current) => payload.map((spec, index) => {
+           // Past the saved lines, the payload's extra entry is the current draft.
+           const details = index < current.length ? current[index].details : currentDetails;
+           return {
+             id: current[index]?.id || newEstimateLineId("window"),
+             location: current[index]?.location || "",
+             description: current[index]?.description || describeWindowSpec(spec, catalog, details),
+             spec,
+             details,
+           };
+         }));
        }
        setResult(priced);
     } catch (err) {
@@ -1141,16 +1281,18 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
-    const updatedWindows = project.windows.map((line) => {
+    const updatedWindows = project.windows.map((line, index) => {
       const bufferedLine = lines.find((item) => item.id === line.id);
       const nextSpec = line.id === selectedEditLineId ? currentLine : bufferedLine?.spec || line.spec;
+      const nextDetails = line.id === selectedEditLineId ? currentDetails : bufferedLine ? bufferedLine.details : line.details;
       const nextDescription = descriptionForUpdatedSpec(
         line,
         nextSpec,
+        nextDetails,
         catalog,
         bufferedLine ? bufferedLine.description : line.description,
       );
-      return { ...line, description: nextDescription, spec: nextSpec };
+      return { ...line, description: nextDescription, spec: nextSpec, details: withDefaultTag(nextDetails, index + 1) };
     });
     const draftPayload: CustomerEstimateDraft = estimateToDraft(project, {
       windows: updatedWindows,
@@ -1187,11 +1329,12 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
-    const windows: CustomerWindowLine[] = lines.map((line) => ({
+    const windows: CustomerWindowLine[] = lines.map((line, index) => ({
       id: line.id,
       location: line.location,
       description: line.description,
       spec: line.spec,
+      details: withDefaultTag(line.details, project.windows.length + index + 1),
     }));
     const projectHasProducts = project.windows.length > 0 || project.doors.length > 0;
     try {
@@ -1255,7 +1398,9 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     ? (cp.lines as Array<{ line: number; type: string; qty: number; unit_price: number; line_total: number }>).map((line, index) => ({
         ...line,
         location: visibleLines[index]?.location || "",
-        description: visibleLines[index]?.description || describeWindowSpec(visibleLines[index]?.spec || currentLine, catalog),
+        description: visibleLines[index]?.description || (visibleLines[index]
+          ? describeWindowSpec(visibleLines[index].spec, catalog, visibleLines[index].details)
+          : describeWindowSpec(currentLine, catalog, currentDetails)),
       }))
     : [];
   // A discount that no longer matches the generated quote → quote is stale, needs regenerating.
@@ -1469,6 +1614,8 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
           </>
           ) : null}
 
+          {renderOrderDetails()}
+
           {renderSalesStrategy()}
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -1488,7 +1635,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
             ) : null}
             <div className="mt-4 space-y-2">
                {lines.map((line, index) => <div key={line.id} className={`rounded-lg px-3 py-3 text-sm ${editMode && line.id === selectedEditLineId ? "border border-brand-300 bg-brand-50" : "bg-slate-50"}`}>
-                 <div className="flex items-center justify-between gap-3"><LineThumbnail spec={line.spec} /><div className="min-w-0 flex-1"><button type="button" className={`font-medium ${editMode ? "text-left text-brand-800 hover:underline" : "text-slate-800"}`} onClick={() => editMode ? selectEditLine(line.id) : undefined}>{line.description || lineLabel(line.spec)}</button>{line.description ? <p className="mt-1 text-xs text-slate-500">{lineLabel(line.spec)}</p> : null}</div>{editMode ? <span className="text-xs font-semibold text-brand-700">{line.id === selectedEditLineId ? "Editing" : "Select to edit"}</span> : <div className="flex shrink-0 items-center gap-1"><button type="button" className="min-h-[2.75rem] px-2 text-xs font-semibold text-brand-700 hover:underline" onClick={() => duplicateLine(index)} aria-label={`Duplicate line ${index + 1}`}>Duplicate</button><button type="button" className="min-h-[2.75rem] px-2 text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)} aria-label={`Remove line ${index + 1}`}>Remove</button></div>}</div>
+                 <div className="flex items-center justify-between gap-3"><LineThumbnail spec={line.spec} /><div className="min-w-0 flex-1"><button type="button" className={`font-medium ${editMode ? "text-left text-brand-800 hover:underline" : "text-slate-800"}`} onClick={() => editMode ? selectEditLine(line.id) : undefined}>{tagPrefix(line.details)}{line.description || lineLabel(line.spec)}</button>{line.description ? <p className="mt-1 text-xs text-slate-500">{lineLabel(line.spec)}</p> : null}</div>{editMode ? <span className="text-xs font-semibold text-brand-700">{line.id === selectedEditLineId ? "Editing" : "Select to edit"}</span> : <div className="flex shrink-0 items-center gap-1"><button type="button" className="min-h-[2.75rem] px-2 text-xs font-semibold text-brand-700 hover:underline" onClick={() => duplicateLine(index)} aria-label={`Duplicate line ${index + 1}`}>Duplicate</button><button type="button" className="min-h-[2.75rem] px-2 text-xs font-semibold text-rose-600 hover:underline" onClick={() => removeLine(index)} aria-label={`Remove line ${index + 1}`}>Remove</button></div>}</div>
                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
                    <LocationInput className="input" value={line.location} onChange={(value) => updateLine(index, { location: value })} placeholder="Location (e.g. Bedroom)" />
                    <input className="input" value={line.description} onChange={(event) => updateLine(index, { description: event.target.value })} placeholder="Customer description (optional)" />
@@ -1539,6 +1686,65 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       </div>
     </div>
   );
+
+  /** Presentation-only details printed on the estimate and the manufacturer order. */
+  function renderOrderDetails() {
+    const windowLike = !isPatio(draft.type);
+    const screen = orderDetails.screen ?? defaultScreen(currentOperations);
+    const hardware = orderDetails.hardware ?? defaultHardware(currentOperations);
+    // Opening numbers default to the line's position in the project list.
+    const selectedEditIndex = editMode ? lines.findIndex((line) => line.id === selectedEditLineId) : -1;
+    const defaultTag = String(editMode
+      ? (selectedEditIndex >= 0 ? selectedEditIndex + 1 : lines.length + 1)
+      : (project?.windows.length ?? 0) + lines.length + 1);
+    return (
+          <div className="mt-6 rounded-xl bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-800">Order details</p>
+            <p className="mb-3 mt-1 text-xs text-slate-500">Printed on the estimate and the manufacturer order. These do not change the price.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Opening #"><input className="input" value={orderDetails.tag} onChange={(e) => updateOrderDetails({ tag: e.target.value })} placeholder={defaultTag} /></Field>
+              <Field label="Elevation">
+                <select className="input" value={orderDetails.elevation} onChange={(e) => updateOrderDetails({ elevation: e.target.value as OrderDetails["elevation"] })}>
+                  <option value="">Not set</option>
+                  {ELEVATIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                </select>
+              </Field>
+              {windowLike ? (
+                <>
+                  <div className="flex items-end pb-2 sm:col-span-2"><Toggle label="Screen" value={screen} onChange={(value) => updateOrderDetails({ screen: value })} /></div>
+                  {screen ? (
+                    <>
+                      <Field label="Screen frame colour">
+                        <select className="input" value={orderDetails.screen_frame} onChange={(e) => updateOrderDetails({ screen_frame: e.target.value })}>
+                          {withCurrent(COLORS, orderDetails.screen_frame).map((color) => <option key={color} value={color}>{color}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Screen mesh colour">
+                        <select className="input" value={orderDetails.screen_mesh} onChange={(e) => updateOrderDetails({ screen_mesh: e.target.value })}>
+                          {withCurrent(SCREEN_MESH_COLOURS, orderDetails.screen_mesh).map((color) => <option key={color} value={color}>{color}</option>)}
+                        </select>
+                      </Field>
+                    </>
+                  ) : null}
+                  <Field label="Hardware">
+                    <input className="input" list="hardware-options" value={hardware} onChange={(e) => updateOrderDetails({ hardware: e.target.value })} placeholder="None" />
+                    <datalist id="hardware-options">{HARDWARE_SUGGESTIONS.map((item) => <option key={item} value={item} />)}</datalist>
+                  </Field>
+                  <Field label="Spacer">
+                    <select className="input" value={orderDetails.spacer} onChange={(e) => updateOrderDetails({ spacer: e.target.value })}>
+                      {withCurrent(SPACERS, orderDetails.spacer).map((spacer) => <option key={spacer} value={spacer}>{spacer}</option>)}
+                    </select>
+                  </Field>
+                </>
+              ) : null}
+              <label className="block text-sm sm:col-span-2">
+                <span className="mb-1 block font-medium text-slate-700">Notes</span>
+                <textarea className="input" rows={2} value={orderDetails.notes} onChange={(e) => updateOrderDetails({ notes: e.target.value })} placeholder="Order notes for this opening" />
+              </label>
+            </div>
+          </div>
+    );
+  }
 
   /** Preset, negotiated discount and manager approval. Internal figures only in the internal view.
    * Called as a function (not rendered as a component) so its inputs keep focus between renders. */

@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.app_setup import cors_options, ensure_database
+from api.security import require_api_token
 from api.routes import admin, business, customer_estimates, doors, health, import_estimates, predict, public, quote
 from api.services.predictor import get_predictor
 from utils.logging import get_logger
@@ -37,12 +38,16 @@ app = FastAPI(
 
 app.add_middleware(CORSMiddleware, **cors_options())
 
+# Everything except the health check and the customer portal requires the
+# shared API token (api/security.py).
+protected = [Depends(require_api_token)]
 app.include_router(health.router)
-app.include_router(predict.router)
-app.include_router(quote.router)
-app.include_router(doors.router)
-app.include_router(customer_estimates.router)
-app.include_router(import_estimates.router)
-app.include_router(admin.router)
-app.include_router(business.router)
+app.include_router(predict.router, dependencies=protected)
+app.include_router(quote.router, dependencies=protected)
+app.include_router(doors.router, dependencies=protected)
+app.include_router(customer_estimates.router, dependencies=protected)
+app.include_router(import_estimates.router, dependencies=protected)
+app.include_router(admin.router, dependencies=protected)
+app.include_router(business.router, dependencies=protected)
+# The customer portal is addressed by an unguessable token and stays public.
 app.include_router(public.router)

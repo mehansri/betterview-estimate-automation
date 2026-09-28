@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from typing import Any, Literal, Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from api.schemas.doors import DoorOpeningSpec
 from api.schemas.quote import CommercialSettings, QuoteLineInput
@@ -24,11 +24,56 @@ def _valid_until() -> date:
     return date.today() + timedelta(days=30)
 
 
+WindowOperation = Literal[
+    "fixed", "casement", "awning", "single_slider", "double_slider", "single_hung", "double_hung"
+]
+WindowHanding = Literal["left", "right", "top"]
+WindowElevation = Literal["front", "right", "left", "back", "other"]
+
+
+class WindowSection(BaseModel):
+    """One lite of a window, left to right as viewed from outside."""
+
+    operation: WindowOperation
+    # casement: hinge side; awning: "top"; single slider: operating sash side.
+    handing: Optional[WindowHanding] = None
+
+
+class WindowScreen(BaseModel):
+    frame_colour: Optional[str] = None
+    mesh_colour: Optional[str] = None
+
+
+class WindowDetails(BaseModel):
+    """Order-checklist details that do not affect the price.
+
+    Kept outside ``spec`` on purpose: the pricing engine turns screen/hardware
+    keys inside a spec into review items, and the pricing hash only covers
+    ``id`` + ``spec``.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    tag: Optional[str] = None
+    elevation: Optional[WindowElevation] = None
+    # One entry per lite, in the same order as spec.lites (one entry for a
+    # single window).
+    sections: Optional[list[WindowSection]] = None
+    # None means no screen.
+    screen: Optional[WindowScreen] = None
+    hardware: Optional[str] = None
+    spacer: Optional[str] = None
+    jamb_finish: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class CustomerWindowLine(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     location: str = ""
     description: str = ""
     spec: QuoteLineInput
+    # Presentation-only order details; never sent to the pricing engine.
+    details: Optional[WindowDetails] = None
 
 
 class CustomerDoorOpening(BaseModel):
