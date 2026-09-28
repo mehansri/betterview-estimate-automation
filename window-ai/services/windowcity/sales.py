@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from services.settings_store import get_setting, set_setting
+
+from . import margin
+
 SALES_CONFIG_PATH = Path(__file__).resolve().parent / "sales_config.json"
 
 
@@ -26,12 +30,56 @@ class NegotiationLimitError(SalesPricingError):
         super().__init__(message)
 
 
-def _read_config() -> dict[str, Any]:
+SETTING_KEY = "sales_config"
+
+
+def _bundled_config() -> dict[str, Any]:
     return json.loads(SALES_CONFIG_PATH.read_text(encoding="utf-8"))
 
 
+def _upgrade(stored: dict[str, Any], bundled: dict[str, Any]) -> dict[str, Any]:
+    """Bring presets saved before a config revision up to date.
+
+    Revision 2 (2026-09-28) added the project profit floor, the default preset
+    and the sliding-margin preset. Settings the manager already chose win.
+    """
+    if int(stored.get("revision") or 1) >= int(bundled.get("revision") or 1):
+        return stored
+    upgraded = {**bundled, **stored, "revision": bundled.get("revision")}
+    known = {str(preset.get("id")) for preset in stored.get("presets") or []}
+    upgraded["presets"] = [
+        *[preset for preset in bundled.get("presets", []) if str(preset.get("id")) not in known
+          and preset.get("strategy") == "sliding_margin"],
+        *(stored.get("presets") or []),
+    ]
+    return upgraded
+
+
+def _read_config() -> dict[str, Any]:
+    """Manager-edited presets from the database, else the bundled defaults."""
+    stored = get_setting(SETTING_KEY)
+    if isinstance(stored, dict) and stored.get("presets"):
+        return _upgrade(stored, _bundled_config())
+    return _bundled_config()
+
+
+def profit_floor(config: dict[str, Any] | None = None) -> float:
+    """Minimum profit on any project quote (0 = no floor)."""
+    return float((config or _read_config()).get("project_profit_floor") or 0.0)
+
+
+def default_preset_id(config: dict[str, Any] | None = None) -> str:
+    config = config or _read_config()
+    wanted = str(config.get("default_preset_id") or "standard")
+    active = [preset for preset in config.get("presets", []) if preset.get("active", True)]
+    if any(str(preset.get("id")) == wanted for preset in active):
+        return wanted
+    return str(active[0]["id"]) if active else "standard"
+
+
 def sales_config_version() -> str:
-    return hashlib.sha256(SALES_CONFIG_PATH.read_bytes()).hexdigest()[:12]
+    canonical = json.dumps(_read_config(), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
 
 
 def _validate_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -40,23 +88,36 @@ def _validate_config(config: dict[str, Any]) -> dict[str, Any]:
     minimum_default = float(config.get("minimum_markup_percent", 20.0))
     if minimum_default < -99:
         raise SalesPricingError("default minimum markup must be at least -99%")
+    floor_profit = float(config.get("project_profit_floor") or 0.0)
+    if floor_profit < 0:
+        raise SalesPricingError("the project profit floor cannot be negative")
     seen: set[str] = set()
     for preset in config["presets"]:
         preset_id = str(preset.get("id") or "").strip().lower()
         if not preset_id or preset_id in seen:
             raise SalesPricingError(f"invalid or duplicate sales preset id: {preset_id!r}")
         seen.add(preset_id)
+        strategy = str(preset.get("strategy") or "markup")
+        if strategy not in ("markup", "sliding_margin"):
+            raise SalesPricingError(f"sales preset {preset_id!r} has an unknown strategy {strategy!r}")
+        if strategy == "sliding_margin":
+            try:
+                preset["sliding"] = margin.validate(preset.get("sliding"), floor_profit)
+            except margin.MarginConfigError as exc:
+                raise SalesPricingError(f"sales preset {preset_id!r}: {exc}") from exc
         markup = float(preset.get("markup_percent"))
         floor = float(preset.get("minimum_markup_percent", minimum_default))
         default_discount = float(preset.get("default_discount_percent", 0.0))
         max_discount = float(preset.get("max_discount_percent", 0.0))
         if markup < 0 or default_discount < 0 or max_discount < 0:
             raise SalesPricingError(f"sales preset {preset_id!r} contains a negative value")
+        if max_discount >= 100:
+            raise SalesPricingError(f"sales preset {preset_id!r} maximum discount must be below 100%")
         if floor < -99:
             raise SalesPricingError(
                 f"sales preset {preset_id!r} minimum markup must be at least -99%"
             )
-        if markup < floor:
+        if strategy == "markup" and markup < floor:
             raise SalesPricingError(f"sales preset {preset_id!r} markup is below its floor")
         if default_discount > max_discount:
             raise SalesPricingError(f"sales preset {preset_id!r} default discount exceeds its maximum")
@@ -80,7 +141,7 @@ def list_all_presets() -> list[dict[str, Any]]:
     return [dict(preset) for preset in load_sales_config()["presets"]]
 
 
-def get_preset(preset_id: str) -> dict[str, Any]:
+def get_preset(preset_id: str | None) -> dict[str, Any]:
     wanted = str(preset_id or "standard").strip().lower()
     for preset in list_presets():
         if preset["id"].lower() == wanted:
@@ -91,7 +152,7 @@ def get_preset(preset_id: str) -> dict[str, Any]:
 def save_sales_config(config: dict[str, Any]) -> dict[str, Any]:
     """Validate and persist manager-edited sales presets."""
     validated = _validate_config(config)
-    SALES_CONFIG_PATH.write_text(json.dumps(validated, indent=2) + "\n", encoding="utf-8")
+    set_setting(SETTING_KEY, validated)
     return validated
 
 
@@ -103,24 +164,76 @@ def _percent(value: float) -> float:
     return round(float(value), 4)
 
 
+def pricing_plan(preset: dict[str, Any], cost_basis: float, config: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Markup and floor for a preset on a project costing ``cost_basis``.
+
+    A sliding-margin preset derives its markup from the project cost. Every
+    preset is then held to the project profit floor: a project whose markup
+    would earn less than the floor is priced up to it, and no discount may take
+    it below (without a manager override).
+    """
+    config = config or load_sales_config()
+    strategy = str(preset.get("strategy") or "markup")
+    floor_profit = profit_floor(config)
+    markup_percent = float(preset["markup_percent"])
+    minimum_markup_percent = float(
+        preset.get("minimum_markup_percent", config.get("minimum_markup_percent", 20.0))
+    )
+    sliding = None
+    if strategy == "sliding_margin":
+        sliding = margin.plan(cost_basis, preset.get("sliding"), floor_profit)
+        markup_percent = sliding.markup_percent if cost_basis > 0 else 0.0
+    floor_applied = False
+    floor_markup_percent = None
+    if floor_profit > 0 and cost_basis > 0:
+        floor_markup_percent = floor_profit / cost_basis * 100.0
+        if markup_percent < floor_markup_percent - 1e-9:
+            markup_percent = floor_markup_percent
+            floor_applied = True
+        minimum_markup_percent = max(minimum_markup_percent, floor_markup_percent)
+    minimum_markup_percent = min(minimum_markup_percent, markup_percent)
+    return {
+        "strategy": strategy,
+        "cost_basis": cost_basis,
+        "profit_floor": floor_profit,
+        "floor_applied": floor_applied or bool(sliding and sliding.band == "floor"),
+        "markup_percent": markup_percent,
+        "minimum_markup_percent": minimum_markup_percent,
+        "sliding": sliding.as_dict() if sliding else None,
+    }
+
+
 def apply_sales_pricing(
     result: dict[str, Any],
     commercial: dict[str, Any] | None = None,
     *,
     allow_manager_override: bool = False,
+    cost_basis: float | None = None,
 ) -> dict[str, Any]:
-    """Apply a bounded quote-level concession without changing catalog cost."""
+    """Apply a bounded quote-level concession without changing catalog cost.
+
+    ``cost_basis`` is the whole project's product cost (windows and doors,
+    dealer + installation) when this quote is one part of a project; the
+    sliding margin and the profit floor are set on the project, and each part
+    carries the same markup. Without it, this quote is the whole project.
+    """
     commercial = commercial or {}
-    preset = get_preset(commercial.get("preset_id", "standard"))
-    markup_percent = float(preset["markup_percent"])
-    minimum_markup_percent = float(
-        preset.get("minimum_markup_percent", load_sales_config().get("minimum_markup_percent", 20.0))
-    )
+    config = load_sales_config()
+    preset = get_preset(commercial.get("preset_id") or "standard")
+    own_cost = float(result["totals"]["dealer_cost"]) + float(result["totals"]["install"])
+    basis = float(cost_basis) if cost_basis is not None and float(cost_basis) > 0 else own_cost
+    plan = pricing_plan(preset, basis, config)
+    markup_percent = plan["markup_percent"]
+    minimum_markup_percent = plan["minimum_markup_percent"]
     requested_discount_percent = float(
         commercial.get("negotiated_discount_percent", preset.get("default_discount_percent", 0.0))
     )
     if requested_discount_percent < 0:
         raise SalesPricingError("negotiated discount cannot be negative")
+    if requested_discount_percent >= 100:
+        # Even a manager override may not give merchandise away or price it
+        # below zero; that is a scope change, not a discount.
+        raise SalesPricingError("negotiated discount must be below 100%")
 
     markup = markup_percent / 100.0
     floor_markup = minimum_markup_percent / 100.0
@@ -160,27 +273,6 @@ def apply_sales_pricing(
             }
         )
 
-    merchandise_discount_amount = base_merchandise_sell * negotiated_discount
-    discounted_merchandise_sell = base_merchandise_sell - merchandise_discount_amount
-    pre_tax_sell = discounted_merchandise_sell + protected_install_sell
-    profit = pre_tax_sell - dealer_cost - install_cost
-    effective_markup_percent = (profit / (dealer_cost + install_cost) * 100.0) if dealer_cost + install_cost else 0.0
-    gross_margin_percent = (profit / pre_tax_sell * 100.0) if pre_tax_sell else 0.0
-    floor_status = "manager_override" if manager_override_applied else "within_floor"
-    override_reason = commercial.get("manager_override_reason") if allow_manager_override else None
-
-    totals = result["totals"]
-    totals["base_sell_before_discount"] = _money(base_merchandise_sell + protected_install_sell)
-    totals["merchandise_sell_before_discount"] = _money(base_merchandise_sell)
-    totals["merchandise_discount"] = _money(merchandise_discount_amount)
-    totals["protected_install_sell"] = _money(protected_install_sell)
-    totals["minimum_floor_sell"] = _money(floor_sell)
-    totals["sell_before_tax"] = _money(pre_tax_sell)
-    totals["sell"] = _money(pre_tax_sell)
-    totals["markup"] = _money(profit)
-    totals["hst"] = _money(pre_tax_sell * hst_rate)
-    totals["customer_total"] = _money(pre_tax_sell + totals["hst"])
-
     for line in result.get("lines", []):
         line_dealer = float(line["dealer_each"])
         line_install = float(line["install_each"])
@@ -197,10 +289,43 @@ def apply_sales_pricing(
         line["hst_each"] = _money(line_sell * hst_rate)
         line["customer_total"] = _money(line_sell * line["qty"] + line_sell * line["qty"] * hst_rate)
 
+    lines = result.get("lines", [])
+    if lines:
+        # Customers see rounded unit prices, so the subtotal (and the
+        # undiscounted subtotal) is exactly what those unit prices add up to.
+        pre_tax_sell = _money(sum(line["sell_each"] * line["qty"] for line in lines))
+        base_sell = _money(sum(line["base_sell_each"] * line["qty"] for line in lines))
+    else:
+        pre_tax_sell = base_merchandise_sell * (1.0 - negotiated_discount) + protected_install_sell
+        base_sell = base_merchandise_sell + protected_install_sell
+    merchandise_discount_amount = max(0.0, base_sell - pre_tax_sell)
+    profit = pre_tax_sell - dealer_cost - install_cost
+    effective_markup_percent = (profit / (dealer_cost + install_cost) * 100.0) if dealer_cost + install_cost else 0.0
+    gross_margin_percent = (profit / pre_tax_sell * 100.0) if pre_tax_sell else 0.0
+    floor_status = "manager_override" if manager_override_applied else "within_floor"
+    override_reason = commercial.get("manager_override_reason") if allow_manager_override else None
+
+    totals = result["totals"]
+    totals["base_sell_before_discount"] = _money(base_sell)
+    totals["merchandise_sell_before_discount"] = _money(base_merchandise_sell)
+    totals["merchandise_discount"] = _money(merchandise_discount_amount)
+    totals["protected_install_sell"] = _money(protected_install_sell)
+    totals["minimum_floor_sell"] = _money(floor_sell)
+    totals["sell_before_tax"] = _money(pre_tax_sell)
+    totals["sell"] = _money(pre_tax_sell)
+    totals["markup"] = _money(profit)
+    totals["hst"] = _money(pre_tax_sell * hst_rate)
+    totals["customer_total"] = _money(pre_tax_sell + totals["hst"])
+
     result["sales_pricing"] = {
         "preset_id": preset["id"],
         "preset_name": preset["name"],
         "preset_description": preset.get("description", ""),
+        "strategy": plan["strategy"],
+        "cost_basis": _money(plan["cost_basis"]),
+        "profit_floor": _money(plan["profit_floor"]),
+        "floor_applied": plan["floor_applied"],
+        "sliding": plan["sliding"],
         "markup_percent": _percent(markup_percent),
         "minimum_markup_percent": _percent(minimum_markup_percent),
         "negotiated_discount_percent": _percent(requested_discount_percent),

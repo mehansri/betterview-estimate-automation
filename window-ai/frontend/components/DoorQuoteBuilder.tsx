@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   appendCustomerEstimateLines,
+  createTemplate,
+  deleteTemplate,
+  fetchTemplates,
+  SavedTemplate,
   CustomerEstimate,
   CustomerEstimateDraft,
   CommercialSettings,
@@ -20,10 +24,12 @@ import {
   priceCustomerEstimate,
   quoteDoors,
   SalesPreset,
+  isLockedStatus,
   updateCustomerEstimate,
 } from "@/lib/api";
-import { newEstimateLineId } from "@/lib/quoteHandoff";
+import { estimateToDraft, newEstimateLineId } from "@/lib/quoteHandoff";
 import { describeDoorLine } from "@/lib/productDescriptions";
+import { useViewMode, VIEW_MODE_SHORTCUT } from "@/lib/viewMode";
 import ProjectAccessGate from "@/components/ProjectAccessGate";
 import LocationInput from "@/components/LocationInput";
 
@@ -52,6 +58,34 @@ const INCLUDED_DEFAULTS: Array<{ key: IncludedDefault; label: (catalog: DoorCata
 ];
 
 type OpeningDraft = DoorOpeningSpec & { label: string; finish: string };
+
+/** A saved door favourite: the whole opening configuration except its label. */
+type DoorFavourite = Omit<OpeningDraft, "label">;
+
+function favouriteFromOpening(draft: OpeningDraft): DoorFavourite {
+  const { label: _label, ...options } = draft;
+  return JSON.parse(JSON.stringify(options)) as DoorFavourite;
+}
+
+/** Rebuild an opening from a saved favourite, or null when it no longer fits the catalog. */
+function openingFromFavourite(payload: unknown, catalog: DoorCatalog, label: string): OpeningDraft | null {
+  if (!payload || typeof payload !== "object") return null;
+  const saved = JSON.parse(JSON.stringify(payload)) as Partial<DoorFavourite>;
+  const material = catalog.materials.find((entry) => entry.key === saved.material);
+  const layout = catalog.opening_types.find((type) => type.key === saved.opening_type);
+  if (!material || !layout || !saved.door || typeof saved.door !== "object") return null;
+  const finish = material.finishes.some((item) => item.key === saved.finish) ? String(saved.finish) : material.finishes[0]?.key || "";
+  return {
+    ...(saved as DoorFavourite),
+    label,
+    finish,
+    door: saved.door,
+    door2: layout.doors === 2 ? saved.door2 || firstPart(catalog, material.key, "door") : undefined,
+    sidelites: Array.from({ length: layout.sidelites }, (_, index) => saved.sidelites?.[index] || firstPart(catalog, material.key, "sidelite")),
+    pull_bars: Array.isArray(saved.pull_bars) ? saved.pull_bars : [],
+    options: Array.isArray(saved.options) ? saved.options : [],
+  };
+}
 
 type DoorQuoteOpening = {
   id: string;
@@ -356,18 +390,30 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   const [draft, setDraft] = useState<OpeningDraft | null>(null);
   const [openings, setOpenings] = useState<DoorQuoteOpening[]>([]);
   const [result, setResult] = useState<DoorProjectResponse | null>(null);
-  const [presentationMode, setPresentationMode] = useState<"internal" | "customer">("internal");
+  const { mode: presentationMode, setMode: setPresentationMode, role } = useViewMode();
   const [loading, setLoading] = useState(true);
   const [handoffBusy, setHandoffBusy] = useState(false);
   const [handoffEstimateId, setHandoffEstimateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [autoPriceError, setAutoPriceError] = useState<string | null>(null);
   const [projectLoading, setProjectLoading] = useState(Boolean(projectId));
   const [editHydrated, setEditHydrated] = useState(false);
   const [selectedEditDoorId, setSelectedEditDoorId] = useState<string | null>(null);
   const [salesPresets, setSalesPresets] = useState<SalesPreset[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState("standard");
   const [negotiatedDiscount, setNegotiatedDiscount] = useState(0);
+  const [favourites, setFavourites] = useState<SavedTemplate<DoorFavourite>[]>([]);
+  const [selectedFavouriteId, setSelectedFavouriteId] = useState("");
+  const [favouritesBusy, setFavouritesBusy] = useState(false);
+  const [favouritesError, setFavouritesError] = useState<string | null>(null);
+  const [favouritesNotice, setFavouritesNotice] = useState<string | null>(null);
   const autoPriceRequestRef = useRef(0);
+
+  useEffect(() => {
+    fetchTemplates<DoorFavourite>("door")
+      .then(setFavourites)
+      .catch((reason) => setFavouritesError(reason instanceof Error ? `Could not load favourites: ${reason.message}` : "Could not load favourites."));
+  }, []);
 
   useEffect(() => {
     Promise.all([fetchDoorCatalog(), fetchSalesPresets()])
@@ -429,6 +475,9 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     negotiated_discount_percent: negotiatedDiscount,
     presentation_mode: "internal",
   };
+  // The sliding margin and profit floor are set on the whole project: price
+  // these openings with the project's windows (and its other doors when adding).
+  const costContext = projectId ? { project_id: projectId, scope: editDoors ? "replace_doors" as const : "append" as const } : undefined;
 
   function updateDraft(next: OpeningDraft) {
     setDraft(next);
@@ -436,27 +485,79 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   }
 
   // Live pricing: re-quote as the rep edits, so the number on screen always
-  // matches the configuration. Incomplete drafts fail quietly; the Generate
-  // button remains the explicit path and surfaces validation messages.
+  // matches the configuration. A failed refresh keeps the last good result
+  // visible but flags that it no longer matches the current selections.
   useEffect(() => {
     const requestId = ++autoPriceRequestRef.current;
     if (!catalog || !draft) return;
     const payload = buildPayload();
     if (!payload.length) return;
     const timer = setTimeout(() => {
-      quoteDoors(payload, commercial)
+      quoteDoors(payload, commercial, costContext)
         .then((response) => {
           if (autoPriceRequestRef.current !== requestId) return;
           setResult(response);
+          setAutoPriceError(null);
           setError(null);
         })
-        .catch(() => {
-          /* incomplete draft — keep the last good result visible */
+        .catch((reason) => {
+          if (autoPriceRequestRef.current !== requestId) return;
+          setAutoPriceError(reason instanceof Error ? reason.message : "The live price could not be updated.");
         });
     }, 600);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, openings, catalog, selectedPresetId, negotiatedDiscount]);
+
+  async function saveFavourite() {
+    if (!draft) return;
+    const name = window.prompt("Name this door favourite (e.g. Fiberglass single, group A glass):")?.trim();
+    if (!name) return;
+    setFavouritesBusy(true);
+    setFavouritesError(null);
+    setFavouritesNotice(null);
+    try {
+      const saved = await createTemplate(name, "door", favouriteFromOpening(draft));
+      setFavourites((current) => [...current.filter((item) => item.id !== saved.id), saved]);
+      setSelectedFavouriteId(saved.id);
+      setFavouritesNotice(`Saved “${saved.name}”.`);
+    } catch (reason) {
+      setFavouritesError(reason instanceof Error ? `Could not save the favourite: ${reason.message}` : "Could not save the favourite.");
+    } finally {
+      setFavouritesBusy(false);
+    }
+  }
+
+  function applySavedFavourite(id = selectedFavouriteId) {
+    const favourite = favourites.find((item) => item.id === id);
+    if (!favourite || !catalog || !draft) return;
+    const next = openingFromFavourite(favourite.payload, catalog, draft.label);
+    if (!next) {
+      setFavouritesNotice(null);
+      setFavouritesError(`“${favourite.name}” no longer matches the door catalog and could not be applied.`);
+      return;
+    }
+    updateDraft(next);
+    setFavouritesError(null);
+    setFavouritesNotice(`Applied “${favourite.name}” — the opening label is unchanged.`);
+  }
+
+  async function removeFavourite() {
+    const favourite = favourites.find((item) => item.id === selectedFavouriteId);
+    if (!favourite || !window.confirm(`Delete the favourite “${favourite.name}”?`)) return;
+    setFavouritesBusy(true);
+    setFavouritesError(null);
+    setFavouritesNotice(null);
+    try {
+      await deleteTemplate(favourite.id);
+      setFavourites((current) => current.filter((item) => item.id !== favourite.id));
+      setSelectedFavouriteId("");
+    } catch (reason) {
+      setFavouritesError(reason instanceof Error ? `Could not delete the favourite: ${reason.message}` : "Could not delete the favourite.");
+    } finally {
+      setFavouritesBusy(false);
+    }
+  }
 
   function updateOpeningType(nextType: DoorOpeningSpec["opening_type"]) {
     if (!catalog || !draft) return;
@@ -508,7 +609,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     setLoading(true);
     setError(null);
     try {
-      const response = await quoteDoors(payload, commercial);
+      const response = await quoteDoors(payload, commercial, costContext);
       setOpenings((current) => payload.map((spec, index) => ({
         id: current[index]?.id || newEstimateLineId("door"),
         location: current[index]?.location || "",
@@ -524,7 +625,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   }
 
   async function sendToProjectEstimate() {
-    if (!projectId || !project || project.status === "finalized" || !result || !openings.length) return;
+    if (!projectId || !project || isLockedStatus(project.status) || !result || !openings.length) return;
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
@@ -537,23 +638,10 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     const projectHasProducts = project.windows.length > 0 || project.doors.length > 0;
     try {
       if (editDoors) {
-        const draftPayload: CustomerEstimateDraft = {
-          customer_name: project.customer_name,
-          company_name: project.company_name,
-          email: project.email,
-          phone: project.phone,
-          project_name: project.project_name,
-          project_address: project.project_address,
-          salesperson: project.salesperson,
-          estimate_date: project.estimate_date,
-          valid_until: project.valid_until,
-          description: project.description,
-          notes: project.notes,
-          terms: project.terms,
-          windows: project.windows,
+        const draftPayload: CustomerEstimateDraft = estimateToDraft(project, {
           doors,
           commercial: { ...project.commercial, ...commercial },
-        };
+        });
         const saved = await updateCustomerEstimate(project.id, draftPayload);
         const priced = await priceCustomerEstimate(saved.id);
         window.location.href = `/projects/${priced.id}`;
@@ -579,7 +667,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   }
 
   if (!projectId) return <ProjectAccessGate product="door" />;
-  if (projectLoading) return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading projectâ€¦</p>;
+  if (projectLoading) return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading project…</p>;
   if (!project) return <p className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{error || "The selected project could not be loaded."}</p>;
   if (loading && !catalog) {
     return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading Palma door catalog…</p>;
@@ -602,12 +690,13 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Workflow</p>
-          <p className="text-base font-semibold text-slate-900">{presentationMode === "internal" ? "Internal door pricing workspace" : "Door customer presentation"}</p>
+          <p className="text-base font-semibold text-slate-900">{presentationMode === "internal" ? "Internal door pricing workspace" : "Door customer presentation — costs hidden"}</p>
+          <p className="text-xs text-slate-500">{role === "rep" ? "This device is locked to the rep view." : `Switch views here, in the header, or with ${VIEW_MODE_SHORTCUT}.`}</p>
         </div>
-        <div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
+        {role === "rep" ? null : <div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
           <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "internal" ? "bg-brand-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("internal")}>Internal view</button>
           <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "customer" ? "bg-emerald-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("customer")}>Customer view</button>
-        </div>
+        </div>}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm">
@@ -616,7 +705,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
       </div>
 
       <div className="grid gap-8 lg:grid-cols-5">
-      {presentationMode === "internal" ? (
+      {(
         <section className="space-y-6 lg:col-span-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -627,6 +716,32 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
             <Field label="Opening label">
               <input className="input w-44" value={draft.label} onChange={(event) => updateDraft({ ...draft, label: event.target.value })} />
             </Field>
+          </div>
+
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="block min-w-[12rem] flex-1">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Favourites</span>
+                <select
+                  className="input min-h-[2.75rem]"
+                  value={selectedFavouriteId}
+                  onChange={(event) => {
+                    setSelectedFavouriteId(event.target.value);
+                    if (event.target.value) applySavedFavourite(event.target.value);
+                  }}
+                  disabled={favouritesBusy || !favourites.length}
+                >
+                  <option value="">{favourites.length ? "Choose a saved favourite…" : "No saved favourites yet"}</option>
+                  {favourites.map((favourite) => <option key={favourite.id} value={favourite.id}>{favourite.name}</option>)}
+                </select>
+              </label>
+              <button type="button" className="min-h-[2.75rem] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={() => applySavedFavourite()} disabled={favouritesBusy || !selectedFavouriteId}>Apply again</button>
+              <button type="button" className="min-h-[2.75rem] rounded-lg border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60" onClick={removeFavourite} disabled={favouritesBusy || !selectedFavouriteId} aria-label="Delete the selected favourite">Delete</button>
+              <button type="button" className="min-h-[2.75rem] rounded-lg border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-60" onClick={saveFavourite} disabled={favouritesBusy}>Save current opening as favourite</button>
+            </div>
+            <p className="mt-2 text-xs text-slate-500">A favourite stores the whole opening configuration except its label.</p>
+            {favouritesNotice ? <p className="mt-1 text-xs text-emerald-700" role="status">{favouritesNotice}</p> : null}
+            {favouritesError ? <p className="mt-1 text-xs text-rose-700" role="alert">{favouritesError}</p> : null}
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -747,16 +862,16 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
 
           <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50 p-4">
             <div className="flex items-start justify-between gap-3">
-              <div><p className="text-sm font-semibold text-slate-800">Sales strategy</p><p className="mt-1 text-xs text-slate-600">The same manager-controlled markup, merchandise discount, protected installation, and minimum floor used by window quotes.</p></div>
-              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-brand-700">Manager-controlled floors</span>
+              <div><p className="text-sm font-semibold text-slate-800">{presentationMode === "internal" ? "Sales strategy" : "Discount"}</p><p className="mt-1 text-xs text-slate-600">{presentationMode === "internal" ? "The same manager-controlled pricing, merchandise discount, protected installation, and project profit floor used by window quotes." : "Enter the discount agreed with the customer. Installation is never discounted."}</p></div>
+              {presentationMode === "internal" ? <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-brand-700">Manager-controlled floors</span> : null}
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field label="Preset">
+              {presentationMode === "internal" ? <Field label="Preset">
                 <select className="input" value={selectedPreset?.id || selectedPresetId} onChange={(event) => { const next = salesPresets.find((preset) => preset.id === event.target.value); setSelectedPresetId(event.target.value); setNegotiatedDiscount(next?.default_discount_percent || 0); setResult(null); }}>
-                  {salesPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name} · {preset.markup_percent}% markup</option>)}
+                  {salesPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.strategy === "sliding_margin" && preset.sliding ? `${preset.name} · ${preset.sliding.start_margin_percent}% → ${preset.sliding.end_margin_percent}% ${preset.sliding.basis}` : `${preset.name} · ${preset.markup_percent}% markup`}</option>)}
                 </select>
                 {selectedPreset?.description ? <p className="mt-1 text-xs text-slate-500">{selectedPreset.description}</p> : null}
-              </Field>
+              </Field> : null}
               <Field label="Negotiated discount (%)">
                 <input className="input" type="number" min={0} max={result?.sales_pricing.maximum_allowed_discount_percent ?? selectedPreset?.max_discount_percent ?? 0} step={0.5} value={negotiatedDiscount} onChange={(event) => { setNegotiatedDiscount(Math.max(0, Number(event.target.value))); setResult(null); }} />
               </Field>
@@ -764,8 +879,10 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
             {result ? <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-700 sm:grid-cols-4">
               <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Discount</span><b>{money(result.sales_pricing.merchandise_discount_amount)}</b></div>
               <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Customer total</span><b>{money(result.totals.customer_total)}</b></div>
+              {presentationMode === "internal" ? <>
               <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Floor price</span><b>{money(result.sales_pricing.minimum_floor_sell || 0)}</b></div>
               <div className="rounded-lg bg-white px-3 py-2"><span className="block text-slate-500">Remaining room</span><b>{(result.sales_pricing.remaining_discount_percent || 0).toFixed(1)}%</b></div>
+              </> : null}
             </div> : <p className="mt-3 text-xs text-slate-500">Choose valid door options to see the live strategy totals and available room.</p>}
           </div>
 
@@ -778,8 +895,9 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
 
         {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.material} · {opening.spec.opening_type.replace(/_/g, " ")} · {opening.spec.finish}</p></div><div className="flex items-center gap-3">{editDoors ? <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => selectEditOpening(opening)}>{opening.id === selectedEditDoorId ? "Editing" : "Edit"}</button> : <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => { setOpenings([...openings, { id: newEstimateLineId("door"), location: opening.location, description: opening.description, spec: JSON.parse(JSON.stringify(opening.spec)) }]); setResult(null); }}>Duplicate</button>}<button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></div></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><LocationInput className="input" value={opening.location} onChange={(value) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: value } : item))} placeholder="Location (e.g. Front entrance)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
       </section>
-      ) : (
-        <section className="space-y-6 lg:col-span-3">
+      )}
+      {presentationMode === "customer" ? (
+        <aside className="space-y-6 lg:col-span-2">
         <div className="rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -796,18 +914,18 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
             <div className="ml-auto w-full max-w-xs space-y-1 border-t border-slate-200 pt-3 text-sm"><div className="flex justify-between text-slate-600"><span>Subtotal</span><span>{money(customer.subtotal)}</span></div><div className="flex justify-between text-slate-600"><span>HST</span><span>{money(customer.hst)}</span></div><div className="flex justify-between text-base font-bold text-emerald-900"><span>Total</span><span>{money(customer.total)}</span></div></div>
           </div>}
         </div>
-      </section>
-      )}
+      </aside>
+      ) : null}
       {presentationMode === "internal" ? <>
 
-      <aside className="lg:col-span-2"><div className="sticky top-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-base font-semibold text-slate-900">Door quote</h2>{!result ? <p className="mt-3 text-sm text-slate-500">Complete the opening and click <strong>Generate door quote</strong> for the Palma list, install, markup, HST, and customer total.</p> : <div className="mt-4 space-y-4"><div className="rounded-xl bg-brand-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Project customer total</p><p className="mt-1 text-3xl font-bold text-brand-700">{money(result.totals.customer_total)}</p><p className="mt-1 text-xs text-slate-500">Sell {money(result.totals.sell)} · HST {money(result.totals.hst)}</p></div><div className="grid grid-cols-2 gap-3 text-sm"><Metric label="List" value={result.totals.list_total} /><Metric label="Material cost" value={result.totals.material_cost} /><Metric label="Install" value={result.totals.install} /><Metric label="Markup" value={result.totals.markup_amount} /></div>{result.openings.map((opening, index) => <div key={index} className="rounded-xl border border-slate-100 bg-slate-50 p-4"><div className="flex items-start justify-between gap-2"><div><p className="text-sm font-semibold text-slate-900">{opening.label}</p><p className="text-xs text-slate-500">{opening.material} · {opening.finish_label}</p></div><p className="text-sm font-bold text-slate-900">{money(opening.customer_total)}</p></div><div className="mt-3 space-y-1 text-xs text-slate-600">{opening.line_items.map((item, itemIndex) => <div key={itemIndex} className="flex justify-between gap-3"><span>{item.description}{item.qty > 1 ? ` ×${item.qty}` : ""}</span><span>{money(item.list)}</span></div>)}</div><div className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500"><p>List {money(opening.list_total)} · Material {money(opening.material_cost)}</p><p>Install {money(opening.install)} · Sell {money(opening.sell)} · HST {money(opening.hst)}</p>{opening.notes.map((note) => <p key={note} className="mt-1">Note: {note}</p>)}</div></div>)}</div>}</div></aside>
+      <aside className="lg:col-span-2"><div className="sticky top-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-base font-semibold text-slate-900">Door quote</h2>{autoPriceError ? <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"><p className="font-semibold">{result ? "Price not updated — the figures below are for your previous selections." : "These selections could not be priced."}</p><p className="mt-1">{autoPriceError}</p></div> : null}{!result ? <p className="mt-3 text-sm text-slate-500">Complete the opening and click <strong>Generate door quote</strong> for the Palma list, install, markup, HST, and customer total.</p> : <div className="mt-4 space-y-4"><div className="rounded-xl bg-brand-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Project customer total</p><p className="mt-1 text-3xl font-bold text-brand-700">{money(result.totals.customer_total)}</p><p className="mt-1 text-xs text-slate-500">Sell {money(result.totals.sell)} · HST {money(result.totals.hst)}</p></div><div className="grid grid-cols-2 gap-3 text-sm"><Metric label="List" value={result.totals.list_total} /><Metric label="Material cost" value={result.totals.material_cost} /><Metric label="Install" value={result.totals.install} /><Metric label="Markup" value={result.totals.markup_amount} /></div>{result.openings.map((opening, index) => <div key={index} className="rounded-xl border border-slate-100 bg-slate-50 p-4"><div className="flex items-start justify-between gap-2"><div><p className="text-sm font-semibold text-slate-900">{opening.label}</p><p className="text-xs text-slate-500">{opening.material} · {opening.finish_label}</p></div><p className="text-sm font-bold text-slate-900">{money(opening.customer_total)}</p></div><div className="mt-3 space-y-1 text-xs text-slate-600">{opening.line_items.map((item, itemIndex) => <div key={itemIndex} className="flex justify-between gap-3"><span>{item.description}{item.qty > 1 ? ` ×${item.qty}` : ""}</span><span>{money(item.list)}</span></div>)}</div><div className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500"><p>List {money(opening.list_total)} · Material {money(opening.material_cost)}</p><p>Install {money(opening.install)} · Sell {money(opening.sell)} · HST {money(opening.hst)}</p>{opening.notes.map((note) => <p key={note} className="mt-1">Note: {note}</p>)}</div></div>)}</div>}</div></aside>
       </> : null}
       <div className="lg:col-span-2">
         <div className="rounded-2xl border border-brand-200 bg-white p-5 shadow-sm">
           <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
           <p className="mt-1 text-sm text-slate-500">{editDoors ? "Save these door openings and return to the repriced project." : `Assign all ${openings.length} added door opening${openings.length === 1 ? "" : "s"} to the selected project. Existing window and door lines stay together.`}</p>
-          {project.status === "finalized" ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This project is finalized and cannot accept new quote lines.</p> : null}
-          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result || project.status === "finalized"}>{handoffBusy ? (editDoors ? "Saving changes…" : "Saving doors…") : editDoors ? "Save door changes" : `Save ${openings.length} door${openings.length === 1 ? "" : "s"} to project`}</button>
+          {isLockedStatus(project.status) ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This estimate is finalized and read-only. Create a revision from the project to change it.</p> : null}
+          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result || isLockedStatus(project.status)}>{handoffBusy ? (editDoors ? "Saving changes…" : "Saving doors…") : editDoors ? "Save door changes" : `Save ${openings.length} door${openings.length === 1 ? "" : "s"} to project`}</button>
           {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The quote was assigned. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
           {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
           {error && !handoffEstimateId ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p> : null}

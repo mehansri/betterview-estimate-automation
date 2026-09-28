@@ -1,0 +1,4 @@
+# OS / editor
+.DS_Store
+# Empty stub; the real lockfile is window-ai/frontend/package-lock.json
+/package-lock.json

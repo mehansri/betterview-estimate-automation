@@ -1,7 +1,28 @@
 {
+  "revision": 2,
   "currency": "CAD",
   "minimum_markup_percent": 20.0,
+  "project_profit_floor": 1800.0,
+  "_project_profit_floor": "Hard floor (user rule 2026-09-28): no project quote earns less than this profit. Applies to every preset; small projects are priced up to it and no discount may take a project below it without a manager override. 0 turns the floor off.",
+  "default_preset_id": "sliding",
   "presets": [
+    {
+      "id": "sliding",
+      "name": "Sliding margin",
+      "description": "45% margin on small projects sliding to 30% as the project grows, never under the profit floor.",
+      "strategy": "sliding_margin",
+      "sliding": {
+        "start_margin_percent": 45.0,
+        "end_margin_percent": 30.0,
+        "cap_profit": 4000.0,
+        "basis": "margin"
+      },
+      "markup_percent": 0.0,
+      "default_discount_percent": 0.0,
+      "max_discount_percent": 5.0,
+      "minimum_markup_percent": 0.0,
+      "active": true
+    },
     {
       "id": "standard",
       "name": "Standard",
@@ -10,7 +31,8 @@
       "default_discount_percent": 0.0,
       "max_discount_percent": 10.0,
       "minimum_markup_percent": 20.0,
-      "active": true
+      "active": true,
+      "strategy": "markup"
     },
     {
       "id": "competitive",
@@ -20,7 +42,8 @@
       "default_discount_percent": 0.0,
       "max_discount_percent": 5.0,
       "minimum_markup_percent": 20.0,
-      "active": true
+      "active": true,
+      "strategy": "markup"
     },
     {
       "id": "floor",
@@ -30,7 +53,8 @@
       "default_discount_percent": 0.0,
       "max_discount_percent": 0.0,
       "minimum_markup_percent": 20.0,
-      "active": true
+      "active": true,
+      "strategy": "markup"
     }
   ]
 }

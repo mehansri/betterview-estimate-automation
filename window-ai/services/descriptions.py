@@ -62,10 +62,141 @@ def _window_options(spec: dict[str, Any]) -> list[str]:
             options.append(f"{gas.title()} gas")
     for accessory in spec.get("accessories") or []:
         if isinstance(accessory, dict):
-            name = _text(accessory.get("name") or accessory.get("kind"))
+            name = accessory_text(accessory)
             if name:
                 options.append(name)
+    if spec.get("kick_lock"):
+        options.append("Kick lock")
     return options
+
+
+def _fraction(value: float) -> str:
+    """5.5 -> '5 1/2', 4.75 -> '4 3/4' (sixteenths), matching fmtInches()."""
+    whole = int(value)
+    sixteenths = round((value - whole) * 16)
+    if sixteenths == 16:
+        whole, sixteenths = whole + 1, 0
+    if not sixteenths:
+        return str(whole)
+    num, den = sixteenths, 16
+    while num % 2 == 0:
+        num, den = num // 2, den // 2
+    return f"{whole} {num}/{den}" if whole else f"{num}/{den}"
+
+
+def accessory_text(accessory: dict[str, Any]) -> str:
+    """Customer text for an accessory; wood jambs read '5 1/2" primed wood jamb'."""
+    import re
+
+    name = _text(accessory.get("name"))
+    if accessory.get("kind") == "wood_jamb":
+        depth = accessory.get("depth_in")
+        if depth is not None:
+            size = f'{_fraction(float(depth))}"'
+        else:
+            match = re.match(r'([\d/ ]+)"', name)
+            size = f'{match.group(1).strip()}"' if match else ""
+        return f"{size} primed wood jamb".strip()
+    return name or _pretty(accessory.get("kind"))
+
+
+def colour_text(specs: list[dict[str, Any]]) -> list[str]:
+    """'Exterior colour: black' plus 'Interior colour: black' when not white."""
+    exterior = _join([_text(item.get("colour_ext") or item.get("color")) for item in specs])
+    interior = _join([
+        _text(item.get("colour_int")) for item in specs
+        if _text(item.get("colour_int")).lower() not in ("", "white")
+    ])
+    return [f"Exterior colour: {exterior}" if exterior else "",
+            f"Interior colour: {interior}" if interior else ""]
+
+
+def _num(value: Any) -> str:
+    # Matches the frontend's fmt(): at most three decimals, no trailing zeros.
+    return f"{round(float(value), 3):g}"
+
+
+def energy_summary(ratings: list[dict[str, Any] | None]) -> str:
+    """'ENERGY STAR Most Efficient - ER 38-44 - U-factor 0.17-0.18' when every part is rated."""
+    if not ratings or any(r is None for r in ratings):
+        return ""
+    stars = {r.get("energy_star") for r in ratings}
+    if stars == {"most_efficient"}:
+        star = "ENERGY STAR Most Efficient"
+    elif None not in stars:
+        star = "ENERGY STAR qualified"
+    else:
+        star = ""
+    ers = sorted({r["er"] for r in ratings})
+    us = sorted({r["u_ip"] for r in ratings})
+    er = f"ER {ers[0]}" if len(ers) == 1 else f"ER {ers[0]}-{ers[-1]}"
+    u = f"U-factor {us[0]:g}" if len(us) == 1 else f"U-factor {us[0]:g}-{us[-1]:g}"
+    return _join([star, er, u])
+
+
+def unit_description(spec: dict[str, Any], common: list[str]) -> str:
+    """Layout-first unit: series, size, section layout and each section's size."""
+    from services.windowcity import layout
+    from services.windowcity.catalog import CatalogError
+    from services.windowcity.quote import _unit_sections
+
+    series = layout.SERIES.get(spec.get("series") or layout.DEFAULT_SERIES, {})
+    label = series.get("label", "Window")
+    try:
+        resolved, section_lines = _unit_sections(spec)
+    except (CatalogError, KeyError, TypeError, ValueError):
+        return _join([f"{label} window", _size(spec), *common])
+    count = len(resolved.sections)
+    if count == 1:
+        head = f"{label} {layout.section_label(resolved.sections[0]).lower()} window"
+        parts = [head, _size(spec)]
+    else:
+        parts = [
+            f"{label} {count}-section window unit",
+            _size(spec),
+            layout.summary(spec.get("layout"), resolved.width, resolved.height),
+            "Sections: " + ", ".join(
+                f"{layout.section_label(sec)} {_num(sec.width)} x {_num(sec.height)}"
+                for sec in resolved.sections),
+        ]
+    return _join([*parts, *common])
+
+
+def bay_description(spec: dict[str, Any], common: list[str]) -> str:
+    """Layout-first bay or bow: series, lite count, size and each lite."""
+    from services.windowcity import layout
+    from services.windowcity.catalog import CatalogError
+
+    series = layout.SERIES.get(spec.get("series") or layout.DEFAULT_SERIES, {})
+    kind = "Bow" if str(spec.get("style") or "bay").lower() == "bow" else "Bay"
+    try:
+        resolved = layout.resolve(spec.get("layout"), float(spec["width"]), float(spec["height"]))
+    except (CatalogError, KeyError, TypeError, ValueError):
+        return _join([f"{kind} window", _size(spec), *common])
+    return _join([
+        f"{series.get('label', 'Window')} {kind.lower()} window, {len(resolved.sections)} lites",
+        _size(spec),
+        "Lites: " + ", ".join(
+            f"{layout.section_label(sec)} {_num(sec.width)} x {_num(sec.height)}" for sec in resolved.sections),
+        _text(spec.get("head_seat")) and f"Head & seat: {_text(spec.get('head_seat'))}",
+        *common,
+    ])
+
+
+def line_energy(spec: dict[str, Any]) -> str:
+    """Energy summary for a unit or single window, '' when any part is unrated."""
+    from services.windowcity.catalog import CatalogError, energy_rating, style
+    from services.windowcity.quote import _unit_sections
+
+    try:
+        if spec.get("type") == "unit":
+            _, section_lines = _unit_sections(spec)
+            return energy_summary([energy_rating(l["style"], l["glazing"]) for l in section_lines])
+        if spec.get("type", "window") == "window" and spec.get("style"):
+            return energy_summary([energy_rating(style(str(spec["style"]))["code"], spec.get("glazing"))])
+    except (CatalogError, KeyError, TypeError, ValueError):
+        return ""
+    return ""
 
 
 def window_description(project_line: dict[str, Any]) -> str:
@@ -74,12 +205,13 @@ def window_description(project_line: dict[str, Any]) -> str:
     line_type = _pretty(spec.get("type") or "window")
     nested_lites = [lite for lite in spec.get("lites") or [] if isinstance(lite, dict)]
     all_specs = [spec, *nested_lites]
-    colours = _join([_text(item.get("colour_ext") or item.get("color")) for item in all_specs])
-    common = [f"Exterior colour: {colours}" if colours else ""]
+    common = colour_text(all_specs)
     for item in all_specs:
         common.extend(_window_options(item))
 
-    if line_type == "window":
+    if line_type == "unit":
+        generated = unit_description(spec, common)
+    elif line_type == "window":
         generated = _join([_text(spec.get("style")) or "Window", _size(spec), *common])
     elif line_type == "patio sliding":
         nominal = spec.get("nominal_ft")
@@ -87,6 +219,7 @@ def window_description(project_line: dict[str, Any]) -> str:
             [
                 "Sliding patio door",
                 f"{nominal} ft" if nominal is not None else "",
+                _text(spec.get("operation")).upper(),
                 *common,
             ]
         )
@@ -109,6 +242,8 @@ def window_description(project_line: dict[str, Any]) -> str:
                 *common,
             ]
         )
+    elif line_type == "bay bow" and spec.get("layout"):
+        generated = bay_description(spec, common)
     elif line_type == "bay bow":
         lites = nested_lites
         styles = _join([_text(lite.get("style")) for lite in lites])

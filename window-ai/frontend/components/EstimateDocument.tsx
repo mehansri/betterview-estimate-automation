@@ -3,6 +3,8 @@
 import type { CSSProperties } from "react";
 import type { CustomerEstimate, CustomerEstimatePricing } from "@/lib/api";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import WindowUnitDrawing from "@/components/WindowUnitDrawing";
+import { layoutFromLegacySpec } from "@/lib/windowLayout";
 
 const BRAND = {
   blue: "#248fd0",
@@ -75,6 +77,15 @@ function EditableArea({
   );
 }
 
+/** Elevation of a window line: the priced snapshot's geometry, else drawn from the saved spec. */
+function WindowLineSketch({ line, estimate }: { line: NonNullable<CustomerEstimatePricing["sections"]>["windows"]["lines"][number]; estimate: CustomerEstimate }) {
+  if (line.drawing) return <span className="mb-1 block"><WindowUnitDrawing geometry={line.drawing} size={84} showDimensions={false} showIndexes={false} /></span>;
+  const spec = estimate.windows.find((item) => item.id === line.id)?.spec;
+  const drawable = spec ? layoutFromLegacySpec(spec as Record<string, unknown>) : null;
+  if (!drawable) return null;
+  return <span className="mb-1 block"><WindowUnitDrawing layout={drawable.layout} width={drawable.width} height={drawable.height} size={84} showDimensions={false} showIndexes={false} /></span>;
+}
+
 export default function EstimateDocument({
   estimate,
   editable,
@@ -99,7 +110,7 @@ export default function EstimateDocument({
         </div>
         <div className="estimate-title-block">
           <p className="estimate-kicker">Customer document</p>
-          <h1>Finalized Estimate</h1>
+          <h1>{estimate.status === "accepted" ? "Accepted Estimate" : estimate.status === "draft" || estimate.status === "priced" ? "Draft Estimate" : "Estimate"}</h1>
           <p className="estimate-number">{estimate.estimate_number || "Draft estimate"}</p>
         </div>
       </header>
@@ -128,7 +139,7 @@ export default function EstimateDocument({
               onChange={(value) => onChange({ project_address: value })}
               placeholder="Project address"
             />
-          ) : <p className="whitespace-pre-line">{estimate.project_address || "â€”"}</p>}
+          ) : <p className="whitespace-pre-line">{estimate.project_address || "—"}</p>}
         </div>
         <div className="estimate-panel estimate-project-panel">
           <div className="estimate-detail-row"><span>Project</span><Editable value={estimate.project_name} editable={editable} onChange={(value) => onChange({ project_name: value })} placeholder="Project name" /></div>
@@ -147,7 +158,7 @@ export default function EstimateDocument({
         <section className="estimate-product-section">
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Windows</h2></div><span>{money(sections.windows.subtotal)}</span></div>
           <table className="estimate-table"><thead><tr><th>#</th><th>Description</th><th>Location</th><th className="text-right">Qty</th><th className="text-right">Unit</th><th className="text-right">Amount</th></tr></thead><tbody>
-            {sections.windows.lines.map((line, index) => <tr key={line.id}><td data-label="#">{index + 1}</td><td data-label="Description">{line.description}</td><td data-label="Location">{line.location || "—"}</td><td data-label="Qty" className="text-right">{line.qty}</td><td data-label="Unit" className="text-right">{money(line.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(line.line_total)}</td></tr>)}
+            {sections.windows.lines.map((line, index) => <tr key={line.id}><td data-label="#">{index + 1}</td><td data-label="Description"><WindowLineSketch line={line} estimate={estimate} />{line.description}{line.energy ? <span className="block text-xs text-slate-500">{line.energy}</span> : null}</td><td data-label="Location">{line.location || "—"}</td><td data-label="Qty" className="text-right">{line.qty}</td><td data-label="Unit" className="text-right">{money(line.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(line.line_total)}</td></tr>)}
           </tbody></table>
         </section>
       ) : null}
@@ -164,15 +175,51 @@ export default function EstimateDocument({
         </section>
       ) : null}
 
+      {sections?.adders?.lines?.length ? (
+        <section className="estimate-product-section">
+          <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Additional work</h2></div><span>{money(sections.adders.subtotal)}</span></div>
+          <table className="estimate-table"><thead><tr><th>Description</th><th className="text-right">Qty</th><th className="text-right">Unit</th><th className="text-right">Amount</th></tr></thead><tbody>
+            {sections.adders.lines.map((line) => <tr key={line.id}><td data-label="Description">{line.name}{line.note ? <span className="block text-xs text-slate-500">{line.note}</span> : null}</td><td data-label="Qty" className="text-right">{line.qty}</td><td data-label="Unit" className="text-right">{money(line.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(line.line_total)}</td></tr>)}
+          </tbody></table>
+        </section>
+      ) : null}
+
       {!sections ? <div className="estimate-empty-state">Price the project to populate the customer-facing estimate.</div> : null}
 
       <section className="estimate-totals-block">
         {(totals?.base_subtotal || 0) > (totals?.subtotal || 0) + 0.01 ? <div className="estimate-total-line"><span>Original subtotal</span><strong>{money(totals?.base_subtotal)}</strong></div> : null}
         {(totals?.discount || 0) > 0 ? <div className="estimate-total-line"><span>Offer discount</span><strong>−{money(totals?.discount)}</strong></div> : null}
         <div className="estimate-total-line"><span>Subtotal</span><strong>{money(totals?.subtotal)}</strong></div>
-        <div className="estimate-total-line"><span>HST</span><strong>{money(totals?.hst)}</strong></div>
+        {totals?.tax_lines?.length
+          ? totals.tax_lines.map((tax) => <div className="estimate-total-line" key={tax.label}><span>{tax.label}</span><strong>{money(tax.amount)}</strong></div>)
+          : <div className="estimate-total-line"><span>HST</span><strong>{money(totals?.hst)}</strong></div>}
         <div className="estimate-total-line estimate-grand-total"><span>Total</span><strong>{money(totals?.total)}</strong></div>
+        {pricing?.deposit ? <div className="estimate-total-line"><span>Deposit due on acceptance</span><strong>{money(pricing.deposit)}</strong></div> : null}
       </section>
+
+      {pricing?.tiers?.some((tier) => !tier.error) ? (
+        <section className="estimate-product-section">
+          <div className="estimate-section-heading"><div><p className="estimate-section-label">Choose your package</p><h2>Options</h2></div></div>
+          <table className="estimate-table"><thead><tr><th>Option</th><th>What changes</th><th className="text-right">Total</th></tr></thead><tbody>
+            {pricing.tiers.filter((tier) => !tier.error).map((tier) => <tr key={tier.id}><td data-label="Option" className="font-semibold">{tier.name}{tier.selected ? " (quoted above)" : ""}</td><td data-label="What changes">{tier.description || "—"}</td><td data-label="Total" className="text-right font-semibold">{money(tier.total)}</td></tr>)}
+          </tbody></table>
+        </section>
+      ) : null}
+
+      {pricing?.financing?.options?.length ? (
+        <section className="estimate-copy-block">
+          <p className="estimate-section-label">Financing available</p>
+          <p>{pricing.financing.options.map((option) => `${option.months} months: ${money(option.monthly_payment)}/mo`).join(" · ")} at {pricing.financing.apr_percent}% APR.</p>
+          <p className="text-xs text-slate-500">{pricing.financing.disclaimer}</p>
+        </section>
+      ) : null}
+
+      {estimate.acceptance ? (
+        <section className="estimate-copy-block">
+          <p className="estimate-section-label">Acceptance</p>
+          <p>Accepted by {estimate.acceptance.name} on {new Date(estimate.acceptance.accepted_at).toLocaleDateString("en-CA")}{estimate.acceptance.tier_name ? ` — option ${estimate.acceptance.tier_name}` : ""}{estimate.acceptance.total != null ? ` — ${money(estimate.acceptance.total)}` : ""}.</p>
+        </section>
+      ) : null}
 
       <section className="estimate-copy-grid">
         <div><p className="estimate-section-label">Notes</p><EditableArea value={estimate.notes} editable={editable} onChange={(value) => onChange({ notes: value })} placeholder="Optional project notes" /></div>

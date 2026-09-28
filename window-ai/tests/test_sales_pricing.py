@@ -25,6 +25,7 @@ def _spec() -> dict:
     }
 
 
+@pytest.mark.usefixtures("no_profit_floor")
 def test_sales_presets_use_markup_on_cost_and_protect_catalog_cost() -> None:
     standard = price_quote(_spec(), commercial={"preset_id": "standard", "negotiated_discount_percent": 0})
     competitive = price_quote(_spec(), commercial={"preset_id": "competitive", "negotiated_discount_percent": 0})
@@ -46,6 +47,7 @@ def test_90_5_gas_is_priced_as_the_configured_50_50_dealer_deal() -> None:
     assert gas_component["dealer"] == pytest.approx(0.0)
 
 
+@pytest.mark.usefixtures("no_profit_floor")
 def test_negotiation_discounts_merchandise_but_not_installation_or_catalog_cost() -> None:
     base = price_quote(_spec(), commercial={"preset_id": "standard", "negotiated_discount_percent": 0})
     allowed = base["sales_pricing"]["maximum_allowed_discount_percent"]
@@ -67,6 +69,7 @@ def test_negotiation_discounts_merchandise_but_not_installation_or_catalog_cost(
     )
 
 
+@pytest.mark.usefixtures("no_profit_floor")
 def test_floor_rejects_excess_discount_and_reports_maximum() -> None:
     with pytest.raises(NegotiationLimitError) as exc_info:
         price_quote(_spec(), commercial={"preset_id": "floor", "negotiated_discount_percent": 0.1})
@@ -83,6 +86,7 @@ def test_catalog_config_override_is_not_used_by_public_engine() -> None:
     assert attempted_override["totals"]["dealer_cost"] == normal["totals"]["dealer_cost"]
 
 
+@pytest.mark.usefixtures("no_profit_floor")
 def test_customer_presentation_redacts_internal_values_and_audit_keeps_them(tmp_path, monkeypatch) -> None:
     db_path = tmp_path / "sales-pricing-api.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
@@ -164,9 +168,10 @@ def test_manager_override_requires_token_and_reason(tmp_path, monkeypatch) -> No
 def test_sales_preset_editing_is_manager_protected(tmp_path, monkeypatch) -> None:
     from services.windowcity import sales
 
-    isolated_config = tmp_path / "sales_config.json"
-    isolated_config.write_text(sales.SALES_CONFIG_PATH.read_text(encoding="utf-8"), encoding="utf-8")
-    monkeypatch.setattr(sales, "SALES_CONFIG_PATH", isolated_config)
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'presets.db'}")
+    reset_engine()
+    init_db()
+    bundled_defaults = sales.SALES_CONFIG_PATH.read_text(encoding="utf-8")
     monkeypatch.setenv("PRICING_ADMIN_TOKEN", "manager-secret")
 
     from api.main import app
@@ -186,3 +191,8 @@ def test_sales_preset_editing_is_manager_protected(tmp_path, monkeypatch) -> Non
     )
     assert updated.status_code == 200, updated.text
     assert updated.json()["presets"][0]["description"] == "Manager-approved standard strategy"
+    # Saved to the database (works on read-only hosts); bundled defaults untouched.
+    assert sales.SALES_CONFIG_PATH.read_text(encoding="utf-8") == bundled_defaults
+    reread = client.get("/api/admin/sales-presets").json()
+    assert reread["presets"][0]["description"] == "Manager-approved standard strategy"
+    reset_engine()

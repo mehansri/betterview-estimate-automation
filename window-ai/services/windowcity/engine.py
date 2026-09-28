@@ -11,14 +11,15 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-from . import catalog
-from .quote import CatalogError, load_config, price_quote as _price_quote
+from . import catalog, layout
+from .quote import BAY_ANGLES, SLIDING_OPERATIONS, CatalogError, load_config, price_quote as _price_quote
 from .sales import apply_sales_pricing, list_presets, sales_config_version
 
 BOOK_VERSION = "Window City v18 (2023)"
 SUPPORTED_TYPES = {
     "window",
     "combination",
+    "unit",
     "patio_sliding",
     "patio_swing",
     "bay_bow",
@@ -93,8 +94,8 @@ def _collect_pages(line: dict[str, Any]) -> list[int]:
         for accessory in line.get("accessories") or []:
             if isinstance(accessory, dict):
                 try:
-                    add(catalog.accessory(accessory["kind"], accessory["name"]))
-                except (KeyError, CatalogError):
+                    add(catalog.accessory_row(accessory))
+                except (KeyError, TypeError, ValueError, CatalogError):
                     pass
         shape = line.get("shape")
         if isinstance(shape, dict):
@@ -106,6 +107,19 @@ def _collect_pages(line: dict[str, Any]) -> list[int]:
         for lite in line.get("lites") or []:
             if isinstance(lite, dict):
                 pages.update(_collect_pages({**lite, "type": "window"}))
+        for row in catalog.load("accessories").get("rows", []):
+            if row.get("section") == "reinforcement_mullion":
+                add(row)
+    elif kind == "unit":
+        try:
+            from .quote import _unit_sections
+
+            _, section_lines = _unit_sections(line)
+        except (CatalogError, KeyError, TypeError, ValueError):
+            section_lines = []
+        for section_line in section_lines:
+            pages.update(_collect_pages(section_line))
+        pages.update(_collect_pages({"type": "window", "accessories": line.get("accessories") or []}))
         for row in catalog.load("accessories").get("rows", []):
             if row.get("section") == "reinforcement_mullion":
                 add(row)
@@ -124,9 +138,15 @@ def _collect_pages(line: dict[str, Any]) -> list[int]:
             add(row)
         for row in catalog.load("baybow").get("brickmould_no_head_seat", []):
             add(row)
-        for lite in line.get("lites") or []:
-            if isinstance(lite, dict):
-                pages.update(_collect_pages({**lite, "type": "window"}))
+        try:
+            from .quote import bay_lites
+
+            lites = bay_lites(line)
+        except (CatalogError, KeyError, TypeError, ValueError):
+            lites = [lite for lite in line.get("lites") or [] if isinstance(lite, dict)]
+        for lite in lites:
+            pages.update(_collect_pages({**lite, "type": "window"}))
+        pages.update(_collect_pages({"type": "window", "accessories": line.get("accessories") or []}))
 
     return sorted(pages)
 
@@ -218,13 +238,90 @@ def catalog_payload() -> dict[str, Any]:
             ]
             for family, rows in (("architectural", shapes.get("architectural", [])), ("polygon", shapes.get("polygon", [])))
         },
+        "layout": layout.catalog_payload(),
+        "colours": _colour_payload(windows),
+        "wood_jamb": _wood_jamb_payload(accessories),
         "patio_sliding_sizes": [row["nominal_size_ft"] for row in patio["sliding"]["standard"]["rows"]],
-        "patio_swing_kinds": sorted(patio.get("swing", {}).keys()),
+        "patio_sliding": [
+            {
+                "nominal_ft": row["nominal_size_ft"],
+                "panels": row["panels"],
+                "frame_width": catalog.inches(row["frame_width"]),
+                "frame_height": catalog.inches(row["frame_height"]),
+                "operations": list(SLIDING_OPERATIONS.get(int(row["panels"]), ())),
+                "triple": row.get("triple_2loe180_argon") is not None,
+                "tint": row.get("grey_bronze_tint_add") is not None,
+            }
+            for row in patio["sliding"]["standard"]["rows"]
+        ],
+        "patio_swing_kinds": sorted(k for k in patio.get("swing", {}) if k in ("single", "double")),
+        "patio_swing_sizes": {
+            kind: [
+                {
+                    "width_from": catalog.inches(row["width_from"]), "width_to": catalog.inches(row["width_to"]),
+                    "height_from": catalog.inches(row["height_from"]), "height_to": catalog.inches(row["height_to"]),
+                }
+                for row in patio["swing"][kind]["rows"]
+            ]
+            for kind in ("single", "double") if kind in patio.get("swing", {})
+        },
         "baybow": {
             "head_seat_sizes": [row["size"] for row in baybow.get("head_seat_plywood", [])],
             "welded_brickmould_lites": [row["lites"] for row in baybow.get("brickmould_no_head_seat", [])],
+            "lite_counts": [3, 4, 5, 6],
+            "angles": {style: list(angles) for style, angles in BAY_ANGLES.items()},
         },
     }
+
+
+COLOUR_OPTIONS = ["white", "black", "dark bronze", "charcoal", "sandstone"]
+
+
+def _colour_payload(windows: dict) -> dict[str, Any]:
+    """Exterior colours, and the interior colours that pair with them."""
+    return {
+        "exterior": COLOUR_OPTIONS,
+        # Window City sells an interior colour only as matching in/out black.
+        "interior": ["white", "black"],
+        "interior_requires_matching_exterior": True,
+        "black_interior_styles": [
+            row["code"] for row in windows.get("styles", [])
+            if any(cu.get("interior_and_exterior") for cu in row.get("colour_upcharges", []))
+        ],
+    }
+
+
+def _wood_jamb_payload(accessories: dict) -> dict[str, Any]:
+    cfg = load_config()
+    depths = []
+    for row in accessories.get("rows", []):
+        if row.get("section") != "wood_jamb" or row["name"].lower().startswith("custom"):
+            continue
+        label = row["name"].split(" wood jamb")[0]
+        try:
+            depth = catalog.inches(label)
+        except CatalogError:
+            continue
+        depths.append({"name": label, "depth_in": depth, "price_lf": row["price_white_lf"]})
+    defaults = cfg.get("defaults") or {}
+    return {
+        "default": defaults.get("wood_jamb", '5 1/2"'),
+        "finish": defaults.get("wood_jamb_finish", "primed"),
+        "depths": sorted(depths, key=lambda item: item["depth_in"]),
+        "custom_max_in": 7.5,
+    }
+
+
+def catalog_cost(spec: dict[str, Any]) -> float:
+    """Dealer cost plus installation for a quote, before any sales pricing."""
+    lines = spec.get("lines") or []
+    if not lines:
+        return 0.0
+    try:
+        result = _price_quote({"defaults": spec.get("defaults") or {}, "lines": lines}, load_config())
+    except (CatalogError, KeyError, TypeError, ValueError) as exc:
+        raise PriceBookReviewRequired([f"Price-book validation failed: {exc}"]) from exc
+    return round(float(result["totals"]["dealer_cost"]) + float(result["totals"]["install"]), 2)
 
 
 def price_quote(
@@ -233,6 +330,7 @@ def price_quote(
     commercial: dict[str, Any] | None = None,
     trusted_config_overrides: dict[str, Any] | None = None,
     allow_manager_override: bool = False,
+    cost_basis: float | None = None,
 ) -> dict[str, Any]:
     """Price a canonical quote and return an API-ready deterministic result."""
     lines = spec.get("lines") or []
@@ -294,4 +392,5 @@ def price_quote(
         result,
         commercial,
         allow_manager_override=allow_manager_override,
+        cost_basis=cost_basis,
     )

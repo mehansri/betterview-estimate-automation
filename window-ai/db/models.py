@@ -13,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -240,11 +241,135 @@ class CustomerEstimate(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     finalized_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Job scope beyond the products, tax jurisdiction, and option tiers.
+    province: Mapped[str] = mapped_column(String(8), default="ON", nullable=False)
+    adders: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
+    tiers: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
+    selected_tier: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # Sales lifecycle after finalization.
+    public_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
+    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    viewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    acceptance: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONType, nullable=True)
+    lost_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    lost_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    follow_up_on: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    revision_of: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    revision_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # The CRM opportunity and contact this project was started from, so the
+    # CRM can import it without matching customers by name.
+    crm_opportunity_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    crm_contact_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
     __table_args__ = (
         Index("ix_customer_estimates_status", "status"),
         Index("ix_customer_estimates_updated_at", "updated_at"),
+        Index("ix_customer_estimates_crm_opportunity_id", "crm_opportunity_id"),
     )
+
+
+class EstimateEvent(Base):
+    """Activity timeline for a customer estimate (priced, sent, viewed, ...)."""
+
+    __tablename__ = "estimate_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    estimate_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("customer_estimates.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    detail: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONType, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (Index("ix_estimate_events_estimate_id", "estimate_id"),)
+
+
+class EstimatePhoto(Base):
+    """Site photo attached to an estimate, optionally tied to one line."""
+
+    __tablename__ = "estimate_photos"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    estimate_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("customer_estimates.id", ondelete="CASCADE"), nullable=False
+    )
+    line_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    caption: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    content_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (Index("ix_estimate_photos_estimate_id", "estimate_id"),)
+
+
+class AppSetting(Base):
+    """Business settings edited in the app (sales presets, tax, financing...)."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[Any] = mapped_column(JSONType, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class JobAdder(Base):
+    """Priced job-scope item beyond the products (disposal, capping, permits)."""
+
+    __tablename__ = "job_adders"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    category: Mapped[str] = mapped_column(String(64), default="General", nullable=False)
+    # per_job | per_opening | per_window | per_door | each
+    unit: Mapped[str] = mapped_column(String(32), default="each", nullable=False)
+    cost: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    price: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class LineTemplate(Base):
+    """Saved favourite configuration or whole-estimate package."""
+
+    __tablename__ = "line_templates"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # window | door | estimate
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class PriceBookVersion(Base):
+    """An imported supplier price-book dataset; the active one overrides the file."""
+
+    __tablename__ = "price_book_versions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # e.g. "windowcity/windows" or "doors/fiberglass"
+    dataset: Mapped[str] = mapped_column(String(64), nullable=False)
+    label: Mapped[str] = mapped_column(String(255), nullable=False)
+    data: Mapped[Any] = mapped_column(JSONType, nullable=False)
+    summary: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONType, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (Index("ix_price_book_versions_dataset", "dataset"),)
 
 
 class CustomerEstimateCounter(Base):

@@ -1,6 +1,7 @@
 import type {
   CommercialSettings,
   CustomerDoorOpening,
+  CustomerEstimate,
   CustomerEstimateDraft,
   CustomerWindowLine,
 } from "@/lib/api";
@@ -42,5 +43,37 @@ export function buildCustomerEstimateDraft({
     windows: windows || [],
     doors: doors || [],
     commercial,
+    province: "ON",
+    adders: [],
+    tiers: [],
+    selected_tier: null,
+    follow_up_on: null,
+  };
+}
+
+/** Every editable field of a saved estimate, for a full-record save (PUT). */
+export function estimateToDraft(estimate: CustomerEstimate, patch: Partial<CustomerEstimateDraft> = {}): CustomerEstimateDraft {
+  return {
+    customer_name: estimate.customer_name,
+    company_name: estimate.company_name,
+    email: estimate.email,
+    phone: estimate.phone,
+    project_name: estimate.project_name,
+    project_address: estimate.project_address,
+    salesperson: estimate.salesperson,
+    estimate_date: estimate.estimate_date,
+    valid_until: estimate.valid_until,
+    description: estimate.description,
+    notes: estimate.notes,
+    terms: estimate.terms,
+    windows: estimate.windows,
+    doors: estimate.doors,
+    commercial: estimate.commercial,
+    province: estimate.province || "ON",
+    adders: estimate.adders || [],
+    tiers: estimate.tiers || [],
+    selected_tier: estimate.selected_tier ?? null,
+    follow_up_on: estimate.follow_up_on ?? null,
+    ...patch,
   };
 }

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from api.main import app
@@ -90,6 +92,7 @@ def test_project_rollup_sums_openings():
     assert result["totals"]["customer_total"] == 11564.84
 
 
+@pytest.mark.usefixtures("no_profit_floor")
 def test_door_sales_strategy_uses_shared_presets_and_protects_install():
     standard = quote_project([_live_opening()], load_config())
     competitive = quote_project(
@@ -108,6 +111,7 @@ def test_door_sales_strategy_uses_shared_presets_and_protects_install():
     )
 
 
+@pytest.mark.usefixtures("no_profit_floor")
 def test_door_api_catalog_and_validation():
     client = TestClient(app)
     catalog_response = client.get("/api/doors/catalog")

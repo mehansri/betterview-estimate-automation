@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import csv
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -12,6 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import FileResponse
 
+from api.security import require_pricing_admin
 from api.schemas.quote import EstimateSummary, SalesPresetConfig, WindowRow
 from db.models import Estimate, ImportLog, Window
 from db.session import get_session
@@ -28,18 +28,6 @@ from utils.paths import EXPORTS_DIR, ensure_dirs
 router = APIRouter(prefix="/api", tags=["admin"])
 
 
-def _require_pricing_admin(token: str | None) -> None:
-    expected_token = os.getenv("PRICING_ADMIN_TOKEN")
-    if not expected_token or token != expected_token:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "code": "manager_authorization_required",
-                "message": "A manager/admin token is required for sales-pricing configuration changes.",
-            },
-        )
-
-
 @router.get("/admin/sales-presets")
 def get_sales_presets() -> dict:
     """Return all manager-configured sales strategies, including inactive ones."""
@@ -48,8 +36,18 @@ def get_sales_presets() -> dict:
         "sales_config_version": sales_config_version(),
         "currency": config.get("currency", "CAD"),
         "minimum_markup_percent": config.get("minimum_markup_percent", 20.0),
+        "project_profit_floor": config.get("project_profit_floor", 0.0),
+        "default_preset_id": config.get("default_preset_id"),
         "presets": list_all_presets(),
     }
+
+
+@router.post("/admin/verify-token", status_code=204)
+def verify_manager_token(
+    pricing_admin_token: str | None = Header(default=None, alias="X-Pricing-Admin-Token"),
+) -> None:
+    """Confirm a manager token, e.g. to leave the rep (customer-safe) view."""
+    require_pricing_admin(pricing_admin_token)
 
 
 @router.put("/admin/sales-presets")
@@ -58,7 +56,7 @@ def update_sales_presets(
     pricing_admin_token: str | None = Header(default=None, alias="X-Pricing-Admin-Token"),
 ) -> dict:
     """Replace sales presets; the price book itself remains immutable here."""
-    _require_pricing_admin(pricing_admin_token)
+    require_pricing_admin(pricing_admin_token)
     try:
         saved = save_sales_config(body.model_dump())
     except (SalesPricingError, TypeError, ValueError) as exc:

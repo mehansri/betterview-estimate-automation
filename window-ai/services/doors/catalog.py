@@ -78,9 +78,16 @@ def _norm(value: Any) -> str:
 
 
 @lru_cache(maxsize=None)
-def data(name: str) -> Any:
+def _file_data(name: str) -> Any:
     with (DATA_DIR / name).open(encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def data(name: str) -> Any:
+    from services.price_books import load_override
+
+    override = load_override(f"doors/{Path(name).stem}")
+    return override if override is not None else _file_data(name)
 
 
 def slabs(material: str) -> list[dict[str, Any]]:
@@ -288,7 +295,11 @@ def panel_upcharge(
         nums = [float(value) for value in re.findall(r"(\d+(?:\.\d+)?)", choice["sizes"])]
         if not nums or min(nums) <= width <= max(nums):
             return record, choice
-    return record, record["options"][0]
+    sizes = ", ".join(choice["sizes"] for choice in record["options"])
+    raise DoorLookupError(
+        f"{record['code']} {record['panel']} has no panel upcharge for a {width:g}\" "
+        f"slab (priced sizes: {sizes})."
+    )
 
 
 def transom(material: str, shape: str = "rectangle") -> dict[str, Any]:

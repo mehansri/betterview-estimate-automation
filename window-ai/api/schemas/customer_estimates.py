@@ -11,7 +11,9 @@ from api.schemas.doors import DoorOpeningSpec
 from api.schemas.quote import CommercialSettings, QuoteLineInput
 
 
-EstimateStatus = Literal["draft", "priced", "finalized"]
+EstimateStatus = Literal["draft", "priced", "finalized", "sent", "viewed", "accepted", "lost"]
+# Once finalized, an estimate is a customer document: edits go into a revision.
+LOCKED_STATUSES = {"finalized", "sent", "viewed", "accepted", "lost"}
 
 
 def _today() -> date:
@@ -36,6 +38,35 @@ class CustomerDoorOpening(BaseModel):
     spec: DoorOpeningSpec
 
 
+class EstimateAdder(BaseModel):
+    """A job item on an estimate: a catalog adder or a one-off custom item."""
+
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    adder_id: Optional[str] = None
+    custom: bool = False
+    name: str = ""
+    cost: float = Field(default=0.0, ge=0)
+    price: float = Field(default=0.0, ge=0)
+    # None = automatic quantity from the adder's unit (per window, per job...)
+    qty: Optional[float] = Field(default=None, ge=0)
+    note: str = ""
+
+
+class TierOverrides(BaseModel):
+    glazing: dict[str, Any] = Field(default_factory=dict)
+    colour_ext: Optional[str] = None
+    colour_int: Optional[str] = None
+
+
+class EstimateTier(BaseModel):
+    """A Good / Better / Best option: the same scope with product upgrades."""
+
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    name: str = "Option"
+    description: str = ""
+    window_overrides: TierOverrides = Field(default_factory=TierOverrides)
+
+
 class CustomerEstimateDraft(BaseModel):
     customer_name: str = ""
     company_name: str = ""
@@ -56,6 +87,15 @@ class CustomerEstimateDraft(BaseModel):
     windows: list[CustomerWindowLine] = Field(default_factory=list)
     doors: list[CustomerDoorOpening] = Field(default_factory=list)
     commercial: CommercialSettings = Field(default_factory=CommercialSettings)
+    province: str = "ON"
+    adders: list[EstimateAdder] = Field(default_factory=list)
+    tiers: list[EstimateTier] = Field(default_factory=list)
+    selected_tier: Optional[str] = None
+    follow_up_on: Optional[date] = None
+    # Set by the CRM when it starts a project from an opportunity. An update
+    # that leaves them out keeps the existing link.
+    crm_opportunity_id: Optional[str] = Field(default=None, max_length=64)
+    crm_contact_id: Optional[str] = Field(default=None, max_length=64)
 
 
 class CustomerEstimateLineAppend(BaseModel):
@@ -75,6 +115,16 @@ class CustomerEstimateResponse(CustomerEstimateDraft):
     created_at: str
     updated_at: str
     finalized_at: Optional[str] = None
+    sent_at: Optional[str] = None
+    viewed_at: Optional[str] = None
+    accepted_at: Optional[str] = None
+    acceptance: Optional[dict[str, Any]] = None
+    lost_at: Optional[str] = None
+    lost_reason: Optional[str] = None
+    public_token: Optional[str] = None
+    revision_of: Optional[str] = None
+    revision_number: int = 1
+    deleted_at: Optional[str] = None
 
 
 class CustomerEstimateSummary(BaseModel):
@@ -84,7 +134,45 @@ class CustomerEstimateSummary(BaseModel):
     customer_name: str = ""
     company_name: str = ""
     project_name: str = ""
+    salesperson: str = ""
     total: Optional[float] = None
+    margin_percent: Optional[float] = None
     updated_at: str
     finalized_at: Optional[str] = None
+    sent_at: Optional[str] = None
+    follow_up_on: Optional[date] = None
+    revision_number: int = 1
+    deleted_at: Optional[str] = None
+    crm_opportunity_id: Optional[str] = None
+
+
+class CrmLinkRequest(BaseModel):
+    """The CRM opportunity/contact a project belongs to, set when the CRM adds its customer."""
+
+    crm_opportunity_id: str = Field(min_length=1, max_length=64)
+    crm_contact_id: Optional[str] = Field(default=None, max_length=64)
+
+
+class SendEstimateRequest(BaseModel):
+    to: str = ""
+    cc: str = ""
+    message: str = ""
+    # The app's public origin, used to build the customer's link.
+    portal_base_url: str = ""
+
+
+class LostRequest(BaseModel):
+    reason: str = Field(min_length=1)
+
+
+class FollowUpRequest(BaseModel):
+    follow_up_on: Optional[date] = None
+    note: str = ""
+
+
+class AcceptEstimateRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=200)
+    signature: str = Field(min_length=20, max_length=400_000)
+    tier_id: Optional[str] = None
+    accepted_terms: bool
 

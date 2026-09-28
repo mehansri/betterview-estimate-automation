@@ -6,7 +6,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import admin, customer_estimates, doors, health, import_estimates, predict, quote
+from api.app_setup import cors_options, ensure_database
+from api.routes import admin, business, customer_estimates, doors, health, import_estimates, predict, public, quote
 from api.services.predictor import get_predictor
 from utils.logging import get_logger
 from utils.paths import ensure_dirs
@@ -17,6 +18,7 @@ logger = get_logger("windowai.api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     ensure_dirs()
+    ensure_database()
     pred = get_predictor()
     logger.info("API started; model_loaded=%s", pred.loaded)
     yield
@@ -33,13 +35,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, **cors_options())
 
 app.include_router(health.router)
 app.include_router(predict.router)
@@ -48,3 +44,5 @@ app.include_router(doors.router)
 app.include_router(customer_estimates.router)
 app.include_router(import_estimates.router)
 app.include_router(admin.router)
+app.include_router(business.router)
+app.include_router(public.router)

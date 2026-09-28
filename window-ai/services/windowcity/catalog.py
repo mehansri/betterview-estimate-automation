@@ -13,6 +13,11 @@ _cache: dict[str, dict] = {}
 
 
 def load(name: str) -> dict:
+    from services.price_books import load_override
+
+    override = load_override(f"windowcity/{name}")
+    if override is not None:
+        return override
     if name not in _cache:
         with open(DATA / f"{name}.json", encoding="utf-8") as f:
             _cache[name] = json.load(f)
@@ -107,6 +112,33 @@ def accessory(section: str, name_frag: str) -> dict:
                        f"{[r['name'] for r in hits]}")
 
 
+def wood_jamb_for_depth(depth_in: float) -> dict:
+    """The wood-jamb row that prices a jamb of this depth.
+
+    A printed depth uses its own row; any other depth uses the book's custom
+    row for its range (up to 4 1/4", or over 4 1/4" to 7 1/2").
+    """
+    rows = [r for r in load("accessories")["rows"] if r["section"] == "wood_jamb"]
+    import re
+    for r in rows:
+        m = re.match(r"([\d/ ]+)\"", r["name"])
+        if m and not r["name"].lower().startswith("custom") and abs(inches(m.group(1) + '"') - depth_in) < 1e-6:
+            return r
+    if depth_in <= 0:
+        raise CatalogError(f"wood jamb depth must be positive, got {depth_in!r}")
+    frag = "up to 4 1/4" if depth_in <= 4.25 else ">4 1/4" if depth_in <= 7.5 else None
+    if frag is None:
+        raise CatalogError(f"no wood jamb row for a {depth_in:g}\" depth; custom depths go up to 7 1/2\"")
+    return accessory("wood_jamb", frag)
+
+
+def accessory_row(acc: dict) -> dict:
+    """Resolve a line accessory: by name, or a wood jamb by its depth alone."""
+    if acc.get("kind") == "wood_jamb" and not acc.get("name") and acc.get("depth_in") is not None:
+        return wood_jamb_for_depth(float(acc["depth_in"]))
+    return accessory(acc["kind"], acc["name"])
+
+
 def mullion_lf_price(direction: str) -> float:
     """1\" vertical = 22/lf, 2\" horizontal = 30/lf (book 28). Both frame
     depths (3 1/4\" and 4 1/2\") carry the same lineal price."""
@@ -199,3 +231,30 @@ def inches(s: str) -> float:
     if m.group(2):
         v += int(m.group(2)) / int(m.group(3))
     return v
+
+
+# ------------------------------------------------------------------- energy
+def energy_package(glazing: dict | None) -> str | None:
+    """The rated glass package a glazing selection matches, if any."""
+    gl = glazing or {}
+    if not gl.get("loe180") or gl.get("i89") or gl.get("tri_pane_lami") or gl.get("frost_tint"):
+        return None
+    gas = str(gl.get("gas") or "").lower()
+    if gl.get("triple"):
+        if gas == "argon":
+            return "triple_2loe180_argon"
+        if gas in ("90/5", "50/50", "argon_krypton_5050"):
+            return "triple_2loe180_90_5"
+        return None
+    return "double_loe180_argon" if gas == "argon" else None
+
+
+def energy_rating(style_code: str, glazing: dict | None) -> dict | None:
+    """Certified ER / U-factor for a style + glass package, or None if not on file."""
+    package = energy_package(glazing)
+    if package is None:
+        return None
+    for row in load("energy")["ratings"]:
+        if row["style"] == style_code and row["package"] == package:
+            return {**row, "package_label": load("energy")["packages"][package]}
+    return None

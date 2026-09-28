@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-3005",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai\\frontend && set NEXT_PUBLIC_CRM_URL=http://localhost:3000&& npx next dev -p 3005"],
+      "port": 3005
+    },
+    {
+      "name": "api-8000",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai && set DATABASE_URL=sqlite:///data/local.db&& .venv\\Scripts\\python.exe -m uvicorn api.main:app --reload --host 127.0.0.1 --port 8000"],
+      "port": 8000
+    }
+  ]
+}

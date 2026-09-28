@@ -398,12 +398,19 @@ def quote(spec: dict[str, Any], config: dict[str, Any] | None = None) -> dict[st
     return quote_obj.totals()
 
 
+def project_cost(specs: list[dict[str, Any]], config: dict[str, Any] | None = None) -> float:
+    """Material cost plus installation for door openings, before sales pricing."""
+    cfg = config or load_config()
+    return money(sum(opening["material_cost"] + opening["install"] for opening in (quote(spec, cfg) for spec in specs)))
+
+
 def quote_project(
     specs: list[dict[str, Any]],
     config: dict[str, Any] | None = None,
     commercial: dict[str, Any] | None = None,
     *,
     allow_manager_override: bool = False,
+    cost_basis: float | None = None,
 ) -> dict[str, Any]:
     if not specs:
         raise DoorValidationError("At least one door opening is required.")
@@ -450,7 +457,8 @@ def quote_project(
             "customer_total": result["totals"]["customer_total"],
         },
     }
-    apply_sales_pricing(sales_input, commercial, allow_manager_override=allow_manager_override)
+    apply_sales_pricing(sales_input, commercial, allow_manager_override=allow_manager_override,
+                        cost_basis=cost_basis)
     for opening, line in zip(openings, sales_input["lines"]):
         opening["markup"] = float(sales_input["sales_pricing"]["markup_percent"]) / 100.0
         opening["markup_amount"] = line["markup_each"]

@@ -26,6 +26,12 @@ jobs:
           node-version: "20"
           cache: npm
           cache-dependency-path: window-ai/frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: window-ai/frontend
+        run: npm ci
+      - name: Run frontend unit tests
+        working-directory: window-ai/frontend
+        run: npm test
       - name: Build frontend
         working-directory: window-ai/frontend
-        run: npm ci && npm run build
+        run: npm run build

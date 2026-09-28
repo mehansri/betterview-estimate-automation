@@ -9,24 +9,29 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Header, HTTPException
 
 from api.schemas.quote import (
-    BatchQuoteRequest,
-    BatchQuoteResponse,
+    CostContext,
     DeterministicQuoteRequest,
     DeterministicQuoteResponse,
-    QuoteResponse,
     QuoteOutcomeRequest,
     QuoteOutcomeResponse,
     WindowSpec,
 )
-from db.models import QuoteOutcome, QuoteRecord
+from db.models import CustomerEstimate, QuoteOutcome, QuoteRecord
 from db.session import get_session
-from services.pricing import predict_price
 from services.similarity import find_similar
-from services.windowcity.engine import PriceBookReviewRequired, catalog_payload, price_quote as price_windowcity_quote
+from services.windowcity.engine import (
+    PriceBookReviewRequired,
+    catalog_cost,
+    catalog_payload,
+    price_quote as price_windowcity_quote,
+)
 from services.windowcity.sales import (
     NegotiationLimitError,
     SalesPricingError,
+    default_preset_id,
     list_presets,
+    load_sales_config,
+    profit_floor,
     sales_config_version,
 )
 
@@ -71,8 +76,11 @@ def quote_catalog() -> dict:
 @router.get("/quotes/sales-presets")
 def quote_sales_presets() -> dict:
     """Return active, manager-configured sales strategies for the quote form."""
+    config = load_sales_config()
     return {
         "sales_config_version": sales_config_version(),
+        "default_preset_id": default_preset_id(config),
+        "project_profit_floor": profit_floor(config),
         "presets": list_presets(),
     }
 
@@ -103,6 +111,11 @@ def _customer_view(result: dict) -> dict:
         "preset_id",
         "preset_name",
         "preset_description",
+        "strategy",
+        "cost_basis",
+        "profit_floor",
+        "floor_applied",
+        "sliding",
         "markup_percent",
         "minimum_markup_percent",
         "configured_max_discount_percent",
@@ -140,12 +153,40 @@ def _customer_view(result: dict) -> dict:
     return safe
 
 
+def project_context_cost(context: CostContext) -> float:
+    """Cost of the saved project's other products, for a project-level margin."""
+    from services.customer_estimates import CustomerEstimatePricingError, product_cost
+
+    try:
+        estimate_id = UUID(context.project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid project id") from exc
+    with get_session() as session:
+        row = session.get(CustomerEstimate, estimate_id)
+        if row is None or row.deleted_at is not None:
+            raise HTTPException(status_code=404, detail="Customer estimate not found")
+        windows = [] if context.scope == "replace_windows" else list(row.windows or [])
+        doors = [] if context.scope == "replace_doors" else list(row.doors or [])
+        try:
+            return product_cost(windows=windows, doors=doors,
+                                tiers=row.tiers or [], selected_tier=row.selected_tier)
+        except CustomerEstimatePricingError:
+            # A saved line that needs review has no reliable cost; the preview
+            # then prices on its own lines, as it does without a project.
+            return 0.0
+
+
 @router.post("/quotes/price", response_model=DeterministicQuoteResponse)
 def price_quote(
     body: DeterministicQuoteRequest,
     pricing_admin_token: str | None = Header(default=None, alias="X-Pricing-Admin-Token"),
+    record: bool = True,
 ) -> DeterministicQuoteResponse:
-    """Price a canonical Window City quote from the v18 price book."""
+    """Price a canonical Window City quote from the v18 price book.
+
+    ``record=false`` is for live previews while a salesperson edits: the price
+    is returned but no audit record is written for every keystroke.
+    """
     if body.config_overrides:
         raise HTTPException(
             status_code=403,
@@ -172,10 +213,15 @@ def price_quote(
             )
 
     try:
+        spec = {"defaults": body.defaults, "lines": [line.model_dump() for line in body.lines]}
+        cost_basis = None
+        if body.cost_context is not None:
+            cost_basis = catalog_cost(spec) + project_context_cost(body.cost_context)
         result = price_windowcity_quote(
-            {"defaults": body.defaults, "lines": [line.model_dump() for line in body.lines]},
+            spec,
             commercial=commercial,
             allow_manager_override=has_manager_override,
+            cost_basis=cost_basis,
         )
     except PriceBookReviewRequired as exc:
         raise HTTPException(
@@ -191,7 +237,10 @@ def price_quote(
         raise HTTPException(status_code=422, detail={"code": "sales_pricing", "message": str(exc)}) from exc
 
     quote_id = uuid4()
-    result["quote_id"] = str(quote_id)
+    result["quote_id"] = str(quote_id) if record else None
+    if not record:
+        public_result = _customer_view(result) if body.commercial.presentation_mode == "customer" else result
+        return DeterministicQuoteResponse(**public_result)
     with get_session() as session:
         session.add(
             QuoteRecord(
@@ -287,28 +336,7 @@ def get_deterministic_quote(quote_id: str) -> dict:
         }
 
 
-@router.post("/quote", response_model=QuoteResponse, deprecated=True)
-def quote(spec: WindowSpec) -> QuoteResponse:
-    with get_session() as session:
-        result = predict_price(session, spec.model_dump())
-    return QuoteResponse(**result)
-
-
-@router.post("/quote/batch", response_model=BatchQuoteResponse, deprecated=True)
-def quote_batch(body: BatchQuoteRequest) -> BatchQuoteResponse:
-    if not body.windows:
-        raise HTTPException(status_code=400, detail="windows list is empty")
-    lines: list[QuoteResponse] = []
-    with get_session() as session:
-        for spec in body.windows:
-            result = predict_price(session, spec.model_dump())
-            lines.append(QuoteResponse(**result))
-    subtotal = round(sum(l.line_total for l in lines), 2)
-    currency = lines[0].currency if lines else "CAD"
-    return BatchQuoteResponse(lines=lines, quote_subtotal=subtotal, currency=currency)
-
-
-@router.post("/similar", deprecated=True)
+@router.post("/similar")
 def similar_windows(spec: WindowSpec, top_k: int = 12) -> dict:
     with get_session() as session:
         return find_similar(session, spec.model_dump(), top_k=top_k)

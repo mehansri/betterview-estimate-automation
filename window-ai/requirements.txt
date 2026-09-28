@@ -7,3 +7,7 @@ python-multipart>=0.0.6
 sqlalchemy>=2.0.25
 psycopg2-binary>=2.9.9
 pyyaml>=6.0.1
+# Server-rendered customer estimate PDFs
+reportlab>=4.0
+# Optional: AI-drafted follow-up emails (used only when ANTHROPIC_API_KEY is set)
+anthropic>=1.8

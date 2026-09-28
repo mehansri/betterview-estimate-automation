@@ -128,8 +128,15 @@ def test_customer_estimate_can_be_removed_after_finalization(tmp_path, monkeypat
 
     removed = client.delete(f"/api/customer-estimates/{estimate_id}")
     assert removed.status_code == 204, removed.text
-    assert client.get(f"/api/customer-estimates/{estimate_id}").status_code == 404
+    # Deleting moves the estimate to the trash rather than destroying it.
+    assert client.get(f"/api/customer-estimates/{estimate_id}").json()["deleted_at"]
     assert client.get("/api/customer-estimates").json() == []
+    assert [row["id"] for row in client.get("/api/customer-estimates?deleted=true").json()] == [estimate_id]
+
+    restored = client.post(f"/api/customer-estimates/{estimate_id}/restore")
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["deleted_at"] is None
+    assert [row["id"] for row in client.get("/api/customer-estimates").json()] == [estimate_id]
 
 
 def test_customer_estimate_manager_override_requires_token(tmp_path, monkeypatch):
@@ -302,3 +309,47 @@ def test_finalize_requires_line_locations(tmp_path, monkeypatch):
     body = finalized.json()
     assert body["windows"][0]["location"] == "Bedroom"
     assert body["doors"][0]["location"] == "Front entrance"
+
+
+def test_crm_link_is_kept_filterable_and_carried_into_revisions(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    linked = client.post(
+        "/api/customer-estimates",
+        json={**_draft(), "crm_opportunity_id": "opp-1", "crm_contact_id": "contact-1"},
+    ).json()
+    client.post("/api/customer-estimates", json=_draft())
+    assert linked["crm_opportunity_id"] == "opp-1"
+    assert linked["crm_contact_id"] == "contact-1"
+
+    # The estimating UI saves without the link fields; that keeps the link.
+    updated = client.put(f"/api/customer-estimates/{linked['id']}", json={**_draft(), "notes": "Edited"}).json()
+    assert updated["crm_opportunity_id"] == "opp-1"
+
+    matches = client.get("/api/customer-estimates?crm_opportunity_id=opp-1").json()
+    assert [row["id"] for row in matches] == [linked["id"]]
+    assert matches[0]["crm_opportunity_id"] == "opp-1"
+
+    assert client.post(f"/api/customer-estimates/{linked['id']}/price").status_code == 200
+    assert client.post(f"/api/customer-estimates/{linked['id']}/finalize").status_code == 200
+    revision = client.post(f"/api/customer-estimates/{linked['id']}/revise").json()
+    assert revision["crm_opportunity_id"] == "opp-1"
+    duplicate = client.post(f"/api/customer-estimates/{linked['id']}/duplicate").json()
+    assert duplicate["crm_opportunity_id"] is None
+
+
+def test_quote_first_project_can_be_linked_after_finalizing(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    estimate_id = client.post("/api/customer-estimates", json=_draft()).json()["id"]
+    assert client.post(f"/api/customer-estimates/{estimate_id}/price").status_code == 200
+    assert client.post(f"/api/customer-estimates/{estimate_id}/finalize").status_code == 200
+
+    linked = client.put(
+        f"/api/customer-estimates/{estimate_id}/crm-link",
+        json={"crm_opportunity_id": "opp-9", "crm_contact_id": "contact-9"},
+    )
+    assert linked.status_code == 200
+    assert linked.json()["crm_opportunity_id"] == "opp-9"
+    assert linked.json()["status"] == "finalized"
+    assert client.put(f"/api/customer-estimates/{estimate_id}/crm-link", json={"crm_opportunity_id": ""}).status_code == 422
+    events = [event["kind"] for event in client.get(f"/api/customer-estimates/{estimate_id}/events").json()]
+    assert "crm_linked" in events

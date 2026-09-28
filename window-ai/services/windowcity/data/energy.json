@@ -1,0 +1,19 @@
+{
+  "source": "Window City order 125401186 'Common Configs' (2026-09-28), Keystone certification lines per item. Values apply to the glass package listed; other packages have no rating on file yet.",
+  "packages": {
+    "double_loe180_argon": "Double pane, LoE 180 exterior pane, 92% argon, 4SG black spacer",
+    "triple_2loe180_argon": "Triple pane, LoE 180 interior + exterior panes, 92% argon",
+    "triple_2loe180_90_5": "Triple pane, LoE 180 interior + exterior panes, 90% argon / 5% krypton"
+  },
+  "ratings": [
+    {"style": "WC-100", "package": "double_loe180_argon", "er": 33, "u_si": 1.46, "u_ip": 0.26, "energy_star": null, "pg_class": "R-PG65", "size_tested": "30\" x 72\""},
+    {"style": "WC-100", "package": "triple_2loe180_90_5", "er": 38, "u_si": 1.02, "u_ip": 0.18, "energy_star": "most_efficient", "pg_class": "R-PG65", "size_tested": "30\" x 72\""},
+    {"style": "WC-125", "package": "double_loe180_argon", "er": 33, "u_si": 1.47, "u_ip": 0.26, "energy_star": null, "pg_class": "R-PG55", "size_tested": "48\" x 40\""},
+    {"style": "WC-125", "package": "triple_2loe180_90_5", "er": 38, "u_si": 1.02, "u_ip": 0.18, "energy_star": "most_efficient", "pg_class": "R-PG55", "size_tested": "48\" x 40\""},
+    {"style": "WC-175", "package": "double_loe180_argon", "er": 36, "u_si": 1.51, "u_ip": 0.27, "energy_star": "qualified", "pg_class": "CW-PG70", "size_tested": "84\" x 90\""},
+    {"style": "WC-175", "package": "triple_2loe180_90_5", "er": 44, "u_si": 0.96, "u_ip": 0.17, "energy_star": "most_efficient", "pg_class": "CW-PG70", "size_tested": "84\" x 90\""},
+    {"style": "WC-200", "package": "double_loe180_argon", "er": 32, "u_si": 1.62, "u_ip": 0.29, "energy_star": null, "pg_class": "R-PG25", "size_tested": "63\" x 43\""},
+    {"style": "WC-200", "package": "triple_2loe180_argon", "er": 36, "u_si": 1.25, "u_ip": 0.22, "energy_star": "qualified", "pg_class": "R-PG25", "size_tested": "63\" x 43\""},
+    {"style": "WC-250", "package": "double_loe180_argon", "er": 31, "u_si": 1.63, "u_ip": 0.29, "energy_star": null, "pg_class": "R-PG25", "size_tested": "63\" x 43\""}
+  ]
+}

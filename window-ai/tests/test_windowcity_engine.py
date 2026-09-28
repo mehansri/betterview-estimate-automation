@@ -22,6 +22,7 @@ def test_catalog_payload_is_populated() -> None:
     assert payload["patio_sliding_sizes"] == [5, 6, 8, 10, 12, 16]
 
 
+@pytest.mark.usefixtures("no_profit_floor")
 def test_window_golden_quote_has_traceable_components() -> None:
     result = price_quote(
         {
@@ -131,7 +132,9 @@ def test_sample_quote_totals_remain_stable() -> None:
         }
     )
 
-    assert result["totals"]["customer_total"] == pytest.approx(9489.71)
+    # 9489.71 before WC-500 doors moved to their calibrated 0.81 dealer factor
+    # (+1860 list x 0.04 x 1.30 markup x 1.13 HST = +109.29).
+    assert result["totals"]["customer_total"] == pytest.approx(9599.00)
     assert result["review_required"] is True
     assert any("outside printed" in warning["message"] for warning in result["warnings"])
 

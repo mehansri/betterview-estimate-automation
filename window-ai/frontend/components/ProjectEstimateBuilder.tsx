@@ -3,77 +3,38 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  CustomerDoorOpening,
   CustomerEstimate,
   CustomerEstimateDraft,
-  CustomerWindowLine,
   CommercialSettings,
-  DoorCatalog,
-  DoorOpeningSpec,
-  QuoteCatalog,
-  QuoteLineInput,
-  QuoteLineType,
+  EstimateAdder,
+  EstimateTier,
+  SavedTemplate,
+  TaxRateEntry,
   createCustomerEstimate,
+  createTemplate,
   duplicateCustomerEstimate,
+  estimatePdfUrl,
+  fetchBusinessSettings,
   fetchCustomerEstimate,
+  fetchTemplates,
   finalizeCustomerEstimate,
-  fetchDoorCatalog,
-  fetchQuoteCatalog,
+  isLockedStatus,
   priceCustomerEstimate,
+  reviseCustomerEstimate,
   updateCustomerEstimate,
 } from "@/lib/api";
 import EstimateDocument from "@/components/EstimateDocument";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
-import LocationInput from "@/components/LocationInput";
-import { isBetween, isAtLeast, numericInputValue, NumericInputValue } from "@/lib/numericInput";
-import { describeDoorLine, describeWindowSpec, descriptionWithProductDetails } from "@/lib/productDescriptions";
-import { groupWindowStyles, windowStyleLabel } from "@/lib/styleOptions";
-import { getCombinationSuggestion } from "@/lib/windowSuggestions";
+import EstimateLifecycle from "@/components/estimate/EstimateLifecycle";
+import JobItemsCard from "@/components/estimate/JobItemsCard";
+import OptionTiersCard from "@/components/estimate/OptionTiersCard";
+import PhotosCard from "@/components/estimate/PhotosCard";
+import ProfitPanel from "@/components/estimate/ProfitPanel";
+import { estimateToDraft, newEstimateLineId } from "@/lib/quoteHandoff";
+import { useViewMode } from "@/lib/viewMode";
 
-type WindowEditor = {
-  type: QuoteLineType;
-  style: string;
-  width: NumericInputValue;
-  height: NumericInputValue;
-  qty: NumericInputValue;
-  colour_ext: string;
-  loe180: boolean;
-  i89: boolean;
-  gas: string;
-  triple: boolean;
-  tri_pane_lami: boolean;
-  frost_tint: boolean;
-  brickmould: boolean;
-  wood_jamb: boolean;
-  sliding_ft: number;
-  swing_kind: string;
-  head_seat: string;
-  lite_count: NumericInputValue;
-  location: string;
-  description: string;
-};
-
-type DoorEditor = {
-  material: "fiberglass" | "steel";
-  opening_type: DoorOpeningSpec["opening_type"];
-  finish: string;
-  location: string;
-  description: string;
-};
-
-const COLORS = ["white", "black", "dark bronze", "charcoal", "sandstone"];
-const GAS = ["argon", "50/50", "krypton"];
-const OPENING_TYPES: Array<{ value: DoorOpeningSpec["opening_type"]; label: string }> = [
-  { value: "single_door", label: "Single door" },
-  { value: "single_1_sidelite", label: "Single + 1 sidelite" },
-  { value: "single_2_sidelites", label: "Single + 2 sidelites" },
-  { value: "double_door", label: "Double door" },
-  { value: "double_2_sidelites", label: "Double + 2 sidelites" },
-];
-
-function id() {
-  return globalThis.crypto?.randomUUID?.() || `line-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
+/** The CRM's origin; "Send to CRM" is hidden when unset. */
+const CRM_URL = (process.env.NEXT_PUBLIC_CRM_URL || "").replace(/\/$/, "");
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -108,7 +69,13 @@ function blankEstimate(): CustomerEstimate {
     terms: "This estimate is based on the information available at the time of quoting. Final measurements, site conditions, product availability, and installation details will be confirmed before ordering.",
     windows: [],
     doors: [],
-    commercial: { preset_id: "standard", negotiated_discount_percent: 0, agreed_customer_total: null, presentation_mode: "internal" },
+    // New projects start on the sliding-margin preset (sales_config default).
+    commercial: { preset_id: "sliding", negotiated_discount_percent: 0, agreed_customer_total: null, presentation_mode: "internal" },
+    province: "ON",
+    adders: [],
+    tiers: [],
+    selected_tier: null,
+    follow_up_on: null,
     pricing: null,
     pricing_hash: null,
     created_at: "",
@@ -117,142 +84,11 @@ function blankEstimate(): CustomerEstimate {
   };
 }
 
-function blankWindow(catalog?: QuoteCatalog | null): WindowEditor {
-  return {
-    type: "window",
-    style: catalog?.styles[0]?.code || "WC-100",
-    width: 30,
-    height: 60,
-    qty: 1,
-    colour_ext: "white",
-    loe180: true,
-    i89: false,
-    gas: "argon",
-    triple: false,
-    tri_pane_lami: false,
-    frost_tint: false,
-    brickmould: false,
-    wood_jamb: false,
-    sliding_ft: catalog?.patio_sliding_sizes[0] || 6,
-    swing_kind: catalog?.patio_swing_kinds[0] || "single",
-    head_seat: catalog?.baybow.head_seat_sizes[0] || "up to 8ft wide",
-    lite_count: 3,
-    location: "",
-    description: "",
-  };
-}
-
-function windowLite(editor: WindowEditor, style: string, width = editor.width, catalog?: QuoteCatalog | null): QuoteLineInput {
-  const accessories: Array<{ kind: string; name: string }> = [];
-  if (editor.brickmould) {
-    const name = catalog?.accessories.brickmould?.[0]?.name;
-    if (name) accessories.push({ kind: "brickmould", name });
-  }
-  if (editor.wood_jamb) {
-    const name = catalog?.accessories.wood_jamb?.[0]?.name;
-    if (name) accessories.push({ kind: "wood_jamb", name });
-  }
-  return {
-    type: "window",
-    style,
-    width,
-    height: editor.height,
-    qty: 1,
-    colour_ext: editor.colour_ext,
-    glazing: {
-      loe180: editor.loe180,
-      i89: editor.i89,
-      gas: editor.gas,
-      triple: editor.triple,
-      tri_pane_lami: editor.tri_pane_lami,
-      frost_tint: editor.frost_tint,
-    },
-    accessories,
-  };
-}
-
-function buildWindowSpec(editor: WindowEditor, catalog: QuoteCatalog | null): QuoteLineInput {
-  if (editor.type === "window") return { ...windowLite(editor, editor.style, editor.width, catalog), qty: editor.qty };
-  if (editor.type === "patio_sliding") {
-    return {
-      type: "patio_sliding",
-      qty: editor.qty,
-      nominal_ft: editor.sliding_ft,
-      colour_ext: editor.colour_ext,
-      glazing: { loe180: editor.loe180, i89: editor.i89, gas: editor.gas, triple: editor.triple, frost_tint: editor.frost_tint },
-      assembled: true,
-    };
-  }
-  if (editor.type === "patio_swing") {
-    return {
-      type: "patio_swing",
-      qty: editor.qty,
-      kind: editor.swing_kind,
-      width: editor.width,
-      height: editor.height,
-      colour_ext: editor.colour_ext,
-      glazing: { loe180: editor.loe180, i89: editor.i89, gas: editor.gas, triple: editor.triple },
-    };
-  }
-  if (editor.type === "combination") {
-    return {
-      type: "combination",
-      qty: editor.qty,
-      layout: { cols: 2, rows: 1 },
-      lites: [windowLite(editor, editor.style, editor.width, catalog), windowLite(editor, editor.style, editor.width, catalog)],
-    };
-  }
-  const liteCount = editor.lite_count === "" ? 0 : editor.lite_count;
-  const liteWidth = editor.width === "" || editor.lite_count === "" ? "" : editor.width / editor.lite_count;
-  return {
-    type: "bay_bow",
-    qty: editor.qty,
-    lites: Array.from({ length: liteCount }, (_, index) => windowLite(editor, catalog?.styles[index % Math.max(catalog?.styles.length || 1, 1)]?.code || editor.style, liteWidth, catalog)),
-    head_seat: editor.head_seat,
-  };
-}
-
-function windowLabel(line: CustomerWindowLine) {
-  const spec = line.spec;
-  if (line.description) return line.description;
-  return describeWindowSpec(spec);
-}
-
-function partFromRow(row: DoorCatalog["materials"][number]["slabs"][number] | undefined) {
-  return {
-    series: row?.series || "group_a",
-    glass_size: row?.glass_size || undefined,
-    panel: row?.panel || undefined,
-    height: row?.height || '6\'8"',
-    qty: 1,
-  };
-}
-
-function makeDoorSpec(catalog: DoorCatalog, material: "fiberglass" | "steel", openingType: DoorOpeningSpec["opening_type"], finish?: string): DoorOpeningSpec {
-  const data = catalog.materials.find((entry) => entry.key === material) || catalog.materials[0];
-  const doorRow = data.slabs.find((row) => row.kind === "slab" && row.component === "door" && row.series === "group_a") || data.slabs.find((row) => row.kind === "slab" && row.component === "door");
-  const sideliteRow = data.slabs.find((row) => row.kind === "slab" && row.component === "sidelite" && row.series === "group_a") || data.slabs.find((row) => row.kind === "slab" && row.component === "sidelite");
-  const double = openingType === "double_door" || openingType === "double_2_sidelites";
-  const sideliteCount = openingType === "single_1_sidelite" ? 1 : openingType === "single_2_sidelites" || openingType === "double_2_sidelites" ? 2 : 0;
-  return {
-    material,
-    finish: finish || data.finishes[0]?.key || undefined,
-    opening_type: openingType,
-    door: partFromRow(doorRow),
-    door2: double ? partFromRow(doorRow) : undefined,
-    sidelites: Array.from({ length: sideliteCount }, () => partFromRow(sideliteRow)),
-    pull_bars: [],
-    options: [],
-  };
-}
-
 function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
   return <label className={`project-field ${className}`}><span>{label}</span>{children}</label>;
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
-  return <label className="project-toggle"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />{label}</label>;
-}
+type EstimatePackage = Pick<CustomerEstimateDraft, "windows" | "doors" | "adders" | "tiers"> & { preset_id?: string };
 
 function numberValue(value: unknown, fallback = 0) {
   const parsed = Number(value);
@@ -266,7 +102,7 @@ type AgreedTotalBasis = {
   minimumNonDiscountableTotal: number;
   baseMerchandise: number;
   protectedInstall: number;
-  doorTotal: number;
+  fixedTotal: number;
   hstRate: number;
   maxDiscountPercent: number;
 };
@@ -285,33 +121,28 @@ function getAgreedTotalBasis(pricing: CustomerEstimate["pricing"]): AgreedTotalB
   if (!pricing) return null;
 
   const windowQuote = pricing.window_quote as unknown as Record<string, unknown> | null | undefined;
-  const windowTotals = windowQuote && typeof windowQuote.totals === "object" && windowQuote.totals ? windowQuote.totals as Record<string, unknown> : {};
   const salesPricing = windowQuote && typeof windowQuote.sales_pricing === "object" && windowQuote.sales_pricing ? windowQuote.sales_pricing as Record<string, unknown> : {};
-  const quoteConfig = windowQuote && typeof windowQuote.config === "object" && windowQuote.config ? windowQuote.config as Record<string, unknown> : {};
   const doorQuote = pricing.door_quote && typeof pricing.door_quote === "object" ? pricing.door_quote : {};
   const doorTotals = typeof doorQuote.totals === "object" && doorQuote.totals ? doorQuote.totals as Record<string, unknown> : {};
-  const hstRate = numberValue(quoteConfig.hst, 0.13);
-  const doorSubtotal = numberValue(doorTotals.sell);
-  const doorHst = numberValue(doorTotals.hst);
-  const doorTotal = numberValue(doorTotals.customer_total, doorSubtotal + doorHst);
+  const doorSales = typeof doorQuote.sales_pricing === "object" && doorQuote.sales_pricing ? doorQuote.sales_pricing as Record<string, unknown> : {};
+  const hstRate = numberValue(pricing.tax_rate, 0.13);
+  // An agreed total never discounts doors or job items: the server prices them
+  // at their undiscounted amount, so the preview adds back any door discount.
+  const doorDiscount = numberValue(doorSales.negotiated_discount_percent) > 0 ? numberValue(doorSales.merchandise_discount_amount) : 0;
+  const fixedSubtotal = numberValue(doorTotals.sell) + doorDiscount + numberValue(pricing.sections.adders?.subtotal);
+  const fixedTotal = fixedSubtotal * (1 + hstRate);
   const baseMerchandise = numberValue(salesPricing.base_merchandise_sell);
   const protectedInstall = numberValue(salesPricing.protected_install_sell);
-  const baseWindowSubtotal = baseMerchandise + protectedInstall;
-  const baseSubtotal = numberValue(pricing.totals.base_subtotal, baseWindowSubtotal + doorSubtotal);
-  const baseHst = numberValue(pricing.totals.base_hst, baseWindowSubtotal * hstRate + doorHst);
-  const baseTotal = numberValue(pricing.totals.base_total, baseSubtotal + baseHst);
-  const floorWindowSubtotal = numberValue(salesPricing.minimum_floor_sell, baseWindowSubtotal);
-  const floorSubtotal = numberValue(pricing.totals.minimum_floor_subtotal, floorWindowSubtotal + doorSubtotal);
-  const floorHst = (floorWindowSubtotal * hstRate) + doorHst;
-  const minimumFloorTotal = numberValue(pricing.totals.minimum_floor_total, floorSubtotal + floorHst);
+  const baseTotal = numberValue(pricing.totals.base_total, (baseMerchandise + protectedInstall + fixedSubtotal) * (1 + hstRate));
+  const floorWindowSubtotal = numberValue(salesPricing.minimum_floor_sell, baseMerchandise + protectedInstall);
+  const minimumFloorTotal = numberValue(pricing.totals.minimum_floor_total, (floorWindowSubtotal + fixedSubtotal) * (1 + hstRate));
   const maxDiscountPercent = numberValue(salesPricing.maximum_allowed_discount_percent);
   const authorizedWindowSubtotal = baseMerchandise * Math.max(0, 1 - maxDiscountPercent / 100) + protectedInstall;
-  const authorizedSubtotal = authorizedWindowSubtotal + doorSubtotal;
-  const minimumAuthorizedTotal = authorizedSubtotal + authorizedWindowSubtotal * hstRate + doorHst;
-  const minimumNonDiscountableTotal = protectedInstall + protectedInstall * hstRate + doorTotal;
+  const minimumAuthorizedTotal = (authorizedWindowSubtotal + fixedSubtotal) * (1 + hstRate);
+  const minimumNonDiscountableTotal = (protectedInstall + fixedSubtotal) * (1 + hstRate);
 
   if (baseMerchandise <= 0) return null;
-  return { baseTotal, minimumFloorTotal, minimumAuthorizedTotal, minimumNonDiscountableTotal, baseMerchandise, protectedInstall, doorTotal, hstRate, maxDiscountPercent };
+  return { baseTotal, minimumFloorTotal, minimumAuthorizedTotal, minimumNonDiscountableTotal, baseMerchandise, protectedInstall, fixedTotal, hstRate, maxDiscountPercent };
 }
 
 export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: string }) {
@@ -325,9 +156,21 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   const [managerToken, setManagerToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [taxRates, setTaxRates] = useState<Record<string, TaxRateEntry>>({});
+  const [packages, setPackages] = useState<SavedTemplate<EstimatePackage>[]>([]);
+  // Internal cost and margin follow the app-wide internal / customer view.
+  const { internal: showInternal } = useViewMode();
   const pricingFingerprint = useMemo(
-    () => JSON.stringify({ windows: estimate.windows, doors: estimate.doors, commercial: estimate.commercial }),
-    [estimate.windows, estimate.doors, estimate.commercial],
+    () => JSON.stringify({
+      windows: estimate.windows,
+      doors: estimate.doors,
+      commercial: estimate.commercial,
+      adders: estimate.adders,
+      tiers: estimate.tiers,
+      selected_tier: estimate.selected_tier,
+      province: estimate.province,
+    }),
+    [estimate.windows, estimate.doors, estimate.commercial, estimate.adders, estimate.tiers, estimate.selected_tier, estimate.province],
   );
   const pricingFingerprintRef = useRef(pricingFingerprint);
   pricingFingerprintRef.current = pricingFingerprint;
@@ -346,7 +189,17 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       .finally(() => setLoading(false));
   }, [estimateId]);
 
-  const editable = estimate.status !== "finalized";
+  useEffect(() => {
+    fetchBusinessSettings()
+      .then((settings) => {
+        setTaxRates(settings.tax.rates);
+        if (!estimateId) setEstimate((current) => ({ ...current, province: settings.tax.default_province }));
+      })
+      .catch(() => setTaxRates({}));
+    fetchTemplates<EstimatePackage>("estimate").then(setPackages).catch(() => setPackages([]));
+  }, [estimateId]);
+
+  const editable = !isLockedStatus(estimate.status);
   const missingLocationLabels = editable
     ? [
         ...estimate.windows.map((line, index) => (line.location.trim() ? null : `window item ${index + 1}`)),
@@ -359,7 +212,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     const target = Number(agreedTotalText);
     if (!Number.isFinite(target)) return { ...agreedBasis, target: 0, discountPercent: 0, discountAmount: 0, aboveBase: false, belowHardMinimum: false, underAuthorizedFloor: false, error: "Enter a valid customer total." };
     if (target <= 0) return { ...agreedBasis, target, discountPercent: 0, discountAmount: 0, aboveBase: false, belowHardMinimum: false, underAuthorizedFloor: false, error: "Enter a customer total above $0." };
-    const targetWindowTotal = target - agreedBasis.doorTotal;
+    const targetWindowTotal = target - agreedBasis.fixedTotal;
     const targetWindowSubtotal = targetWindowTotal / (1 + agreedBasis.hstRate);
     const targetMerchandise = targetWindowSubtotal - agreedBasis.protectedInstall;
     const discountPercent = ((agreedBasis.baseMerchandise - targetMerchandise) / agreedBasis.baseMerchandise) * 100;
@@ -403,23 +256,80 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   }
 
   function asDraft(value: CustomerEstimate): CustomerEstimateDraft {
-    return {
-      customer_name: value.customer_name,
-      company_name: value.company_name,
-      email: value.email,
-      phone: value.phone,
-      project_name: value.project_name,
-      project_address: value.project_address,
-      salesperson: value.salesperson,
-      estimate_date: value.estimate_date,
-      valid_until: value.valid_until,
-      description: value.description,
-      notes: value.notes,
-      terms: value.terms,
-      windows: value.windows,
-      doors: value.doors,
-      commercial: value.commercial,
-    };
+    return estimateToDraft(value);
+  }
+
+  /** Scope changes that affect price (job items, tiers, province) also reprice. */
+  function scopeChanged(patch: Partial<CustomerEstimate>) {
+    productChanged((current) => ({ ...current, ...patch }));
+  }
+
+  async function saveAsPackage() {
+    const name = window.prompt("Name this package (e.g. Whole-house casement package)");
+    if (!name?.trim()) return;
+    try {
+      const saved = await createTemplate<EstimatePackage>(name.trim(), "estimate", {
+        windows: estimate.windows,
+        doors: estimate.doors,
+        adders: estimate.adders,
+        tiers: estimate.tiers,
+        preset_id: estimate.commercial.preset_id,
+      });
+      setPackages((current) => [...current, saved].sort((a, b) => a.name.localeCompare(b.name)));
+      setMessage(`Saved package "${saved.name}".`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save the package.");
+    }
+  }
+
+  function startFromPackage(packageId: string) {
+    const chosen = packages.find((item) => item.id === packageId);
+    if (!chosen) return;
+    const { windows = [], doors = [], adders = [], tiers = [], preset_id } = chosen.payload;
+    productChanged((current) => ({
+      ...current,
+      windows: windows.map((line) => ({ ...line, id: newEstimateLineId("window") })),
+      doors: doors.map((opening) => ({ ...opening, id: newEstimateLineId("door") })),
+      adders: adders.map((adder) => ({ ...adder, id: newEstimateLineId("adder") })),
+      tiers,
+      selected_tier: null,
+      commercial: { ...current.commercial, preset_id: preset_id || current.commercial.preset_id },
+    }));
+    setMessage(`Started from "${chosen.name}". Review the locations and sizes for this home.`);
+  }
+
+  /** Opens the CRM's import page, where the customer is added (or matched) and the estimate imported. */
+  async function sendToCrm() {
+    if (!CRM_URL || !estimate.id) return;
+    if (!estimate.customer_name.trim()) {
+      setError("Add the customer's name before sending this estimate to the CRM.");
+      return;
+    }
+    // Open the tab inside the click so popup blockers allow it.
+    const tab = window.open("", "_blank");
+    if (tab) tab.opener = null;
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      const saved = editable ? await saveCurrent() : estimate;
+      const url = `${CRM_URL}/estimates/import?source=estimator&project=${encodeURIComponent(saved.id)}`;
+      if (tab) tab.location.href = url;
+      else window.location.href = url;
+    } catch (reason) {
+      tab?.close();
+      setError(reason instanceof Error ? reason.message : "Could not save the estimate before sending it.");
+    } finally { setBusy(false); }
+  }
+
+  async function reviseProject() {
+    if (!estimate.id) return;
+    setBusy(true); setError(null);
+    try {
+      const revision = await reviseCustomerEstimate(estimate.id);
+      window.location.href = `/projects/${revision.id}`;
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not create a revision.");
+      setBusy(false);
+    }
   }
 
   async function saveCurrent(): Promise<CustomerEstimate> {
@@ -533,20 +443,13 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       return;
     }
     if (agreedOffer.belowHardMinimum) {
-      setError(`This total is below the protected installation and door amount of ${money(agreedOffer.minimumNonDiscountableTotal)}. Increase the customer total or change the scope.`);
+      setError(`This total is below the protected installation, door, and job-item amount of ${money(agreedOffer.minimumNonDiscountableTotal)}. Increase the customer total or change the scope.`);
       return;
     }
     if (agreedOffer.underAuthorizedFloor && (!managerReason.trim() || !managerToken.trim())) {
-      setEstimate((current) => ({
-        ...current,
-        commercial: {
-          ...current.commercial,
-          agreed_customer_total: agreedOffer.target,
-          negotiated_discount_percent: agreedOffer.discountPercent,
-          manager_override_reason: managerReason.trim() || current.commercial.manager_override_reason || undefined,
-        },
-      }));
-      setNeedsReprice(true);
+      // Nothing is saved until a manager approves; saving the offer now would
+      // leave the estimate with settings the server refuses to price.
+      setMessage(null);
       setError(`This offer is below the authorized minimum of ${money(agreedOffer.minimumAuthorizedTotal)}. Enter a manager reason and authorization token, then apply it again.`);
       return;
     }
@@ -600,9 +503,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   return (
     <div className="project-estimate-shell">
       <div className="project-toolbar no-print">
-        <div><p className="eyebrow">Project estimate</p><h2>{estimate.estimate_number || "New Better View estimate"}</h2><p className="text-muted">{estimate.status === "finalized" ? "Finalized customer document" : autoPricing ? "Updating the live price…" : "Window and door prices update automatically as selections change."}</p></div>
+        <div><p className="eyebrow">Project estimate</p><h2>{estimate.estimate_number || "New Better View estimate"}{(estimate.revision_number || 1) > 1 ? <span className="status-pill ml-2 align-middle">Rev {estimate.revision_number}</span> : null}{estimate.deleted_at ? <span className="status-pill status-lost ml-2 align-middle">In trash</span> : null}{estimate.crm_opportunity_id ? <span className="status-pill ml-2 align-middle" title="Started from a CRM opportunity; it imports back to the same opportunity">Linked to CRM</span> : null}</h2><p className="text-muted">{!editable ? "Finalized customer document — create a revision to change it" : autoPricing ? "Updating the live price…" : "Window and door prices update automatically as selections change."}</p></div>
         <div className="project-actions">
-          {estimate.status === "finalized" ? <><button className="button secondary" type="button" onClick={() => window.print()}>Print / Save PDF</button><button className="button primary" type="button" onClick={duplicateProject} disabled={busy}>Duplicate as draft</button></> : <><button className="button secondary" type="button" onClick={saveDraft} disabled={busy || autoPricing}>Save draft</button>{error && needsReprice ? <button className="button secondary" type="button" onClick={priceProject} disabled={busy || autoPricing || (!estimate.windows.length && !estimate.doors.length)}>{autoPricing ? "Updating…" : "Retry pricing"}</button> : null}<button className="button primary" type="button" title={missingLocationLabels.length ? `Add a location to ${missingLocationLabels.join(", ")}` : undefined} onClick={finalizeProject} disabled={busy || autoPricing || !estimate.id || estimate.status !== "priced" || needsReprice || Boolean(estimate.pricing?.review_required) || missingLocationLabels.length > 0}>{busy || autoPricing ? "Working…" : "Finalize estimate"}</button></>}
+          {!editable ? <><a className="button secondary" href={estimatePdfUrl(estimate.id)} target="_blank" rel="noreferrer">Download PDF</a><button className="button secondary" type="button" onClick={() => window.print()}>Print</button></> : <><button className="button secondary" type="button" onClick={saveDraft} disabled={busy || autoPricing}>Save draft</button>{error && needsReprice ? <button className="button secondary" type="button" onClick={priceProject} disabled={busy || autoPricing || (!estimate.windows.length && !estimate.doors.length)}>{autoPricing ? "Updating…" : "Retry pricing"}</button> : null}<button className="button primary" type="button" title={missingLocationLabels.length ? `Add a location to ${missingLocationLabels.join(", ")}` : undefined} onClick={finalizeProject} disabled={busy || autoPricing || !estimate.id || estimate.status !== "priced" || needsReprice || Boolean(estimate.pricing?.review_required) || missingLocationLabels.length > 0}>{busy || autoPricing ? "Working…" : "Finalize estimate"}</button></>}{CRM_URL && estimate.id ? <button className="button secondary" type="button" title={!estimate.pricing || needsReprice ? "Price the estimate before sending it to the CRM" : estimate.crm_opportunity_id ? "Import this estimate into the linked CRM opportunity" : "Add this customer to the CRM with this estimate"} onClick={sendToCrm} disabled={busy || autoPricing || !estimate.pricing || needsReprice}>Send to CRM</button> : null}
         </div>
       </div>
 
@@ -611,6 +514,8 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
 
       <div className="project-workspace">
         <section className="project-editor no-print">
+          {estimate.id ? <EstimateLifecycle estimate={estimate} onChanged={(next) => setEstimate(next)} onRevise={reviseProject} onDuplicate={duplicateProject} busy={busy || autoPricing} /> : null}
+
           <div className="editor-card"><div className="card-heading"><div><p className="eyebrow">Customer details</p><h3>Who is this estimate for?</h3></div><span className={`status-pill status-${estimate.status}`}>{estimate.status}</span></div><div className="editor-grid">
             <Field label="Customer name *"><input className="project-input" value={estimate.customer_name} onChange={(event) => updateMetadata({ customer_name: event.target.value })} disabled={!editable} /></Field>
             <Field label="Company (optional)"><input className="project-input" value={estimate.company_name} onChange={(event) => updateMetadata({ company_name: event.target.value })} disabled={!editable} placeholder="Business or organization name" /></Field>
@@ -620,6 +525,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <Field label="Salesperson"><input className="project-input" value={estimate.salesperson} onChange={(event) => updateMetadata({ salesperson: event.target.value })} disabled={!editable} /></Field>
             <Field label="Estimate date"><input className="project-input" type="date" value={estimate.estimate_date} onChange={(event) => updateMetadata({ estimate_date: event.target.value })} disabled={!editable} /></Field>
             <Field label="Valid until"><input className="project-input" type="date" value={estimate.valid_until} onChange={(event) => updateMetadata({ valid_until: event.target.value })} disabled={!editable} /></Field>
+            <Field label="Province (sales tax)"><select className="project-input" value={estimate.province || "ON"} onChange={(event) => scopeChanged({ province: event.target.value })} disabled={!editable}>
+              {Object.keys(taxRates).length ? Object.entries(taxRates).map(([code, entry]) => <option key={code} value={code}>{entry.name} — {entry.components.map((component) => `${component.label} ${component.rate}%`).join(" + ")}</option>) : <option value={estimate.province || "ON"}>{estimate.province || "ON"}</option>}
+            </select></Field>
             <Field label="Project address" className="field-span-2"><AddressAutocomplete className="project-input" multiline rows={2} value={estimate.project_address} onChange={(value) => updateMetadata({ project_address: value })} disabled={!editable} placeholder="Start typing a Canadian address" /></Field>
             <Field label="Description" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.description} onChange={(event) => updateMetadata({ description: event.target.value })} disabled={!editable} placeholder="Describe the work included in the estimate." /></Field>
             <Field label="Notes" className="field-span-2"><textarea className="project-input" rows={2} value={estimate.notes} onChange={(event) => updateMetadata({ notes: event.target.value })} disabled={!editable} /></Field>
@@ -628,11 +536,11 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
 
           <div className="editor-card">
             <div className="card-heading"><div><p className="eyebrow">Sales price</p><h3>Agreed customer total</h3></div><span className="status-pill">{estimate.commercial.agreed_customer_total != null ? "Offer set" : "List / preset"}</span></div>
-            <p className="project-help">Enter the customer’s total including HST. The difference becomes a merchandise discount while installation remains protected. Door pricing stays fixed when the project includes doors.</p>
+            <p className="project-help">Enter the customer’s total including tax. The difference becomes a window merchandise discount; installation, doors, and job items keep their price.</p>
             {!estimate.pricing ? <p className="review-box">Price the estimate first. Once the current estimate is priced, enter the total the customer agreed to and apply it.</p> : null}
             {estimate.pricing && !agreedBasis ? <p className="review-box">An agreed total can be converted into a discount when the estimate contains windows. Door-only estimates keep their catalog price.</p> : null}
             <div className="editor-grid">
-              <Field label="Customer agreed total (incl. HST)"><input className="project-input" type="number" min={0} step={0.01} value={agreedTotalText} onChange={(event) => setAgreedTotalText(event.target.value)} disabled={!editable || !estimate.pricing || busy} placeholder="e.g. 12500.00" /></Field>
+              <Field label="Customer agreed total (incl. tax)"><input className="project-input" type="number" min={0} step={0.01} value={agreedTotalText} onChange={(event) => setAgreedTotalText(event.target.value)} disabled={!editable || !estimate.pricing || busy} placeholder="e.g. 12500.00" /></Field>
               <div className="project-actions"><button type="button" className="button primary" onClick={applyAgreedTotal} disabled={!editable || busy || !estimate.pricing || !agreedOffer}>{busy ? "Working…" : "Apply agreed total & price"}</button></div>
             </div>
             {agreedBasis && agreedOffer && !agreedOffer.error ? <div className="offer-summary">
@@ -643,7 +551,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
               <div><span>Merchandise discount rate</span><strong>{agreedOffer.discountPercent.toFixed(2)}%</strong></div>
             </div> : null}
             {agreedOffer?.aboveBase ? <div className="review-box"><strong>The agreed total is above the undiscounted estimate.</strong><p>Use a sales preset or change the scope if the customer needs a higher total.</p></div> : null}
-            {agreedOffer?.belowHardMinimum ? <div className="review-box"><strong>The agreed total is too low to price safely.</strong><p>It would reduce the merchandise below zero after protecting installation and door pricing.</p></div> : null}
+            {agreedOffer?.belowHardMinimum ? <div className="review-box"><strong>The agreed total is too low to price safely.</strong><p>It would reduce the merchandise below zero after protecting installation, doors, and job items.</p></div> : null}
             {agreedOffer?.underAuthorizedFloor ? <div className="review-box"><strong>Manager approval required</strong><p>This offer is below the authorized minimum of {money(agreedOffer.minimumAuthorizedTotal)}. Add the reason and authorization token before applying it.</p><div className="editor-grid">
               <Field label="Manager reason"><input className="project-input" value={managerReason} onChange={(event) => setManagerReason(event.target.value)} disabled={!editable || busy} placeholder="Approved promotional offer" /></Field>
               <Field label="Manager authorization token"><input className="project-input" type="password" value={managerToken} onChange={(event) => setManagerToken(event.target.value)} disabled={!editable || busy} placeholder="Required for override" /></Field>
@@ -656,8 +564,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
               <div className="product-hub-copy">
                 <div className="product-hub-heading"><div><p className="eyebrow">Windows &amp; patio doors</p><h3>{estimate.windows.length ? `${estimate.windows.length} line${estimate.windows.length === 1 ? "" : "s"} added` : "Add windows"}</h3></div><span className="count-badge">{estimate.windows.length}</span></div>
                 <p>Configure styles, sizes, glazing, accessories, and sales pricing in the full Window City builder.</p>
-                {estimate.pricing && estimate.windows.length ? <strong className="product-hub-total">{money(estimate.pricing.sections.windows.total)} <span>including HST</span></strong> : null}
+                {estimate.pricing && estimate.windows.length ? <strong className="product-hub-total">{money(estimate.pricing.sections.windows.total)} <span>including tax</span></strong> : null}
                 <div className="product-hub-actions">
+                  {estimate.id && editable ? <Link className="button secondary" href={`/projects/${estimate.id}/measure`}>Measure sheet</Link> : null}
                   {estimate.windows.length ? <button type="button" className="button secondary" onClick={() => openWindowWorkspace("edit")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : "Edit existing"}</button> : null}
                   <button type="button" className="button primary" onClick={() => estimate.id ? openWindowWorkspace("add") : startQuote("/")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : estimate.windows.length ? "Add more windows" : "Save & add windows"}</button>
                 </div>
@@ -669,7 +578,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
               <div className="product-hub-copy">
                 <div className="product-hub-heading"><div><p className="eyebrow">Entry doors</p><h3>{estimate.doors.length ? `${estimate.doors.length} opening${estimate.doors.length === 1 ? "" : "s"} added` : "Add doors"}</h3></div><span className="count-badge">{estimate.doors.length}</span></div>
                 <p>Configure door systems, glass, sidelites, hardware, finishes, and installation in the Palma builder.</p>
-                {estimate.pricing && estimate.doors.length ? <strong className="product-hub-total">{money(estimate.pricing.sections.doors.total)} <span>including HST</span></strong> : null}
+                {estimate.pricing && estimate.doors.length ? <strong className="product-hub-total">{money(estimate.pricing.sections.doors.total)} <span>including tax</span></strong> : null}
                 <div className="product-hub-actions">
                   {estimate.doors.length ? <button type="button" className="button secondary" onClick={() => openDoorWorkspace("edit")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : "Edit existing"}</button> : null}
                   <button type="button" className="button primary" onClick={() => estimate.id ? openDoorWorkspace("add") : startQuote("/doors")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : estimate.doors.length ? "Add more doors" : "Save & add doors"}</button>
@@ -677,6 +586,26 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
               </div>
             </article>
           </div>
+
+          {editable && !estimate.windows.length && !estimate.doors.length && packages.length ? (
+            <div className="editor-card">
+              <div className="card-heading"><div><p className="eyebrow">Packages</p><h3>Start from a saved package</h3></div></div>
+              <select className="project-input" defaultValue="" onChange={(event) => { if (event.target.value) startFromPackage(event.target.value); }}>
+                <option value="">Choose a package…</option>
+                {packages.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </div>
+          ) : null}
+
+          <JobItemsCard estimate={estimate} editable={editable} onChange={(adders: EstimateAdder[]) => scopeChanged({ adders })} />
+          <OptionTiersCard estimate={estimate} editable={editable} internal={showInternal} onChange={(tiers: EstimateTier[], selected_tier: string | null) => scopeChanged({ tiers, selected_tier })} />
+          {estimate.pricing?.profitability ? (
+            showInternal ? <ProfitPanel pricing={estimate.pricing} /> : null
+          ) : null}
+          {estimate.id ? <PhotosCard estimate={estimate} /> : null}
+          {estimate.windows.length || estimate.doors.length ? (
+            <div className="project-actions"><button type="button" className="button secondary" onClick={saveAsPackage} disabled={busy}>Save products as a reusable package</button></div>
+          ) : null}
 
           {estimate.pricing?.review_required ? <div className="review-box"><strong>Review required before finalization</strong>{estimate.pricing.warnings.map((warning, index) => <p key={`${warning.code}-${index}`}>{warning.message}</p>)}</div> : null}
           {missingLocationLabels.length ? <div className="review-box"><strong>Locations required before finalization</strong><p>Add a location to every window and door. Missing: {missingLocationLabels.join(", ")}.</p></div> : null}

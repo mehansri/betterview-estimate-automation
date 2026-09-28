@@ -1,22 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import AppChrome from "@/components/AppChrome";
+import { ViewModeProvider } from "@/lib/viewMode";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Better View Estimates",
   description: "Better View Solutions project estimates and catalog-backed quoting",
 };
-
-const nav = [
-  { href: "/projects", label: "Project estimates" },
-  { href: "/", label: "Window Quote" },
-  { href: "/doors", label: "Doors" },
-  { href: "/admin/estimates", label: "Estimates" },
-  { href: "/admin/windows", label: "Windows" },
-  { href: "/admin/analytics", label: "Analytics" },
-  { href: "/admin/similar", label: "Similar" },
-  { href: "/admin/settings", label: "Settings" },
-];
 
 export default function RootLayout({
   children,
@@ -26,32 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="min-h-screen">
-          <header className="app-chrome border-b border-slate-200 bg-white">
-            <div className="app-header-inner mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
-                  Betterview · Window City
-                </p>
-                <h1 className="text-lg font-semibold text-slate-900">
-                  Deterministic Quoting
-                </h1>
-              </div>
-              <nav className="app-nav flex flex-wrap gap-1 text-sm">
-                {nav.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="rounded-lg px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-            </div>
-          </header>
-          <main className="app-main mx-auto max-w-6xl px-4 py-8">{children}</main>
-        </div>
+        <ViewModeProvider>
+          <AppChrome>{children}</AppChrome>
+        </ViewModeProvider>
       </body>
     </html>
   );

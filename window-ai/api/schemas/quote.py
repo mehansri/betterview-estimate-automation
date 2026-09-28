@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 QUOTE_LINE_TYPES = Literal[
     "window",
     "combination",
+    "unit",
     "patio_sliding",
     "patio_swing",
     "bay_bow",
@@ -26,6 +27,27 @@ class CommercialSettings(BaseModel):
     manager_override_reason: Optional[str] = None
 
 
+class CostContext(BaseModel):
+    """Price a live preview as part of a saved project.
+
+    The sliding margin and profit floor are set on the whole project, so the
+    preview adds the project's other products to the cost basis: ``append``
+    adds the saved windows and doors (the request adds new lines),
+    ``replace_windows`` adds only the doors (the request carries every window)
+    and ``replace_doors`` only the windows (the request carries every door).
+    """
+
+    project_id: str
+    scope: Literal["append", "replace_windows", "replace_doors"] = "append"
+
+
+class SlidingMarginSettings(BaseModel):
+    start_margin_percent: float = Field(default=45.0, gt=0)
+    end_margin_percent: float = Field(default=30.0, gt=0)
+    cap_profit: float = Field(default=4000.0, gt=0)
+    basis: Literal["margin", "markup"] = "margin"
+
+
 class SalesPreset(BaseModel):
     id: str
     name: str
@@ -38,11 +60,19 @@ class SalesPreset(BaseModel):
     # negative selling price on cost-bearing lines.
     minimum_markup_percent: float = Field(default=20.0, ge=-99)
     active: bool = True
+    # "markup": sell = cost x (1 + markup). "sliding_margin": the margin slides
+    # with the project cost (see services/windowcity/margin.py).
+    strategy: Literal["markup", "sliding_margin"] = "markup"
+    sliding: Optional[SlidingMarginSettings] = None
 
 
 class SalesPresetConfig(BaseModel):
+    revision: int = 2
     currency: str = "CAD"
     minimum_markup_percent: float = Field(default=20.0, ge=-99)
+    # No project quote earns less profit than this (0 = no floor).
+    project_profit_floor: float = Field(default=1800.0, ge=0)
+    default_preset_id: Optional[str] = None
     presets: list[SalesPreset] = Field(min_length=1)
 
 
@@ -59,6 +89,7 @@ class DeterministicQuoteRequest(BaseModel):
     defaults: dict[str, Any] = Field(default_factory=dict)
     lines: list[QuoteLineInput] = Field(min_length=1)
     commercial: CommercialSettings = Field(default_factory=CommercialSettings)
+    cost_context: Optional[CostContext] = None
     # Retained for backwards-compatible validation, but the API rejects it.
     # Server-side calibration is intentionally not part of a salesperson quote.
     config_overrides: dict[str, Any] = Field(default_factory=dict)
@@ -99,6 +130,10 @@ class DeterministicQuoteLine(BaseModel):
     protected_install_sell_each: Optional[float] = None
     source_pages: list[int] = Field(default_factory=list)
     source_refs: list[str] = Field(default_factory=list)
+    # Layout-first units: section geometry, products and energy ratings.
+    unit: Optional[dict[str, Any]] = None
+    # Single windows: certified energy rating when the glass package is on file.
+    energy: Optional[dict[str, Any]] = None
 
 
 class DeterministicQuoteTotals(BaseModel):
@@ -121,6 +156,11 @@ class SalesPricingSummary(BaseModel):
     preset_id: Optional[str] = None
     preset_name: Optional[str] = None
     preset_description: Optional[str] = None
+    strategy: Optional[str] = None
+    cost_basis: Optional[float] = None
+    profit_floor: Optional[float] = None
+    floor_applied: Optional[bool] = None
+    sliding: Optional[dict[str, Any]] = None
     markup_percent: Optional[float] = None
     minimum_markup_percent: Optional[float] = None
     negotiated_discount_percent: float

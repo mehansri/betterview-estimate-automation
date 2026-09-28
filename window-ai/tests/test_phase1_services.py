@@ -111,7 +111,7 @@ def test_similarity_and_quote(sqlite_db):
         assert "reason" in quote
 
 
-def test_quote_api(sqlite_db):
+def test_similar_windows_api(sqlite_db):
     import uuid
 
     with get_session() as session:
@@ -140,7 +140,7 @@ def test_quote_api(sqlite_db):
 
     client = TestClient(app)
     r = client.post(
-        "/api/quote",
+        "/api/similar",
         json={
             "type": "Fixed",
             "width": 36,
@@ -153,15 +153,18 @@ def test_quote_api(sqlite_db):
     )
     assert r.status_code == 200, r.text
     body = r.json()
-    assert "estimated_price" in body
-    assert "method" in body
+    assert body["neighbor_count"] >= 1
     assert "similar_windows" in body
+    assert "price_stats" in body
+    # The legacy ML quote endpoints were retired; the price book is authoritative.
+    assert client.post("/api/quote", json={}).status_code in (404, 405)
 
 
 def test_import_json_fixture(sqlite_db):
     fixture = Path(__file__).parent / "fixtures" / "sample_estimate.json"
     if not fixture.exists():
         pytest.skip("no fixture")
+    pytest.importorskip("pdfplumber", reason="historical PDF import needs requirements-ml.txt")
     from services.import_pipeline import import_estimate_file
 
     result = import_estimate_file(fixture)

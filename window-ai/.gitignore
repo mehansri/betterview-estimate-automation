@@ -56,3 +56,12 @@ exports/*
 # Optuna
 optuna.db
 *.db
+
+# Build and training output
+build.log
+build.err
+catboost_info/
+frontend/tsconfig.tsbuildinfo
+.test-tmp/
+# Empty stub; the real lockfile is frontend/package-lock.json
+/package-lock.json
