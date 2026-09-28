@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { describeWindowSpec } from "@/lib/productDescriptions";
-import { CUSTOM_JAMB, jambAccessory, jambFromAccessories, withColourRules } from "@/lib/productOptions";
+import { CUSTOM_JAMB, defaultJamb, jambAccessory, jambDepthOptions, jambFromAccessories, jambLabel, withColourRules } from "@/lib/productOptions";
 import { addLite, bayProblem, BAY_PRESETS, headSeatFor, removeLite } from "@/lib/bayLayout";
 import { slidingPanels } from "@/lib/patioLayout";
 import type { QuoteCatalog } from "@/lib/api";
@@ -30,15 +30,30 @@ describe("colour rules", () => {
 
 describe("wood jamb", () => {
   it("sends a printed depth by name and a custom depth in inches", () => {
-    expect(jambAccessory({ wood_jamb: true, jamb_depth: '5 1/2"', jamb_custom: "" }, catalog)).toEqual({ kind: "wood_jamb", name: '5 1/2"', depth_in: 5.5 });
-    expect(jambAccessory({ wood_jamb: true, jamb_depth: CUSTOM_JAMB, jamb_custom: 4.75 }, catalog)).toEqual({ kind: "wood_jamb", depth_in: 4.75 });
+    expect(jambAccessory({ wood_jamb: true, jamb_depth: '5 1/2"', jamb_custom: "" }, catalog)).toEqual({ kind: "wood_jamb", name: '5 1/2"', depth_in: 5.5, finish: "primed" });
+    expect(jambAccessory({ wood_jamb: true, jamb_depth: CUSTOM_JAMB, jamb_custom: 4.75 }, catalog)).toEqual({ kind: "wood_jamb", depth_in: 4.75, finish: "primed" });
     expect(jambAccessory({ wood_jamb: true, jamb_depth: CUSTOM_JAMB, jamb_custom: "" }, catalog)).toBeNull();
     expect(jambAccessory({ wood_jamb: false, jamb_depth: '5 1/2"', jamb_custom: "" }, catalog)).toBeNull();
   });
   it("reads saved lines back, including older catalog row names", () => {
-    expect(jambFromAccessories([{ kind: "wood_jamb", name: '6 1/4" wood jamb 6 1/4" x 3/4"' }], catalog)).toEqual({ wood_jamb: true, jamb_depth: '6 1/4"', jamb_custom: "" });
-    expect(jambFromAccessories([{ kind: "wood_jamb", depth_in: 4.75 }], catalog)).toEqual({ wood_jamb: true, jamb_depth: CUSTOM_JAMB, jamb_custom: 4.75 });
-    expect(jambFromAccessories([], catalog)).toEqual({ wood_jamb: false, jamb_depth: '5 1/2"', jamb_custom: "" });
+    expect(jambFromAccessories([{ kind: "wood_jamb", name: '6 1/4" wood jamb 6 1/4" x 3/4"' }], catalog)).toEqual({ wood_jamb: true, jamb_depth: '6 1/4"', jamb_custom: "", jamb_primed: true });
+    expect(jambFromAccessories([{ kind: "wood_jamb", depth_in: 4.75, finish: "unfinished" }], catalog)).toEqual({ wood_jamb: true, jamb_depth: CUSTOM_JAMB, jamb_custom: 4.75, jamb_primed: false });
+    expect(jambFromAccessories([], catalog)).toEqual({ wood_jamb: false, jamb_depth: '5 1/2"', jamb_custom: "", jamb_primed: true });
+  });
+  it("primes windows up to 6 1/4 inches and patio doors up to 4 1/2 inches (user rule 2026-09-28)", () => {
+    const deep = { wood_jamb: true, jamb_depth: CUSTOM_JAMB, jamb_custom: 7, jamb_primed: true };
+    expect(jambAccessory({ ...deep, jamb_depth: '6 1/4"' }, catalog)?.finish).toBe("primed");
+    expect(jambAccessory(deep, catalog)?.finish).toBe("unfinished");
+    expect(jambAccessory({ ...deep, jamb_depth: '5 1/2"' }, catalog, "patio")?.finish).toBe("unfinished");
+    expect(jambAccessory({ ...deep, jamb_depth: '4 1/2"' }, catalog, "patio")).toEqual({ kind: "wood_jamb", name: '4 1/2"', depth_in: 4.5, finish: "primed" });
+    expect(jambAccessory({ ...deep, jamb_depth: '4 1/2"', jamb_primed: false }, catalog, "patio")?.finish).toBe("unfinished");
+    expect(jambLabel({ ...deep, jamb_depth: '5 1/2"' }, catalog, "patio")).toBe("5 1/2″ unfinished wood jamb");
+  });
+  it("starts patio doors on a 4 1/2 inch jamb", () => {
+    expect(defaultJamb(catalog, "patio")).toBe('4 1/2"');
+    expect(jambDepthOptions(catalog, "patio").map((depth) => depth.name)).toEqual(['3 3/8"', '4 1/2"', '5 1/2"', '6 1/4"']);
+    expect(jambDepthOptions(catalog).map((depth) => depth.name)).not.toContain('4 1/2"');
+    expect(jambFromAccessories([{ kind: "wood_jamb", depth_in: 4.5, finish: "primed" }], catalog, "patio")).toMatchObject({ jamb_depth: '4 1/2"', jamb_primed: true });
   });
 });
 
@@ -76,7 +91,7 @@ describe("descriptions match the backend", () => {
   });
   it("describes a sliding door with its handing and kick lock", () => {
     expect(describeWindowSpec({ type: "patio_sliding", nominal_ft: 6, operation: "OX", colour_ext: "white", kick_lock: true, accessories: [{ kind: "wood_jamb", depth_in: 4.75 }] })).toBe(
-      'Sliding patio door - 6 ft - OX - Exterior colour: white - 4 3/4" primed wood jamb - Kick lock',
+      'Sliding patio door - 6 ft - OX - Exterior colour: white - 4 3/4" unfinished wood jamb - Kick lock',
     );
   });
 });

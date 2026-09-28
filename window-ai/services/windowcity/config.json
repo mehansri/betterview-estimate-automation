@@ -65,7 +65,12 @@
   "_engine_patio": "WC-500 sliding doors, calibrated to the cent on orders 125401186 (Common Configs V2/V3, 24 standard doors, white and Jet Black/White) and 125401100/125401102 (April 2026). Door, glass, assembly, kick lock and colour are billed at 0.81 of list (not 0.77); brickmould and wood jamb at the normal discount. Brickmould EP326 is 5.00/lf white and 5.80/lf coloured on doors (5.60 on windows). A 4 1/2in patio jamb is 4.00/lf; deeper jambs use the window wood-jamb rows. Triple pane bills the LoE 180 add plus the triple package. Footage = W + 2H + 6in (2 panel) or + 8in (4 panel), rounded up to an even inch. Kick lock 40.00 per operating panel pair. Black in/out (order 125401100, one 6ft OX triple) carried 158.39 list on top of the book's black in/out add - black/black hardware and kick lock; confirm on a second black/black door, especially a 4-panel.",
   "defaults": {
     "wood_jamb": "5 1/2\"",
-    "wood_jamb_finish": "primed"
+    "patio_wood_jamb": "4 1/2\"",
+    "wood_jamb_finish": "primed",
+    "wood_jamb_primed_max_in": {
+      "window": 6.25,
+      "patio": 4.5
+    }
   },
-  "_defaults": "New line items start with a 5 1/2in primed wood jamb (user rule 2026-09-28). Reps can pick another depth or a custom depth."
+  "_defaults": "New window lines start with a 5 1/2in primed wood jamb and new patio doors with a 4 1/2in primed wood jamb (user rules 2026-09-28). Reps can pick another depth or a custom depth and can leave a jamb unfinished. Primed white is only offered up to 6 1/4in on windows and 4 1/2in on patio doors; a deeper jamb is always unfinished."
 }

@@ -44,11 +44,18 @@ import { useViewMode, VIEW_MODE_SHORTCUT } from "@/lib/viewMode";
 import {
   CUSTOM_JAMB,
   DEFAULT_JAMB_DEPTH,
+  DEFAULT_PATIO_JAMB_DEPTH,
+  defaultJamb,
   EXTERIOR_COLOURS,
+  fmtJambLimit,
   INTERIOR_COLOURS,
   jambAccessory,
+  jambDepthIn,
+  jambDepthOptions,
   jambFromAccessories,
+  jambIsPrimed,
   jambLabel,
+  primedMaxIn,
   withColourRules,
 } from "@/lib/productOptions";
 import { bayProblem, DEFAULT_BAY, headSeatFor } from "@/lib/bayLayout";
@@ -85,6 +92,7 @@ type Draft = {
   wood_jamb: boolean;
   jamb_depth: string;
   jamb_custom: NumericInputValue;
+  jamb_primed: boolean;
   sliding_ft: number;
   operation: string;
   swing_kind: string;
@@ -142,11 +150,13 @@ function emptyDraft(style = "WC-100", type: QuoteLineType = "unit"): Draft {
     tri_pane_lami: false,
     frost_tint: false,
     brickmould: false,
-    // Every new line item starts with a 5 1/2" primed wood jamb; reps change
-    // the depth for non-standard walls or turn it off.
+    // Every new line item starts with a primed wood jamb, 5 1/2" on windows and
+    // 4 1/2" on patio doors; reps change the depth for non-standard walls, leave
+    // it unfinished, or turn it off.
     wood_jamb: true,
-    jamb_depth: DEFAULT_JAMB_DEPTH,
+    jamb_depth: isPatio(type) ? DEFAULT_PATIO_JAMB_DEPTH : DEFAULT_JAMB_DEPTH,
     jamb_custom: "",
+    jamb_primed: true,
     sliding_ft: 6,
     operation: "XO",
     swing_kind: "single",
@@ -197,11 +207,15 @@ function lineOperations(spec: QuoteLineInput, catalog: QuoteCatalog | null): Win
   return [];
 }
 
-function hasJamb(spec: QuoteLineInput) {
+/** The line's jamb finish for the order details: the wood jamb's own finish, or null without a jamb. */
+function jambFinish(spec: QuoteLineInput): string | null {
   const raw = recordValue(spec);
   const lites = Array.isArray(raw.lites) ? raw.lites.map(recordValue) : [];
-  return [raw, ...lites].some((item) => (Array.isArray(item.accessories) ? item.accessories : [])
-    .some((accessory) => ["wood_jamb", "pvc_jamb"].includes(String(recordValue(accessory).kind || ""))));
+  const jamb = [raw, ...lites]
+    .flatMap((item) => (Array.isArray(item.accessories) ? item.accessories : []).map(recordValue))
+    .find((accessory) => ["wood_jamb", "pvc_jamb"].includes(String(accessory.kind || "")));
+  if (!jamb) return null;
+  return jamb.kind === "wood_jamb" ? String(jamb.finish || "primed") : "primed";
 }
 
 /**
@@ -227,7 +241,7 @@ function toWindowDetails(order: OrderDetails, spec: QuoteLineInput, catalog: Quo
     screen: screen ? { frame_colour: order.screen_frame || null, mesh_colour: order.screen_mesh || null } : null,
     hardware: hardware.trim() || null,
     spacer: order.spacer || null,
-    jamb_finish: hasJamb(spec) ? saved?.jamb_finish || "primed" : null,
+    jamb_finish: jambFinish(spec),
   };
 }
 
@@ -281,7 +295,7 @@ function draftFromSpec(spec: QuoteLineInput, catalog: QuoteCatalog): Draft {
   const type = spec.type;
   const defaultDraft = emptyDraft(String(source.style || raw.style || catalog.styles[0]?.code || "WC-100"), type);
   const legacyBay = type === "bay_bow" && !raw.layout ? bayFromLites(nestedLites) : null;
-  const jamb = jambFromAccessories(accessories, catalog);
+  const jamb = jambFromAccessories(accessories, catalog, isPatio(type) ? "patio" : "window");
 
   return {
     ...defaultDraft,
@@ -382,7 +396,7 @@ function draftAccessories(draft: Draft, catalog: QuoteCatalog | null): Array<Rec
 function doorAccessories(draft: Draft, catalog: QuoteCatalog | null): Array<Record<string, unknown>> {
   const accessories: Array<Record<string, unknown>> = [];
   if (draft.brickmould) accessories.push({ ...PATIO_BRICKMOULD });
-  const jamb = jambAccessory(draft, catalog);
+  const jamb = jambAccessory(draft, catalog, "patio");
   if (jamb) accessories.push(jamb);
   return accessories;
 }
@@ -592,7 +606,7 @@ function applyFavourite(current: Draft, payload: unknown, catalog: QuoteCatalog 
   });
   if (!LINE_TYPES.includes(next.type)) next.type = current.type;
   if (catalog && !catalog.styles.some((style) => style.code === next.style)) next.style = current.style;
-  if (next.jamb_depth !== CUSTOM_JAMB && catalog?.wood_jamb && !catalog.wood_jamb.depths.some((depth) => depth.name === next.jamb_depth)) next.jamb_depth = current.jamb_depth;
+  if (next.jamb_depth !== CUSTOM_JAMB && catalog?.wood_jamb && !jambDepthOptions(catalog, isPatio(next.type) ? "patio" : "window").some((depth) => depth.name === next.jamb_depth)) next.jamb_depth = current.jamb_depth;
   return next;
 }
 
@@ -602,6 +616,9 @@ function switchProduct(current: Draft, type: QuoteLineType, catalog: QuoteCatalo
   const next: Draft = { ...current, type, preset: "" };
   const wasBay = current.type === "bay_bow";
   const wasDoor = current.type === "patio_sliding" || current.type === "patio_swing";
+  // Patio doors and windows each start from their own standard jamb depth.
+  if (isPatio(type) && !wasDoor && current.jamb_depth === defaultJamb(catalog, "window")) next.jamb_depth = defaultJamb(catalog, "patio");
+  if (!isPatio(type) && wasDoor && current.jamb_depth === defaultJamb(catalog, "patio")) next.jamb_depth = defaultJamb(catalog, "window");
   if (type === "bay_bow") {
     Object.assign(next, { layout: JSON.parse(JSON.stringify(DEFAULT_BAY.layout)), width: DEFAULT_BAY.width, height: DEFAULT_BAY.height, preset: DEFAULT_BAY.id, bay_style: "bay", head_seat: headSeatFor(DEFAULT_BAY.width, catalog?.baybow.head_seat_sizes || []) });
   } else if (type === "unit" && (wasBay || wasDoor)) {
@@ -1069,7 +1086,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       draft.frost_tint ? "frost / tint" : "",
       `${draft.gas} gas`,
     ].filter(Boolean).join(", ");
-    const accessorySummary = [draft.brickmould ? "brickmould" : "", draft.wood_jamb ? jambLabel(draft, catalog) : ""].filter(Boolean).join(" + ") || "no brickmould / wood jamb";
+    const accessorySummary = [draft.brickmould ? "brickmould" : "", draft.wood_jamb ? jambLabel(draft, catalog, isPatio(draft.type) ? "patio" : "window") : ""].filter(Boolean).join(" + ") || "no brickmould / wood jamb";
     const confirmed = window.confirm(
       `Apply the current options to all ${lines.length} line${lines.length === 1 ? "" : "s"}?\n\n` +
         `Colour: ${draft.colour_ext}${draft.colour_int === "black" ? " in / black out" : ""}\nGlazing: ${glazingSummary}\nTrim: ${accessorySummary}\n\n` +
@@ -1595,11 +1612,11 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
               <p className="mb-3 text-sm font-semibold text-slate-800">Trim</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Toggle label="Brickmould" value={draft.brickmould} onChange={(value) => update("brickmould", value)} />
-                <Toggle label="Wood jamb (primed)" value={draft.wood_jamb} onChange={(value) => update("wood_jamb", value)} />
+                <Toggle label="Wood jamb" value={draft.wood_jamb} onChange={(value) => update("wood_jamb", value)} />
                 {draft.wood_jamb ? (
                   <Field label="Jamb depth">
                     <select className="input" value={draft.jamb_depth} onChange={(e) => update("jamb_depth", e.target.value)}>
-                      {(catalog?.wood_jamb?.depths || []).map((depth) => <option key={depth.name} value={depth.name}>{depth.name}</option>)}
+                      {jambDepthOptions(catalog, isPatio(draft.type) ? "patio" : "window").map((depth) => <option key={depth.name} value={depth.name}>{depth.name}</option>)}
                       <option value={CUSTOM_JAMB}>Custom depth…</option>
                     </select>
                   </Field>
@@ -1607,6 +1624,13 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
                 {draft.wood_jamb && draft.jamb_depth === CUSTOM_JAMB ? (
                   <Field label="Custom depth (in)"><input className="input" type="number" min={0.5} max={catalog?.wood_jamb?.custom_max_in || 7.5} step={0.125} value={draft.jamb_custom} onChange={(e) => update("jamb_custom", numericInputValue(e.target.value))} /></Field>
                 ) : null}
+                {draft.wood_jamb ? (() => {
+                  const product = isPatio(draft.type) ? "patio" : "window";
+                  const depth = jambDepthIn(draft, catalog);
+                  return depth !== null && depth <= primedMaxIn(catalog, product) + 1e-6
+                    ? <Toggle label="Primed white" value={jambIsPrimed(draft, catalog, product)} onChange={(value) => update("jamb_primed", value)} />
+                    : <p className="text-xs text-slate-500">Unfinished: priming is only offered up to {fmtJambLimit(catalog, product)} on {product === "patio" ? "patio doors" : "windows"}.</p>;
+                })() : null}
               </div>
               <p className="mt-3 text-xs text-slate-500">{accessoriesNote(catalog)}</p>
               {draft.type === "combination" ? <p className="mt-1 text-xs text-slate-500">On a mulled unit, brickmould and jambs wrap the whole assembly once.</p> : null}

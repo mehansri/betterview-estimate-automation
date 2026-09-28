@@ -494,6 +494,24 @@ def _patio_footage(width: float, height: float, panels: int, cfg: dict) -> float
     return math.ceil(total / 2 - 1e-9) * 2 / 12.0
 
 
+PATIO_TYPES = ("patio_sliding", "patio_swing")
+
+
+def wood_jamb_finish(acc: dict, product: str, cfg: dict | None = None) -> str:
+    """'primed' or 'unfinished' for a wood jamb on a window or patio door.
+
+    Primed white is the default and is offered up to a depth limit per
+    product (6 1/4" windows, 4 1/2" patio doors); anything deeper, or a jamb
+    the rep left unfinished, is unfinished.
+    """
+    cfg = cfg or load_config()
+    limits = (cfg.get("defaults") or {}).get("wood_jamb_primed_max_in") or {}
+    limit = float(limits.get("patio" if product in ("patio", *PATIO_TYPES) else "window", 6.25))
+    depth = catalog.wood_jamb_depth(acc)
+    wanted = str(acc.get("finish") or "primed").lower()
+    return "primed" if wanted == "primed" and depth is not None and depth <= limit + 1e-6 else "unfinished"
+
+
 def _patio_accessories(line: dict, width: float, height: float, panels: int,
                        coloured: bool, cfg: dict) -> list[Component]:
     """Brickmould and wood jamb around a patio door, at the normal discount."""
@@ -515,7 +533,8 @@ def _patio_accessories(line: dict, width: float, height: float, panels: int,
             # 125401186); deeper jambs use the window wood-jamb rows.
             rate = (pcfg["wood_jamb_rate_lf_to_4_5"] if depth is not None and float(depth) <= 4.5
                     else row["price_white_lf"])
-            label = f"{float(depth):g}\" primed wood jamb" if depth is not None else row["name"]
+            finish = wood_jamb_finish(acc, "patio", cfg)
+            label = f"{float(depth):g}\" {finish} wood jamb" if depth is not None else row["name"]
             comps.append(Component(f"{label} {lf:.2f} lf @ {rate:.2f}", lf * rate))
         else:
             raise CatalogError(f"patio doors take brickmould and wood jamb only, not {acc['kind']!r}")

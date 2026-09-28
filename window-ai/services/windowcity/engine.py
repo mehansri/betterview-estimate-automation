@@ -306,7 +306,10 @@ def _wood_jamb_payload(accessories: dict) -> dict[str, Any]:
     defaults = cfg.get("defaults") or {}
     return {
         "default": defaults.get("wood_jamb", '5 1/2"'),
+        "patio_default": defaults.get("patio_wood_jamb", '4 1/2"'),
         "finish": defaults.get("wood_jamb_finish", "primed"),
+        # Deepest jamb Window City primes, per product; deeper jambs ship unfinished.
+        "primed_max_in": defaults.get("wood_jamb_primed_max_in") or {"window": 6.25, "patio": 4.5},
         "depths": sorted(depths, key=lambda item: item["depth_in"]),
         "custom_max_in": 7.5,
     }

@@ -7,12 +7,19 @@ import { ChipGroup, InchInput, OptionCard, SectionTitle } from "@/components/con
 import {
   activeGlass,
   CUSTOM_JAMB,
+  defaultJamb,
   FinishOptions,
   GlassPackage,
   INTERIOR_COLOURS,
+  jambDepthIn,
+  jambDepthOptions,
+  jambIsPrimed,
   jambLabel,
+  JambProduct,
+  primedMaxIn,
   withColourRules,
 } from "@/lib/productOptions";
+import { fmtInches } from "@/lib/windowLayout";
 
 type Flag = { key: "loe180" | "i89" | "triple" | "tri_pane_lami" | "frost_tint"; label: string };
 
@@ -34,6 +41,8 @@ type Props = {
   /** Product-specific trim after brickmould and jamb (bay head & seat, door kick lock). */
   extraTrim?: ReactNode;
   glassNote?: ReactNode;
+  /** Jamb standard and priming limit follow the product (patio doors: 4 1/2", primed up to 4 1/2"). */
+  jambProduct?: JambProduct;
 };
 
 function Swatch({ colour, active, onClick, disabled, title }: { colour: string; active: boolean; onClick: () => void; disabled?: boolean; title?: string }) {
@@ -47,11 +56,15 @@ function Swatch({ colour, active, onClick, disabled, title }: { colour: string; 
 }
 
 /** Glass & finish: the same colours, glass and trim fields, in the same order, for every product. */
-export default function FinishStep({ catalog, value, onChange, colours, glass, unavailableGlass = {}, gases, flags, interiorUnavailable, lead, brickmould, extraTrim, glassNote }: Props) {
+export default function FinishStep({ catalog, value, onChange, colours, glass, unavailableGlass = {}, gases, flags, interiorUnavailable, lead, brickmould, extraTrim, glassNote, jambProduct = "window" }: Props) {
   const set = (patch: Partial<FinishOptions>) => onChange(withColourRules(value, patch));
   const current = activeGlass(glass, value);
-  const depths = catalog.wood_jamb?.depths || [];
+  const depths = jambDepthOptions(catalog, jambProduct);
   const customMax = catalog.wood_jamb?.custom_max_in || 7.5;
+  const primedMax = primedMaxIn(catalog, jambProduct);
+  const depth = jambDepthIn(value, catalog);
+  const primeable = depth !== null && depth <= primedMax + 1e-6;
+  const primed = jambIsPrimed(value, catalog, jambProduct);
 
   return (
     <div className="space-y-6">
@@ -120,12 +133,12 @@ export default function FinishStep({ catalog, value, onChange, colours, glass, u
           ) : null}
           <OptionCard active={value.wood_jamb} onClick={() => set({ wood_jamb: !value.wood_jamb })} className="p-3">
             <p className="pr-6 text-sm font-semibold text-slate-900">Wood jamb extension</p>
-            <p className="text-[11px] text-slate-500">{value.wood_jamb ? jambLabel(value, catalog) : "Interior jamb, primed"}</p>
+            <p className="text-[11px] text-slate-500">{value.wood_jamb ? jambLabel(value, catalog, jambProduct) : "Interior jamb extension"}</p>
           </OptionCard>
         </div>
         {value.wood_jamb ? (
           <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-            <p className="text-xs font-semibold text-slate-700">Jamb depth <span className="font-normal text-slate-500">· primed · 5 1/2″ is the standard</span></p>
+            <p className="text-xs font-semibold text-slate-700">Jamb depth <span className="font-normal text-slate-500">· {defaultJamb(catalog, jambProduct).replace('"', "″")} is the standard</span></p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {depths.map((depth) => (
                 <button key={depth.name} type="button" aria-pressed={value.jamb_depth === depth.name} onClick={() => set({ jamb_depth: depth.name })} className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${value.jamb_depth === depth.name ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-brand-300"}`}>{depth.name.replace('"', "″")}</button>
@@ -137,6 +150,10 @@ export default function FinishStep({ catalog, value, onChange, colours, glass, u
                 <InchInput label="Custom depth" value={value.jamb_custom} onChange={(jamb_custom) => set({ jamb_custom })} min={0.5} hint={`Up to ${customMax}″, priced on the custom row.`} />
               </div>
             ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button type="button" aria-pressed={primed} disabled={!primeable} onClick={() => set({ jamb_primed: !value.jamb_primed })} className={`rounded-full border px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${primed ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-brand-300"}`}>Primed white</button>
+              {primed ? null : <span className="text-[11px] text-slate-500">{primeable ? "Unfinished" : `Unfinished: priming is only offered up to ${fmtInches(primedMax)}″ on ${jambProduct === "patio" ? "patio doors" : "windows"}`}</span>}
+            </div>
           </div>
         ) : null}
         {extraTrim ? <div className="mt-3">{extraTrim}</div> : null}

@@ -947,7 +947,7 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
             <Toggle label="Brickmould" checked={defaults.brickmould} onChange={(value) => updateDefaults({ brickmould: value })} />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:col-span-2 lg:col-span-4 lg:grid-cols-4">
-            <Toggle label="Wood jamb (primed)" checked={defaults.wood_jamb} onChange={(value) => updateDefaults({ wood_jamb: value })} />
+            <Toggle label="Wood jamb (primed up to 6 1/4″)" checked={defaults.wood_jamb} onChange={(value) => updateDefaults({ wood_jamb: value })} />
             {defaults.wood_jamb ? (
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-slate-700">Jamb depth</span>

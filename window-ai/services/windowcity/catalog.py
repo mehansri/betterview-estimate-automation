@@ -139,10 +139,32 @@ def wood_jamb_for_depth(depth_in: float) -> dict:
 
 
 def accessory_row(acc: dict) -> dict:
-    """Resolve a line accessory: by name, or a wood jamb by its depth alone."""
-    if acc.get("kind") == "wood_jamb" and not acc.get("name") and acc.get("depth_in") is not None:
-        return wood_jamb_for_depth(float(acc["depth_in"]))
-    return accessory(acc["kind"], acc["name"])
+    """Resolve a line accessory: by name, or a wood jamb by its depth alone.
+
+    A wood jamb whose name is not a printed row (the 4 1/2" patio door jamb)
+    falls back to its depth.
+    """
+    depth = acc.get("depth_in")
+    if acc.get("kind") == "wood_jamb" and not acc.get("name") and depth is not None:
+        return wood_jamb_for_depth(float(depth))
+    try:
+        return accessory(acc["kind"], acc["name"])
+    except CatalogError:
+        if acc.get("kind") == "wood_jamb" and depth is not None:
+            return wood_jamb_for_depth(float(depth))
+        raise
+
+
+def wood_jamb_depth(acc: dict) -> float | None:
+    """A wood jamb's depth in inches, from ``depth_in`` or its row name."""
+    import re
+    if acc.get("depth_in") is not None:
+        return float(acc["depth_in"])
+    m = re.match(r"\s*([\d/ ]+)\"", str(acc.get("name") or ""))
+    try:
+        return inches(m.group(1).strip() + '"') if m else None
+    except CatalogError:
+        return None
 
 
 def mullion_lf_price(direction: str) -> float:

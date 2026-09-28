@@ -7,9 +7,18 @@ import { fmtInches } from "@/lib/windowLayout";
 export const EXTERIOR_COLOURS = ["white", "black", "dark bronze", "charcoal", "sandstone"];
 export const INTERIOR_COLOURS = ["white", "black"];
 
-/** New line items start with a 5 1/2" primed wood jamb (user rule 2026-09-28). */
+/** New window lines start with a 5 1/2" primed wood jamb (user rule 2026-09-28). */
 export const DEFAULT_JAMB_DEPTH = '5 1/2"';
+/** New patio doors start with a 4 1/2" primed wood jamb (user rule 2026-09-28). */
+export const DEFAULT_PATIO_JAMB_DEPTH = '4 1/2"';
 export const CUSTOM_JAMB = "custom";
+
+/** Window City primes jambs white up to 6 1/4" on windows and 4 1/2" on patio doors; deeper jambs are unfinished. */
+export const PRIMED_MAX_IN: Record<JambProduct, number> = { window: 6.25, patio: 4.5 };
+
+export type JambProduct = "window" | "patio";
+
+type JambOptions = Pick<FinishOptions, "wood_jamb" | "jamb_depth" | "jamb_custom"> & { jamb_primed?: boolean };
 
 export type FinishOptions = {
   colour_ext: string;
@@ -22,13 +31,48 @@ export type FinishOptions = {
   frost_tint: boolean;
   brickmould: boolean;
   wood_jamb: boolean;
-  /** A catalog depth name ('5 1/2"') or "custom". */
+  /** A catalog depth name ('5 1/2"'), the patio door's '4 1/2"', or "custom". */
   jamb_depth: string;
   jamb_custom: NumericInputValue;
+  /** Primed white when the depth allows it (see PRIMED_MAX_IN); otherwise unfinished. */
+  jamb_primed: boolean;
 };
 
-export function defaultJamb(catalog?: QuoteCatalog | null): string {
-  return catalog?.wood_jamb?.default || DEFAULT_JAMB_DEPTH;
+export function defaultJamb(catalog?: QuoteCatalog | null, product: JambProduct = "window"): string {
+  return product === "patio"
+    ? catalog?.wood_jamb?.patio_default || DEFAULT_PATIO_JAMB_DEPTH
+    : catalog?.wood_jamb?.default || DEFAULT_JAMB_DEPTH;
+}
+
+export function primedMaxIn(catalog?: QuoteCatalog | null, product: JambProduct = "window"): number {
+  return catalog?.wood_jamb?.primed_max_in?.[product] ?? PRIMED_MAX_IN[product];
+}
+
+/** The depths a rep can pick: the price book's rows, plus the 4 1/2" standard on patio doors. */
+export function jambDepthOptions(catalog?: QuoteCatalog | null, product: JambProduct = "window"): Array<{ name: string; depth_in: number }> {
+  const depths: Array<{ name: string; depth_in: number }> = [...(catalog?.wood_jamb?.depths || [])];
+  if (product === "patio") {
+    const name = defaultJamb(catalog, "patio");
+    const depth = parseInches(name);
+    if (depth && !depths.some((item) => item.name === name)) depths.push({ name, depth_in: depth });
+  }
+  return depths.sort((a, b) => a.depth_in - b.depth_in);
+}
+
+function parseInches(value: string): number | null {
+  const match = value.match(/^(\d+)(?:\s+(\d+)\/(\d+))?/);
+  return match ? Number(match[1]) + (match[2] ? Number(match[2]) / Number(match[3]) : 0) : null;
+}
+
+/** "6 1/4″": the deepest jamb that can be primed on the product. */
+export function fmtJambLimit(catalog?: QuoteCatalog | null, product: JambProduct = "window"): string {
+  return `${fmtInches(primedMaxIn(catalog, product))}″`;
+}
+
+/** True when the jamb will be primed white: the rep wants it and the depth allows it. */
+export function jambIsPrimed(options: JambOptions, catalog?: QuoteCatalog | null, product: JambProduct = "window"): boolean {
+  const depth = jambDepthIn(options, catalog);
+  return options.jamb_primed !== false && depth !== null && depth <= primedMaxIn(catalog, product) + 1e-6;
 }
 
 /**
@@ -55,36 +99,41 @@ export function jambDepthIn(options: Pick<FinishOptions, "jamb_depth" | "jamb_cu
   }
   const row = catalog?.wood_jamb?.depths.find((item) => item.name === options.jamb_depth);
   if (row) return row.depth_in;
-  const match = options.jamb_depth.match(/^(\d+)(?:\s+(\d+)\/(\d+))?/);
-  return match ? Number(match[1]) + (match[2] ? Number(match[2]) / Number(match[3]) : 0) : null;
+  return parseInches(options.jamb_depth);
 }
 
-/** The wood-jamb accessory for a line: a printed depth by name, a custom depth by inches. */
-export function jambAccessory(options: Pick<FinishOptions, "wood_jamb" | "jamb_depth" | "jamb_custom">, catalog?: QuoteCatalog | null): { kind: "wood_jamb"; name?: string; depth_in?: number } | null {
+/**
+ * The wood-jamb accessory for a line: a printed depth by name, a custom depth
+ * by inches, and its finish (primed white only where the depth allows it).
+ */
+export function jambAccessory(options: JambOptions, catalog?: QuoteCatalog | null, product: JambProduct = "window"): { kind: "wood_jamb"; name?: string; depth_in?: number; finish: "primed" | "unfinished" } | null {
   if (!options.wood_jamb) return null;
   const depth = jambDepthIn(options, catalog);
-  if (options.jamb_depth === CUSTOM_JAMB) return depth ? { kind: "wood_jamb", depth_in: depth } : null;
-  return { kind: "wood_jamb", name: options.jamb_depth, ...(depth ? { depth_in: depth } : {}) };
+  const finish = jambIsPrimed(options, catalog, product) ? "primed" : "unfinished";
+  if (options.jamb_depth === CUSTOM_JAMB) return depth ? { kind: "wood_jamb", depth_in: depth, finish } : null;
+  return { kind: "wood_jamb", name: options.jamb_depth, ...(depth ? { depth_in: depth } : {}), finish };
 }
 
-export function jambLabel(options: Pick<FinishOptions, "wood_jamb" | "jamb_depth" | "jamb_custom">, catalog?: QuoteCatalog | null): string {
+export function jambLabel(options: JambOptions, catalog?: QuoteCatalog | null, product: JambProduct = "window"): string {
   if (!options.wood_jamb) return "no wood jamb";
   const depth = jambDepthIn(options, catalog);
-  return depth ? `${fmtInches(depth)}″ primed wood jamb` : "wood jamb (enter a depth)";
+  return depth ? `${fmtInches(depth)}″ ${jambIsPrimed(options, catalog, product) ? "primed" : "unfinished"} wood jamb` : "wood jamb (enter a depth)";
 }
 
 /** Read a saved accessory list back into jamb options (older lines kept the catalog row name). */
-export function jambFromAccessories(accessories: Array<Record<string, unknown>>, catalog?: QuoteCatalog | null): Pick<FinishOptions, "wood_jamb" | "jamb_depth" | "jamb_custom"> {
+export function jambFromAccessories(accessories: Array<Record<string, unknown>>, catalog?: QuoteCatalog | null, product: JambProduct = "window"): Pick<FinishOptions, "wood_jamb" | "jamb_depth" | "jamb_custom" | "jamb_primed"> {
   const jamb = accessories.find((item) => String(item.kind || "") === "wood_jamb");
-  if (!jamb) return { wood_jamb: false, jamb_depth: defaultJamb(catalog), jamb_custom: "" };
+  if (!jamb) return { wood_jamb: false, jamb_depth: defaultJamb(catalog, product), jamb_custom: "", jamb_primed: true };
+  // Lines saved before the finish was recorded were primed wherever the depth allowed.
+  const jamb_primed = String(jamb.finish || "primed") !== "unfinished";
   const name = String(jamb.name || "");
-  const depths = catalog?.wood_jamb?.depths || [];
+  const depths = jambDepthOptions(catalog, product);
   const byName = depths.find((item) => name === item.name || name.startsWith(`${item.name} wood jamb`));
-  if (byName) return { wood_jamb: true, jamb_depth: byName.name, jamb_custom: "" };
+  if (byName) return { wood_jamb: true, jamb_depth: byName.name, jamb_custom: "", jamb_primed };
   const depth = Number(jamb.depth_in);
   const byDepth = Number.isFinite(depth) ? depths.find((item) => Math.abs(item.depth_in - depth) < 1e-6) : undefined;
-  if (byDepth) return { wood_jamb: true, jamb_depth: byDepth.name, jamb_custom: "" };
-  return { wood_jamb: true, jamb_depth: CUSTOM_JAMB, jamb_custom: Number.isFinite(depth) ? depth : "" };
+  if (byDepth) return { wood_jamb: true, jamb_depth: byDepth.name, jamb_custom: "", jamb_primed };
+  return { wood_jamb: true, jamb_depth: CUSTOM_JAMB, jamb_custom: Number.isFinite(depth) ? depth : "", jamb_primed };
 }
 
 export type GlassPackage = {

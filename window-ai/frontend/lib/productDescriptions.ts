@@ -5,6 +5,7 @@ import type {
   QuoteLineInput,
   WindowDetails,
 } from "@/lib/api";
+import { PRIMED_MAX_IN, type JambProduct } from "@/lib/productOptions";
 import { fmt, LayoutNode, layoutSummary, sectionLabel, SERIES_LABELS, tryResolveLayout } from "@/lib/windowLayout";
 
 /** 5.5 -> "5 1/2", 4.75 -> "4 3/4" (sixteenths); mirrors descriptions.py _fraction. */
@@ -25,18 +26,24 @@ function fraction(value: number) {
   return whole ? `${whole} ${num}/${den}` : `${num}/${den}`;
 }
 
-/** Customer text for an accessory; wood jambs read '5 1/2" primed wood jamb'. */
-export function accessoryText(item: Record<string, unknown>) {
+/**
+ * Customer text for an accessory; wood jambs read '5 1/2" primed wood jamb', or
+ * 'unfinished' past the product's priming limit (mirrors quote.py wood_jamb_finish).
+ */
+export function accessoryText(item: Record<string, unknown>, product: JambProduct = "window") {
   const name = text(item.name);
   if (item.kind === "wood_jamb") {
-    const depth = Number(item.depth_in);
+    let depth = item.depth_in != null ? Number(item.depth_in) : NaN;
     let size = "";
-    if (item.depth_in != null && Number.isFinite(depth)) size = `${fraction(depth)}"`;
+    if (Number.isFinite(depth)) size = `${fraction(depth)}"`;
     else {
       const match = name.match(/^([\d/ ]+)"/);
       size = match ? `${match[1].trim()}"` : "";
+      const parts = size.replace('"', "").trim().split(/\s+/);
+      depth = parts.reduce((sum, part) => sum + (part.includes("/") ? Number(part.split("/")[0]) / Number(part.split("/")[1]) : Number(part)), 0);
     }
-    return `${size} primed wood jamb`.trim();
+    const primed = text(item.finish || "primed").toLowerCase() === "primed" && Number.isFinite(depth) && depth > 0 && depth <= PRIMED_MAX_IN[product] + 1e-6;
+    return `${size} ${primed ? "primed" : "unfinished"} wood jamb`.trim();
   }
   return name || pretty(item.kind);
 }
@@ -100,9 +107,10 @@ function windowOptions(spec: Record<string, unknown>) {
     if (glazing[key]) options.push(label);
   }
   if (glazing.gas) options.push(`${pretty(glazing.gas)} gas`);
+  const product: JambProduct = spec.type === "patio_sliding" || spec.type === "patio_swing" ? "patio" : "window";
   for (const accessory of Array.isArray(spec.accessories) ? spec.accessories : []) {
     if (accessory && typeof accessory === "object") {
-      const name = accessoryText(accessory as Record<string, unknown>);
+      const name = accessoryText(accessory as Record<string, unknown>, product);
       if (name) options.push(name);
     }
   }

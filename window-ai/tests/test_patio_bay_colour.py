@@ -213,4 +213,26 @@ def test_descriptions_match_the_frontend_text() -> None:
     slider = {"type": "patio_sliding", "nominal_ft": 6, "operation": "OX", "colour_ext": "white", "kick_lock": True,
               "accessories": [{"kind": "wood_jamb", "depth_in": 4.75}]}
     assert window_description({"spec": slider}) == (
-        'Sliding patio door - 6 ft - OX - Exterior colour: white - 4 3/4" primed wood jamb - Kick lock')
+        'Sliding patio door - 6 ft - OX - Exterior colour: white - 4 3/4" unfinished wood jamb - Kick lock')
+
+
+def test_wood_jamb_priming_limits() -> None:
+    """Primed white: patio doors up to 4 1/2", windows up to 6 1/4" (user rule 2026-09-28)."""
+    from services.descriptions import accessory_text
+    from services.windowcity.quote import wood_jamb_finish
+
+    assert wood_jamb_finish({"kind": "wood_jamb", "depth_in": 4.5}, "patio_sliding") == "primed"
+    assert wood_jamb_finish({"kind": "wood_jamb", "name": '5 1/2"', "depth_in": 5.5}, "patio") == "unfinished"
+    assert wood_jamb_finish({"kind": "wood_jamb", "depth_in": 4.5, "finish": "unfinished"}, "patio") == "unfinished"
+    assert wood_jamb_finish({"kind": "wood_jamb", "name": '6 1/4"'}, "window") == "primed"
+    assert wood_jamb_finish({"kind": "wood_jamb", "name": '7 1/2"'}, "window") == "unfinished"
+    # A primed request past the limit is still unfinished.
+    assert accessory_text({"kind": "wood_jamb", "depth_in": 7, "finish": "primed"}) == '7" unfinished wood jamb'
+
+
+def test_patio_door_standard_jamb_prices_on_the_door_row() -> None:
+    """The standard 4 1/2" patio jamb is not a printed window row; it bills at 4.00/lf."""
+    line = door(6, "ww", "es", accessories=[{"kind": "wood_jamb", "name": '4 1/2"', "depth_in": 4.5, "finish": "primed"}])
+    comps = raw_quote({"lines": [line]})["lines"][0]["components"]
+    jamb = next(c["label"] for c in comps if "wood jamb" in c["label"])
+    assert jamb.startswith('4.5" primed wood jamb') and jamb.endswith("@ 4.00")

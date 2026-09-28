@@ -60,9 +60,10 @@ def _window_options(spec: dict[str, Any]) -> list[str]:
         gas = _pretty(glazing.get("gas"))
         if gas:
             options.append(f"{gas.title()} gas")
+    product = "patio" if spec.get("type") in ("patio_sliding", "patio_swing") else "window"
     for accessory in spec.get("accessories") or []:
         if isinstance(accessory, dict):
-            name = accessory_text(accessory)
+            name = accessory_text(accessory, product)
             if name:
                 options.append(name)
     if spec.get("kick_lock"):
@@ -84,9 +85,12 @@ def _fraction(value: float) -> str:
     return f"{whole} {num}/{den}" if whole else f"{num}/{den}"
 
 
-def accessory_text(accessory: dict[str, Any]) -> str:
-    """Customer text for an accessory; wood jambs read '5 1/2" primed wood jamb'."""
+def accessory_text(accessory: dict[str, Any], product: str = "window") -> str:
+    """Customer text for an accessory; wood jambs read '5 1/2" primed wood jamb'
+    (or 'unfinished' past the product's priming limit, see wood_jamb_finish)."""
     import re
+
+    from services.windowcity.quote import wood_jamb_finish
 
     name = _text(accessory.get("name"))
     if accessory.get("kind") == "wood_jamb":
@@ -96,7 +100,7 @@ def accessory_text(accessory: dict[str, Any]) -> str:
         else:
             match = re.match(r'([\d/ ]+)"', name)
             size = f'{match.group(1).strip()}"' if match else ""
-        return f"{size} primed wood jamb".strip()
+        return f"{size} {wood_jamb_finish(accessory, product)} wood jamb".strip()
     return name or _pretty(accessory.get("kind"))
 
 

@@ -206,6 +206,7 @@ export default function PatioDoorConfigurator({ catalog, value, onChange, colour
           flags={sliding && row.tint ? [{ key: "frost_tint", label: "Grey or bronze tint" }] : []}
           interiorUnavailable={value.colour_ext !== "white" && value.colour_ext !== "black" ? `A black interior goes with a black exterior (black in / black out).` : null}
           brickmould={{ title: "Brickmould", detail: sliding ? "EP326, installed on the head and both jambs" : "Installed on the head and both jambs" }}
+          jambProduct="patio"
           extraTrim={sliding ? (
             <OptionCard active={value.kick_lock} onClick={() => onChange({ kick_lock: !value.kick_lock })} className="w-full p-3 sm:w-1/2">
               <p className="pr-6 text-sm font-semibold text-slate-900">Kick lock</p>

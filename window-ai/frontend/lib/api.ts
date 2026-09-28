@@ -315,7 +315,11 @@ export type QuoteCatalog = {
   };
   wood_jamb?: {
     default: string;
+    /** Standard patio door jamb (4 1/2"); absent on older API versions. */
+    patio_default?: string;
     finish: string;
+    /** Deepest jamb that can be primed white, per product; deeper jambs are unfinished. */
+    primed_max_in?: { window: number; patio: number };
     depths: Array<{ name: string; depth_in: number; price_lf: number }>;
     custom_max_in: number;
   };
