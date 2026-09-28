@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { verifyManagerToken } from "@/lib/api";
+import { fetchManagerTokenConfigured, verifyManagerToken } from "@/lib/api";
 
 /**
  * Internal vs customer view, shared by every page.
@@ -14,6 +14,10 @@ import { verifyManagerToken } from "@/lib/api";
  * needs the manager token. This is a presentation safeguard for screen sharing
  * and handing the tablet to a rep -- it is not access control: the pricing API
  * still returns internal figures to any caller.
+ *
+ * Without a manager token on the API (PRICING_ADMIN_TOKEN) nothing could ever
+ * unlock the device, so the lock is not offered and a device locked earlier is
+ * released to the customer view.
  */
 export type ViewMode = "internal" | "customer";
 export type ViewRole = "admin" | "rep";
@@ -26,6 +30,8 @@ type ViewModeState = {
   toggle: () => void;
   lockAsRep: () => void;
   unlock: (managerToken: string) => Promise<boolean>;
+  /** False when the API has no manager token, so the rep lock could not be undone. */
+  canLock: boolean;
 };
 
 const STORAGE_KEY = "bv-view-mode";
@@ -58,9 +64,25 @@ export function ViewModeProvider({ children }: { children: ReactNode }) {
   // Start customer-safe: a rep-locked device must never flash costs before
   // the saved mode is read on the client.
   const [state, setState] = useState<{ mode: ViewMode; role: ViewRole }>({ mode: "customer", role: "admin" });
+  // Unknown (API unreachable) keeps the lock available, as before.
+  const [tokenConfigured, setTokenConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
     setState(readStored());
+    let cancelled = false;
+    fetchManagerTokenConfigured().then((configured) => {
+      if (cancelled) return;
+      setTokenConfigured(configured);
+      if (configured === false && readStored().role === "rep") {
+        // No token can unlock it: release to the customer view, costs still hidden.
+        const released = { mode: "customer" as const, role: "admin" as const };
+        setState(released);
+        store(released);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -90,7 +112,10 @@ export function ViewModeProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const lockAsRep = useCallback(() => update({ mode: "customer", role: "rep" }), [update]);
+  const lockAsRep = useCallback(() => {
+    if (tokenConfigured === false) return;
+    update({ mode: "customer", role: "rep" });
+  }, [tokenConfigured, update]);
 
   const unlock = useCallback(async (managerToken: string) => {
     if (!managerToken.trim()) return false;
@@ -118,7 +143,8 @@ export function ViewModeProvider({ children }: { children: ReactNode }) {
     toggle,
     lockAsRep,
     unlock,
-  }), [lockAsRep, setMode, state, toggle, unlock]);
+    canLock: tokenConfigured !== false,
+  }), [lockAsRep, setMode, state, tokenConfigured, toggle, unlock]);
 
   return <ViewModeContext.Provider value={value}>{children}</ViewModeContext.Provider>;
 }
@@ -132,6 +158,7 @@ const CUSTOMER_ONLY: ViewModeState = {
   toggle: () => undefined,
   lockAsRep: () => undefined,
   unlock: async () => false,
+  canLock: false,
 };
 
 export function useViewMode(): ViewModeState {

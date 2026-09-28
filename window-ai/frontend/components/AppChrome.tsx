@@ -29,7 +29,7 @@ function isActive(pathname: string, href: string) {
 
 /** Internal / customer switch, the rep lock, and unlocking with the manager token. */
 function ViewModeControl() {
-  const { mode, role, setMode, lockAsRep, unlock } = useViewMode();
+  const { mode, role, setMode, lockAsRep, unlock, canLock } = useViewMode();
   const [unlocking, setUnlocking] = useState(false);
   const [token, setToken] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ function ViewModeControl() {
         <button type="button" aria-pressed={mode === "internal"} title={`Show costs and margins (${VIEW_MODE_SHORTCUT})`} className={`rounded-md px-2.5 py-1 ${mode === "internal" ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-50"}`} onClick={() => setMode("internal")}>Internal</button>
         <button type="button" aria-pressed={mode === "customer"} title={`Hide every cost and margin (${VIEW_MODE_SHORTCUT})`} className={`rounded-md px-2.5 py-1 ${mode === "customer" ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-50"}`} onClick={() => setMode("customer")}>Customer</button>
       </div>
-      <button type="button" title="Lock this device in the customer view; the manager token unlocks it" className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800" onClick={lockAsRep}>Rep lock</button>
+      <button type="button" disabled={!canLock} title={canLock ? "Lock this device in the customer view; the manager token unlocks it" : "Set PRICING_ADMIN_TOKEN on the estimating API to use the rep lock; without a manager token it could not be unlocked"} className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent" onClick={lockAsRep}>Rep lock</button>
     </div>
   );
 }

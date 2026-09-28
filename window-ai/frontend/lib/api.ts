@@ -1075,6 +1075,18 @@ export async function fetchSalesPresets(): Promise<SalesPresetResponse> {
   return res.json();
 }
 
+/** Whether the API has a manager token set up; null when the API could not be reached. */
+export async function fetchManagerTokenConfigured(): Promise<boolean | null> {
+  try {
+    const res = await apiFetch("/api/admin/manager-token");
+    if (!res.ok) return null;
+    const body = await res.json() as { configured?: unknown };
+    return typeof body.configured === "boolean" ? body.configured : null;
+  } catch {
+    return null;
+  }
+}
+
 /** True when the manager token is valid (used to leave the rep view). */
 export async function verifyManagerToken(pricingAdminToken: string): Promise<boolean> {
   const res = await apiFetch("/api/admin/verify-token", {

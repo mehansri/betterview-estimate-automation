@@ -30,6 +30,11 @@ def require_api_token(authorization: str | None = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="Unauthorized", headers={"WWW-Authenticate": "Bearer"})
 
 
+def manager_token_configured() -> bool:
+    """True when PRICING_ADMIN_TOKEN is set; without it no manager token is accepted."""
+    return bool(os.getenv("PRICING_ADMIN_TOKEN", "").strip())
+
+
 def require_pricing_admin(token: str | None) -> None:
     expected_token = os.getenv("PRICING_ADMIN_TOKEN")
     if not expected_token or not token or not secrets.compare_digest(token, expected_token):

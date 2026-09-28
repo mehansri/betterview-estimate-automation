@@ -11,7 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import FileResponse
 
-from api.security import require_pricing_admin
+from api.security import manager_token_configured, require_pricing_admin
 from api.schemas.quote import EstimateSummary, SalesPresetConfig, WindowRow
 from db.models import Estimate, ImportLog, Window
 from db.session import get_session
@@ -40,6 +40,12 @@ def get_sales_presets() -> dict:
         "default_preset_id": config.get("default_preset_id"),
         "presets": list_all_presets(),
     }
+
+
+@router.get("/admin/manager-token")
+def manager_token_status() -> dict:
+    """Whether a manager token is set up; the app offers the rep lock only when one is."""
+    return {"configured": manager_token_configured()}
 
 
 @router.post("/admin/verify-token", status_code=204)
