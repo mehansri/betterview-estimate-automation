@@ -848,7 +848,16 @@ def quote_pipeline(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, An
                 f"{material} p{band['record']['source_page']}",
             )
         if entry.get("adder"):
-            quote.add_option({"category": "custom_sizing", "item": entry["adder"], "qty": doors, "row": "Upcharge Option"})
+            # The book row lists every non-standard width; name only the one quoted.
+            quote.add_option(
+                {
+                    "category": "custom_sizing",
+                    "item": entry["adder"],
+                    "description": f'Non-Standard Panel {plan["width"]}" Steel Slab (Flush Only)',
+                    "qty": doors,
+                    "row": "Upcharge Option",
+                }
+            )
 
     # -- Step 6: sidelites -------------------------------------------------
     for number, part in enumerate(plan["sidelites"], start=1):

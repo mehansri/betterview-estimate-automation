@@ -186,7 +186,7 @@ class DoorQuote:
         }
         self.add(
             option.get("row") or row_by_category.get(record["category"], "Extras 1"),
-            record["item"],
+            option.get("description") or record["item"],
             price,
             int(option.get("qty", 1)),
             f"{self.material} p{record['source_page']}",

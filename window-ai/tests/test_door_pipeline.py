@@ -79,6 +79,24 @@ def test_42_inch_glass_is_flush_only():
                     assert "Flush" in model["label"], (material, model["label"])
 
 
+def test_42_inch_steel_adder_names_only_the_quoted_width():
+    selection = {
+        "material": "steel",
+        "width": 42,
+        "height": '6\'8"',
+        "configuration": "single",
+        "frame_depth": "4.625",
+        "model": "flush",
+        "colours": {"exterior": {"type": "painted", "colour": "Black"}, "interior": {"type": "white"}},
+        "glass": {"door": {"glazed": False}},
+        "standard": {"lock": "double_bore"},
+    }
+    result = quote(_spec(selection), CFG)
+    adder = next(item for item in result["line_items"] if "Non-Standard" in item["description"])
+    assert adder["customer_description"] == 'Non-Standard Panel 42" Steel Slab'
+    assert "24" not in adder["description"] and "38" not in adder["description"]
+
+
 def test_every_offered_combination_prices():
     """Nothing the configurator shows may be rejected when priced."""
     finishes = {"steel": ("painted", "painted"), "fiberglass": ("painted", "painted")}
