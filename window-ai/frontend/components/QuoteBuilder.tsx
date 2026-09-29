@@ -1464,7 +1464,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     const count = project.windows.length;
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-700">
-        <p className="font-semibold text-slate-900">All {count} window &amp; patio door line{count === 1 ? "" : "s"} removed.</p>
+        <p className="font-semibold text-slate-900">{count === 1 ? "The window line was removed." : `All ${count} window & patio door lines removed.`}</p>
         <p className="mt-1 text-slate-500">Save to take {count === 1 ? "it" : "them"} off {project.estimate_number || "this estimate"}. {project.doors.length ? "The door openings stay and the project is repriced." : "The estimate will have no products until you add some."}</p>
         {error ? <p className="mt-3 text-rose-700">{error}</p> : null}
         <div className="mt-4 flex flex-wrap items-center gap-3">
