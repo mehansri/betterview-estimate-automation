@@ -31,5 +31,5 @@ def door_quote(body: DoorQuoteRequest) -> DoorProjectQuote:
         result = quote_project(specs, commercial=body.commercial.model_dump(), cost_basis=cost_basis)
     except (DoorLookupError, DoorValidationError, SalesPricingError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    result["customer_presentation"] = customer_door_presentation(result)
+    result["customer_presentation"] = customer_door_presentation(result, specs)
     return DoorProjectQuote(**result)

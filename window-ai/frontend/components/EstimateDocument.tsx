@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import type { CustomerEstimate, CustomerEstimatePricing } from "@/lib/api";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
+import { DoorGeometryDrawing } from "@/components/DoorDrawing";
 import { layoutFromLegacySpec } from "@/lib/windowLayout";
 
 const BRAND = {
@@ -90,10 +91,13 @@ export default function EstimateDocument({
   estimate,
   editable,
   onChange,
+  onConfigureDoor,
 }: {
   estimate: CustomerEstimate;
   editable: boolean;
   onChange: (patch: Partial<CustomerEstimate>) => void;
+  /** Open one door opening in the door configurator (internal project page only). */
+  onConfigureDoor?: (openingId: string) => void;
 }) {
   const pricing = estimate.pricing as CustomerEstimatePricing | null | undefined;
   const sections = pricing?.sections;
@@ -168,7 +172,12 @@ export default function EstimateDocument({
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Doors</h2></div><span>{money(sections.doors.subtotal)}</span></div>
           {sections.doors.openings.map((opening, openingIndex) => (
             <div className="estimate-door-opening" key={opening.id}>
-              <div className="estimate-door-heading"><div><h3>{`Item ${openingIndex + 1} · ${opening.label}`}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p></div><strong>{money(opening.subtotal)}</strong></div>
+              <div className="estimate-door-heading">{opening.drawing ? (onConfigureDoor && estimate.doors.some((door) => door.id === opening.id) ? (
+                <button type="button" className="estimate-door-sketch estimate-door-sketch-button print:hidden" onClick={() => onConfigureDoor(opening.id)} title="Configure this door">
+                  <DoorGeometryDrawing geometry={opening.drawing} size={96} />
+                  <span>Configure</span>
+                </button>
+              ) : <span className="estimate-door-sketch"><DoorGeometryDrawing geometry={opening.drawing} size={96} /></span>) : null}<div className="estimate-door-title"><h3>{`Item ${openingIndex + 1} · ${opening.label}`}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p></div><strong>{money(opening.subtotal)}</strong></div>
               <table className="estimate-table estimate-table-compact"><tbody>{opening.items.map((item, index) => <tr key={`${opening.id}-${index}`}><td data-label="Description">{item.description}</td><td data-label="Qty" className="text-right">{item.qty}</td><td data-label="Unit" className="text-right">{money(item.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(item.line_total)}</td></tr>)}</tbody></table>
             </div>
           ))}

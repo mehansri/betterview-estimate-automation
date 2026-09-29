@@ -7,11 +7,13 @@ from __future__ import annotations
 
 import base64
 import io
+import re
 from datetime import date
 from pathlib import Path
 from typing import Any
 
 from services import business_settings
+from services.doors.pipeline import door_lites
 
 LOGO_PATH = Path(__file__).resolve().parents[1] / "frontend" / "public" / "branding" / "better-view-solutions.png"
 
@@ -129,6 +131,79 @@ def window_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, m
     return d
 
 
+def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max_height: float):
+    """A small elevation of a door opening, viewed from outside (reportlab points).
+
+    Matches frontend/components/DoorDrawing.tsx: frame and brickmould, transom,
+    sidelites, slab colour, glass lites, handle and sill.
+    """
+    if not geometry or not geometry.get("doors"):
+        return None
+    from reportlab.graphics.shapes import Circle, Drawing, Ellipse, Rect, Wedge
+    from reportlab.lib import colors
+
+    doors = int(geometry["doors"])
+    sidelites = int(geometry.get("sidelites") or 0)
+    # Snapshots priced before the CRM sections were added kept the slab in width/height.
+    slab_w = float(geometry.get("slab_width") or geometry.get("width") or 36)
+    slab_h = float(geometry.get("slab_height") or geometry.get("height") or 80)
+    frame, mull, side_w = 2.0, 1.5, 14.0
+    transom_h = 14.0 if geometry.get("transom") else 0.0
+    inner_w = doors * slab_w + sidelites * (side_w + mull)
+    total_w = inner_w + frame * 2
+    total_h = slab_h + transom_h + (mull if transom_h else 0) + frame + 1.5
+    scale = min(max_width / total_w, max_height / total_h)
+    ink = colors.HexColor("#334155")
+    glass_fill = colors.HexColor("#bae6fd")
+    frosted = colors.HexColor("#e2e8f0")
+    slab_colour = colors.HexColor(geometry.get("slab_colour") or "#f8fafc")
+    frame_colour = colors.HexColor(geometry.get("frame_colour") or "#f8fafc")
+    d = Drawing(total_w * scale, total_h * scale)
+
+    def rect(x: float, y: float, w: float, h: float, fill, stroke=ink, width=0.4) -> None:
+        d.add(Rect(x * scale, (total_h - y - h) * scale, w * scale, h * scale, fillColor=fill, strokeColor=stroke, strokeWidth=width))
+
+    def lites(ox: float, oy: float, w: float, h: float, glass: dict[str, Any] | None) -> None:
+        if not glass:
+            return
+        fill = frosted if glass.get("family") in ("sandblast", "obscure") else glass_fill
+        for lx, ly, lw, lh, shape in door_lites(glass.get("size"), w, h):
+            x, y = (ox + lx) * scale, (total_h - oy - ly - lh) * scale
+            if shape == "oval":
+                d.add(Ellipse(x + lw * scale / 2, y + lh * scale / 2, lw * scale / 2, lh * scale / 2, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+            elif shape == "half":
+                d.add(Wedge(x + lw * scale / 2, y, lw * scale / 2, 0, 180, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+            else:
+                d.add(Rect(x, y, lw * scale, lh * scale, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+
+    rect(0, 0, total_w, total_h, frame_colour)
+    door_top = frame + transom_h + (mull if transom_h else 0)
+    if transom_h:
+        rect(frame + 2, frame + 2, inner_w - 4, transom_h - 4, glass_fill if geometry.get("transom_glass") else frosted, width=0.3)
+    sidelite_glass = list(geometry.get("sidelite_glass") or [])
+    parts: list[tuple[str, int]] = []
+    if sidelites:
+        parts.append(("sidelite", 0))
+    parts += [("door", index) for index in range(doors)]
+    if sidelites == 2:
+        parts.append(("sidelite", 1))
+    cursor = frame
+    for kind, index in parts:
+        if kind == "sidelite":
+            rect(cursor, door_top, side_w, slab_h, slab_colour)
+            lites(cursor, door_top, side_w, slab_h, sidelite_glass[index] if index < len(sidelite_glass) else None)
+            cursor += side_w + mull
+            continue
+        rect(cursor, door_top, slab_w, slab_h, slab_colour, width=0.5)
+        lites(cursor, door_top, slab_w, slab_h, geometry.get("door_glass"))
+        if not (doors == 2 and index == 1):
+            handle_x = cursor + slab_w - 3.2 if index == 0 else cursor + 3.2
+            d.add(Circle(handle_x * scale, (total_h - door_top - slab_h * 0.48) * scale, max(1.2 * scale, 0.8), fillColor=colors.HexColor("#111827"), strokeColor=None))
+        cursor += slab_w
+    d.add(Rect(0, 0, total_w * scale, max(1.5 * scale, 0.8), fillColor=colors.HexColor("#111827"), strokeColor=None))
+    return d
+
+
 def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -> bytes:
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_RIGHT
@@ -230,8 +305,14 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
             rows = [["Description", "Qty", "Unit", "Amount"]]
             for item in opening.get("items") or []:
                 rows.append([p(item.get("description")), str(item.get("qty")), _money(item.get("unit_price")), _money(item.get("line_total"))])
+            head: Any = [p(heading, ParagraphStyle("dh", parent=body, fontName="Helvetica-Bold")), p(detail, small)]
+            sketch = door_drawing_flowable(opening.get("drawing"), 1.3 * inch, 1.1 * inch)
+            if sketch is not None:
+                head = Table([[sketch, head]], colWidths=[1.45 * inch, width - 1.45 * inch])
+                head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (0, 0), 0)]))
+                head = [head]
             story.append(KeepTogether([
-                p(heading, ParagraphStyle("dh", parent=body, fontName="Helvetica-Bold")), p(detail, small),
+                *head,
                 table(rows, [width - 2.9 * inch, 0.5 * inch, 1.2 * inch, 1.2 * inch]), Spacer(1, 6),
             ]))
 

@@ -51,10 +51,10 @@ def test_door_catalog_integrity():
 def test_reference_live_lookup_and_pricing_chain():
     result = quote(_live_opening(), load_config())
     assert result["list_total"] == 8385.0  # 4402 + 3453 + 20 sill + 60 hinges + 450 brickmould
-    assert result["material_cost"] == 3186.3
+    assert result["material_cost"] == 3354.0  # 60% off list
     assert result["install"] == 750.0
-    assert result["sell"] == 5117.19
-    assert result["customer_total"] == 5782.42
+    assert result["sell"] == 5335.2
+    assert result["customer_total"] == 6028.78
     assert result["line_items"][0]["source"] == "fiberglass p5"
 
 
@@ -89,7 +89,7 @@ def test_transom_minimum_and_pull_bar_are_priced_once():
 def test_project_rollup_sums_openings():
     result = quote_project([_live_opening(), _live_opening()], load_config())
     assert len(result["openings"]) == 2
-    assert result["totals"]["customer_total"] == 11564.84
+    assert result["totals"]["customer_total"] == 12057.56
 
 
 @pytest.mark.usefixtures("no_profit_floor")
@@ -123,9 +123,9 @@ def test_door_api_catalog_and_validation():
     valid = client.post("/api/doors/quote", json={"openings": [_live_opening()]})
     assert valid.status_code == 200, valid.text
     body = valid.json()
-    assert body["totals"]["customer_total"] == 5782.42
+    assert body["totals"]["customer_total"] == 6028.78
     customer = body["customer_presentation"]
-    assert customer["total"] == 5782.42
+    assert customer["total"] == 6028.78
     assert customer["openings"][0]["items"]
     assert customer["openings"][0]["items"][-1]["description"] == "Professional installation"
     assert "material_cost" not in customer

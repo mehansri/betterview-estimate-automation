@@ -302,6 +302,11 @@ def door_description(
         _pretty(spec.get("opening_type") or quote_opening.get("opening_type")),
     )
     finish = _text(quote_opening.get("finish_label")) or _pretty(spec.get("finish"))
+    if spec.get("pipeline"):
+        from services.doors.pipeline import pipeline_summary
+
+        generated = _join(pipeline_summary(spec["pipeline"]))
+        return _with_custom_prefix(label if not custom else custom, generated)
     details = [material.title() if material else "Door", opening_type, finish]
 
     door = _door_part(spec.get("door"))

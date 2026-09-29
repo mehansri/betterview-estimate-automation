@@ -366,17 +366,18 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     } finally { setBusy(false); }
   }
 
-  async function openDoorWorkspace(mode: "add" | "edit" = "edit") {
+  async function openDoorWorkspace(mode: "add" | "edit" = "edit", doorId?: string) {
     if (!estimate.id) return;
+    const focus = doorId ? `&editDoorId=${encodeURIComponent(doorId)}` : "";
     if (!editable) {
-      window.location.href = `/doors?projectId=${estimate.id}&editDoors=1`;
+      window.location.href = `/doors?projectId=${estimate.id}&editDoors=1${focus}`;
       return;
     }
     setBusy(true); setError(null); setMessage(null);
     try {
       const saved = await saveCurrent();
       window.location.href = mode === "edit"
-        ? `/doors?projectId=${saved.id}&editDoors=1`
+        ? `/doors?projectId=${saved.id}&editDoors=1${focus}`
         : `/doors?projectId=${saved.id}`;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not save the project before opening the door quote.");
@@ -613,7 +614,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
           {estimate.pricing?.review_required ? <div className="review-box"><strong>Review required before finalization</strong>{estimate.pricing.warnings.map((warning, index) => <p key={`${warning.code}-${index}`}>{warning.message}</p>)}</div> : null}
           {missingLocationLabels.length ? <div className="review-box"><strong>Locations required before finalization</strong><p>Add a location to every window and door. Missing: {missingLocationLabels.join(", ")}.</p></div> : null}
         </section>
-        <section className="project-preview"><EstimateDocument estimate={estimate} editable={editable} onChange={updateMetadata} /></section>
+        <section className="project-preview"><EstimateDocument estimate={estimate} editable={editable} onChange={updateMetadata} onConfigureDoor={editable ? (doorId) => openDoorWorkspace("edit", doorId) : undefined} /></section>
       </div>
     </div>
   );

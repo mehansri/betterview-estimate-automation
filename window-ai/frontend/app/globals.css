@@ -149,6 +149,11 @@ button, input, select, textarea { max-width: 100%; }
 .estimate-table-compact td:first-child { font-weight: 500; }
 .estimate-door-opening { margin-top: 0.9rem; break-inside: avoid; }
 .estimate-door-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.estimate-door-heading .estimate-door-title { flex: 1; min-width: 0; }
+.estimate-door-sketch { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; flex-shrink: 0; }
+.estimate-door-sketch-button { border: 1px solid var(--estimate-line); border-radius: 0.6rem; padding: 0.35rem; background: #fff; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.estimate-door-sketch-button:hover { border-color: var(--estimate-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.estimate-door-sketch-button span { color: var(--estimate-blue); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
 .estimate-door-heading h3 { color: var(--estimate-navy); font-size: 0.8rem; font-weight: 800; }
 .estimate-door-heading p { color: var(--estimate-muted); font-size: 0.65rem; margin-top: 0.18rem; }
 .estimate-door-heading strong { color: var(--estimate-navy); font-size: 0.8rem; }

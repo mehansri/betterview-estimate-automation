@@ -32,6 +32,8 @@ import { describeDoorLine } from "@/lib/productDescriptions";
 import { useViewMode, VIEW_MODE_SHORTCUT } from "@/lib/viewMode";
 import ProjectAccessGate from "@/components/ProjectAccessGate";
 import LocationInput from "@/components/LocationInput";
+import DoorConfigurator from "@/components/DoorConfigurator";
+import { emptySelection, normalizeSelection, PipelineSelection, selectionSummary, specFromSelection } from "@/lib/doorPipeline";
 
 const GLASS_SERIES: Record<string, string> = {
   A: "group_a",
@@ -62,7 +64,7 @@ type OpeningDraft = DoorOpeningSpec & { label: string; finish: string };
 /** A saved door favourite: the whole opening configuration except its label. */
 type DoorFavourite = Omit<OpeningDraft, "label">;
 
-function favouriteFromOpening(draft: OpeningDraft): DoorFavourite {
+function favouriteFromOpening(draft: DoorOpeningSpec): DoorFavourite {
   const { label: _label, ...options } = draft;
   return JSON.parse(JSON.stringify(options)) as DoorFavourite;
 }
@@ -73,6 +75,9 @@ function openingFromFavourite(payload: unknown, catalog: DoorCatalog, label: str
   const saved = JSON.parse(JSON.stringify(payload)) as Partial<DoorFavourite>;
   const material = catalog.materials.find((entry) => entry.key === saved.material);
   const layout = catalog.opening_types.find((type) => type.key === saved.opening_type);
+  if (saved.pipeline && catalog.pipeline) {
+    return { ...(saved as DoorFavourite), label, finish: String(saved.finish || ""), pipeline: normalizeSelection(catalog.pipeline, saved.pipeline).selection };
+  }
   if (!material || !layout || !saved.door || typeof saved.door !== "object") return null;
   const finish = material.finishes.some((item) => item.key === saved.finish) ? String(saved.finish) : material.finishes[0]?.key || "";
   return {
@@ -91,7 +96,7 @@ type DoorQuoteOpening = {
   id: string;
   location: string;
   description: string;
-  spec: OpeningDraft;
+  spec: DoorOpeningSpec;
 };
 
 function money(value: number) {
@@ -384,7 +389,7 @@ function OptionEditor({
   );
 }
 
-export default function DoorQuoteBuilder({ projectId, editDoors = false }: { projectId?: string; editDoors?: boolean }) {
+export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoorId }: { projectId?: string; editDoors?: boolean; editDoorId?: string }) {
   const [catalog, setCatalog] = useState<DoorCatalog | null>(null);
   const [project, setProject] = useState<CustomerEstimate | null>(null);
   const [draft, setDraft] = useState<OpeningDraft | null>(null);
@@ -407,6 +412,12 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   const [favouritesBusy, setFavouritesBusy] = useState(false);
   const [favouritesError, setFavouritesError] = useState<string | null>(null);
   const [favouritesNotice, setFavouritesNotice] = useState<string | null>(null);
+  // The step-by-step configurator is the default editor. Openings saved from
+  // the classic price-book form (no `pipeline`) open in that form instead.
+  const [editorMode, setEditorMode] = useState<"pipeline" | "classic">("pipeline");
+  const [pipe, setPipe] = useState<PipelineSelection>(emptySelection);
+  const [openingLabel, setOpeningLabel] = useState("Opening 1");
+  const [draftLocation, setDraftLocation] = useState("");
   const autoPriceRequestRef = useRef(0);
 
   useEffect(() => {
@@ -457,8 +468,11 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
       spec: { ...opening.spec, label: opening.spec.label || opening.description || "Door opening", finish: opening.spec.finish || "" } as OpeningDraft,
     }));
     setOpenings(loaded);
-    setSelectedEditDoorId(loaded[0].id);
-    setDraft(loaded[0].spec);
+    // Opened from a door drawing on the estimate: start on that opening.
+    const first = loaded.find((opening) => opening.id === editDoorId) || loaded[0];
+    setSelectedEditDoorId(first.id);
+    loadIntoEditor(first.spec, catalog);
+    setDraftLocation(first.location);
     setEditHydrated(true);
   }, [catalog, editDoors, editHydrated, project]);
 
@@ -466,6 +480,24 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     () => (catalog && draft ? materialData(catalog, draft.material) : null),
     [catalog, draft]
   );
+  const pipelineCatalog = catalog?.pipeline || null;
+  const pipelineSpec = useMemo(
+    () => (pipelineCatalog ? specFromSelection(pipelineCatalog, pipe, openingLabel) : null),
+    [pipelineCatalog, pipe, openingLabel],
+  );
+  /** The opening being edited, or null while the configurator is incomplete. */
+  const activeSpec: DoorOpeningSpec | null = editorMode === "classic" ? draft : (pipelineSpec as DoorOpeningSpec | null);
+
+  function loadIntoEditor(spec: DoorOpeningSpec, currentCatalog: DoorCatalog | null = catalog) {
+    if (spec.pipeline && currentCatalog?.pipeline) {
+      setEditorMode("pipeline");
+      setPipe(normalizeSelection(currentCatalog.pipeline, spec.pipeline).selection);
+      setOpeningLabel(spec.label || "Door opening");
+    } else {
+      setEditorMode("classic");
+      setDraft({ ...spec, label: spec.label || "Door opening", finish: spec.finish || "" } as OpeningDraft);
+    }
+  }
   const selectedPreset = useMemo(
     () => salesPresets.find((preset) => preset.id === selectedPresetId) || salesPresets[0],
     [salesPresets, selectedPresetId],
@@ -489,7 +521,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   // visible but flags that it no longer matches the current selections.
   useEffect(() => {
     const requestId = ++autoPriceRequestRef.current;
-    if (!catalog || !draft) return;
+    if (!catalog) return;
     const payload = buildPayload();
     if (!payload.length) return;
     const timer = setTimeout(() => {
@@ -507,17 +539,17 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     }, 600);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, openings, catalog, selectedPresetId, negotiatedDiscount]);
+  }, [draft, pipe, openingLabel, editorMode, openings, catalog, selectedPresetId, negotiatedDiscount]);
 
   async function saveFavourite() {
-    if (!draft) return;
+    if (!activeSpec) return;
     const name = window.prompt("Name this door favourite (e.g. Fiberglass single, group A glass):")?.trim();
     if (!name) return;
     setFavouritesBusy(true);
     setFavouritesError(null);
     setFavouritesNotice(null);
     try {
-      const saved = await createTemplate(name, "door", favouriteFromOpening(draft));
+      const saved = await createTemplate(name, "door", favouriteFromOpening(activeSpec));
       setFavourites((current) => [...current.filter((item) => item.id !== saved.id), saved]);
       setSelectedFavouriteId(saved.id);
       setFavouritesNotice(`Saved “${saved.name}”.`);
@@ -530,14 +562,16 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
 
   function applySavedFavourite(id = selectedFavouriteId) {
     const favourite = favourites.find((item) => item.id === id);
-    if (!favourite || !catalog || !draft) return;
-    const next = openingFromFavourite(favourite.payload, catalog, draft.label);
+    if (!favourite || !catalog) return;
+    const label = editorMode === "classic" && draft ? draft.label : openingLabel;
+    const next = openingFromFavourite(favourite.payload, catalog, label);
     if (!next) {
       setFavouritesNotice(null);
       setFavouritesError(`“${favourite.name}” no longer matches the door catalog and could not be applied.`);
       return;
     }
-    updateDraft(next);
+    loadIntoEditor(next);
+    setResult(null);
     setFavouritesError(null);
     setFavouritesNotice(`Applied “${favourite.name}” — the opening label is unchanged.`);
   }
@@ -575,31 +609,42 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     updateDraft(makeOpening(catalog, nextMaterial, draft.opening_type, draft.label));
   }
 
-  function buildPayload() {
-    if (!draft) return [];
+  function buildPayload(): DoorOpeningSpec[] {
+    const spec = activeSpec;
     if (editDoors) {
-      return openings.map((opening) => opening.id === selectedEditDoorId ? draft : opening.spec);
+      return openings.map((opening) => opening.id === selectedEditDoorId ? spec || opening.spec : opening.spec);
     }
     const saved = openings.map((opening) => opening.spec);
-    if (!openings.length) return [draft];
-    return sameSpec(saved[saved.length - 1], draft) ? saved : [...saved, draft];
+    if (!spec) return saved;
+    if (!openings.length) return [spec];
+    return sameSpec(saved[saved.length - 1], spec) ? saved : [...saved, spec];
+  }
+
+  /** Index of the opening being edited within the priced payload, or -1. */
+  function activeIndex(payloadLength: number) {
+    if (!activeSpec) return -1;
+    if (editDoors) return openings.findIndex((opening) => opening.id === selectedEditDoorId);
+    return payloadLength - 1;
   }
 
   function addOpening() {
-    if (!draft) return;
-    const description = describeDoorLine(draft, catalog);
-    setOpenings((current) => current.length && sameSpec(current[current.length - 1].spec, draft) ? current : [
+    const spec = activeSpec;
+    if (!spec) return;
+    const description = describeDoorLine(spec, catalog);
+    setOpenings((current) => current.length && sameSpec(current[current.length - 1].spec, spec) ? current : [
       ...current,
-      { id: newEstimateLineId("door"), location: "", description, spec: draft },
+      { id: newEstimateLineId("door"), location: draftLocation, description, spec },
     ]);
     setResult(null);
   }
 
   function selectEditOpening(opening: DoorQuoteOpening) {
-    if (!editDoors || opening.id === selectedEditDoorId || !draft) return;
-    setOpenings((current) => current.map((item) => item.id === selectedEditDoorId ? { ...item, spec: draft } : item));
+    if (!editDoors || opening.id === selectedEditDoorId) return;
+    const spec = activeSpec;
+    setOpenings((current) => current.map((item) => item.id === selectedEditDoorId ? { ...item, spec: spec || item.spec, location: draftLocation } : item));
     setSelectedEditDoorId(opening.id);
-    setDraft(opening.spec);
+    loadIntoEditor(opening.spec);
+    setDraftLocation(opening.location);
     setResult(null);
   }
 
@@ -629,12 +674,17 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
-    const doors: CustomerDoorOpening[] = openings.map((opening) => ({
-      id: opening.id,
-      location: opening.location,
-      description: opening.description,
-      spec: opening.id === selectedEditDoorId && draft ? draft : opening.spec,
-    }));
+    const doors: CustomerDoorOpening[] = openings.map((opening) => {
+      const edited = opening.id === selectedEditDoorId && activeSpec ? activeSpec : null;
+      // A description the builder generated follows the edited door; one the rep wrote is kept.
+      const generated = opening.description.trim() === describeDoorLine(opening.spec, catalog).trim();
+      return {
+        id: opening.id,
+        location: opening.id === selectedEditDoorId && editDoors ? draftLocation : opening.location,
+        description: edited && generated ? describeDoorLine(edited, catalog) : opening.description,
+        spec: edited || opening.spec,
+      };
+    });
     const projectHasProducts = project.windows.length > 0 || project.doors.length > 0;
     try {
       if (editDoors) {
@@ -672,78 +722,21 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
   if (loading && !catalog) {
     return <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading Palma door catalog…</p>;
   }
-  if (!catalog || !draft || !data) {
+  if (!catalog || (editorMode === "classic" && (!draft || !data))) {
     return <p className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{error || "Door catalog unavailable."}</p>;
   }
 
-  const openingMeta = catalog.opening_types.find((type) => type.key === draft.opening_type)!;
-  const transomMeta = data.transoms.find((transom) => transom.shape === (draft.transom?.shape || "rectangle"));
-  const hardwareOptions = data.options.filter((option) => HARDWARE_CATEGORIES.has(option.category));
-  const generalOptions = data.options.filter((option) => !HARDWARE_CATEGORIES.has(option.category));
-  const selectedPanel = data.panel_upcharges[0];
-  const selectedPull = data.pull_bars[0];
-
-  const customer = result?.customer_presentation;
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Workflow</p>
-          <p className="text-base font-semibold text-slate-900">{presentationMode === "internal" ? "Internal door pricing workspace" : "Door customer presentation — costs hidden"}</p>
-          <p className="text-xs text-slate-500">{role === "rep" ? "This device is locked to the rep view." : `Switch views here, in the header, or with ${VIEW_MODE_SHORTCUT}.`}</p>
-        </div>
-        {role === "rep" ? null : <div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
-          <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "internal" ? "bg-brand-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("internal")}>Internal view</button>
-          <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "customer" ? "bg-emerald-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("customer")}>Customer view</button>
-        </div>}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm">
-        <div><span className="text-brand-700">{editDoors ? "Editing doors in " : "Assigning this quote to "}</span><strong className="text-brand-900">{project.project_name || project.customer_name || "Selected project"}</strong>{project.estimate_number ? <span className="ml-2 text-xs text-brand-700">{project.estimate_number}</span> : null}</div>
-        <Link href={`/projects/${project.id}`} className="font-semibold text-brand-700 hover:underline">Open project</Link>
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-5">
-      {(
-        <section className="space-y-6 lg:col-span-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="text-base font-semibold text-slate-900">Door opening</h2>
-              <p className="mt-1 text-sm text-slate-500">Complete the required price-book choices; downstream fields only show valid catalog rows.</p>
-            </div>
-            <Field label="Opening label">
-              <input className="input w-44" value={draft.label} onChange={(event) => updateDraft({ ...draft, label: event.target.value })} />
-            </Field>
-          </div>
-
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex flex-wrap items-end gap-2">
-              <label className="block min-w-[12rem] flex-1">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Favourites</span>
-                <select
-                  className="input min-h-[2.75rem]"
-                  value={selectedFavouriteId}
-                  onChange={(event) => {
-                    setSelectedFavouriteId(event.target.value);
-                    if (event.target.value) applySavedFavourite(event.target.value);
-                  }}
-                  disabled={favouritesBusy || !favourites.length}
-                >
-                  <option value="">{favourites.length ? "Choose a saved favourite…" : "No saved favourites yet"}</option>
-                  {favourites.map((favourite) => <option key={favourite.id} value={favourite.id}>{favourite.name}</option>)}
-                </select>
-              </label>
-              <button type="button" className="min-h-[2.75rem] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={() => applySavedFavourite()} disabled={favouritesBusy || !selectedFavouriteId}>Apply again</button>
-              <button type="button" className="min-h-[2.75rem] rounded-lg border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60" onClick={removeFavourite} disabled={favouritesBusy || !selectedFavouriteId} aria-label="Delete the selected favourite">Delete</button>
-              <button type="button" className="min-h-[2.75rem] rounded-lg border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-60" onClick={saveFavourite} disabled={favouritesBusy}>Save current opening as favourite</button>
-            </div>
-            <p className="mt-2 text-xs text-slate-500">A favourite stores the whole opening configuration except its label.</p>
-            {favouritesNotice ? <p className="mt-1 text-xs text-emerald-700" role="status">{favouritesNotice}</p> : null}
-            {favouritesError ? <p className="mt-1 text-xs text-rose-700" role="alert">{favouritesError}</p> : null}
-          </div>
-
+  /** The full price-book form, kept for classic openings and options the pipeline does not cover. */
+  function classicEditor(draft: OpeningDraft, data: ReturnType<typeof materialData>) {
+    if (!catalog) return null;
+    const openingMeta = catalog.opening_types.find((type) => type.key === draft.opening_type)!;
+    const transomMeta = data.transoms.find((transom) => transom.shape === (draft.transom?.shape || "rectangle"));
+    const hardwareOptions = data.options.filter((option) => HARDWARE_CATEGORIES.has(option.category));
+    const generalOptions = data.options.filter((option) => !HARDWARE_CATEGORIES.has(option.category));
+    const selectedPanel = data.panel_upcharges[0];
+    const selectedPull = data.pull_bars[0];
+    return (
+      <>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <Field label="Material">
               <select className="input" value={draft.material} onChange={(event) => updateMaterial(event.target.value as OpeningDraft["material"]) }>
@@ -790,7 +783,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
           )}
 
           <div className="mt-6 space-y-3">
-            <PartPicker catalog={catalog} material={draft.material} component="door" label="Door slab" value={draft.door} onChange={(door) => updateDraft({ ...draft, door })} />
+            <PartPicker catalog={catalog} material={draft.material} component="door" label="Door slab" value={draft.door || firstPart(catalog, draft.material, "door")} onChange={(door) => updateDraft({ ...draft, door })} />
             {openingMeta.doors === 2 && draft.door2 && (
               <PartPicker catalog={catalog} material={draft.material} component="door" label="Second door slab" value={draft.door2} onChange={(door2) => updateDraft({ ...draft, door2 })} />
             )}
@@ -860,6 +853,105 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
             </div>
           </div>
 
+      </>
+    );
+  }
+
+  const customer = result?.customer_presentation;
+  const priced = result ? result.openings[activeIndex(result.openings.length)] : undefined;
+  const configuratorPrice = {
+    pending: Boolean(activeSpec) && !result && !autoPriceError,
+    error: autoPriceError,
+    unitPrice: activeSpec ? priced?.sell ?? null : null,
+    lineTotal: activeSpec ? priced?.sell ?? null : null,
+    dealerEach: activeSpec ? priced?.material_cost ?? null : null,
+  };
+
+  const favouritesPanel = (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="block min-w-[12rem] flex-1">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Favourites</span>
+          <select
+            className="input min-h-[2.75rem]"
+            value={selectedFavouriteId}
+            onChange={(event) => {
+              setSelectedFavouriteId(event.target.value);
+              if (event.target.value) applySavedFavourite(event.target.value);
+            }}
+            disabled={favouritesBusy || !favourites.length}
+          >
+            <option value="">{favourites.length ? "Choose a saved favourite…" : "No saved favourites yet"}</option>
+            {favourites.map((favourite) => <option key={favourite.id} value={favourite.id}>{favourite.name}</option>)}
+          </select>
+        </label>
+        <button type="button" className="min-h-[2.75rem] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={() => applySavedFavourite()} disabled={favouritesBusy || !selectedFavouriteId}>Apply again</button>
+        <button type="button" className="min-h-[2.75rem] rounded-lg border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60" onClick={removeFavourite} disabled={favouritesBusy || !selectedFavouriteId} aria-label="Delete the selected favourite">Delete</button>
+        <button type="button" className="min-h-[2.75rem] rounded-lg border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-60" onClick={saveFavourite} disabled={favouritesBusy || !activeSpec} title={activeSpec ? undefined : "Complete the door first"}>Save current opening as favourite</button>
+      </div>
+      <p className="mt-2 text-xs text-slate-500">A favourite stores the whole opening configuration except its label.</p>
+      {favouritesNotice ? <p className="mt-1 text-xs text-emerald-700" role="status">{favouritesNotice}</p> : null}
+      {favouritesError ? <p className="mt-1 text-xs text-rose-700" role="alert">{favouritesError}</p> : null}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Workflow</p>
+          <p className="text-base font-semibold text-slate-900">{presentationMode === "internal" ? "Internal door pricing workspace" : "Door customer presentation — costs hidden"}</p>
+          <p className="text-xs text-slate-500">{role === "rep" ? "This device is locked to the rep view." : `Switch views here, in the header, or with ${VIEW_MODE_SHORTCUT}.`}</p>
+        </div>
+        {role === "rep" ? null : <div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
+          <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "internal" ? "bg-brand-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("internal")}>Internal view</button>
+          <button type="button" className={`rounded-lg px-3 py-2 ${presentationMode === "customer" ? "bg-emerald-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("customer")}>Customer view</button>
+        </div>}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm">
+        <div><span className="text-brand-700">{editDoors ? "Editing doors in " : "Assigning this quote to "}</span><strong className="text-brand-900">{project.project_name || project.customer_name || "Selected project"}</strong>{project.estimate_number ? <span className="ml-2 text-xs text-brand-700">{project.estimate_number}</span> : null}</div>
+        <Link href={`/projects/${project.id}`} className="font-semibold text-brand-700 hover:underline">Open project</Link>
+      </div>
+
+      {editorMode === "pipeline" && pipelineCatalog ? (
+        <DoorConfigurator
+          key={selectedEditDoorId || "new"}
+          catalog={pipelineCatalog}
+          value={pipe}
+          onChange={(next) => { setPipe(next); setResult(null); }}
+          price={configuratorPrice}
+          location={draftLocation}
+          onLocationChange={setDraftLocation}
+          primaryAction={editDoors ? undefined : { label: activeSpec ? "Add door to project list" : "Complete every step to add this door", onClick: addOpening, disabled: !activeSpec }}
+          editingLabel={editDoors ? openingLabel : null}
+        />
+      ) : editorMode === "pipeline" ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">The step-by-step door configurator needs the latest API. Use the classic editor below.</p>
+      ) : null}
+
+      <div className="grid gap-8 lg:grid-cols-5">
+      {(
+        <section className="space-y-6 lg:col-span-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">{editorMode === "classic" ? "Door opening — classic price-book editor" : "Door opening"}</h2>
+              <p className="mt-1 text-sm text-slate-500">{editorMode === "classic" ? "Every Palma option row — for openings saved before the step-by-step configurator, or items it does not cover (pull bars, accents, trim)." : "Build the door in the steps above; the price updates live as you go."}</p>
+              {pipelineCatalog ? (
+                <button type="button" className="mt-2 text-xs font-semibold text-brand-700 hover:underline" onClick={() => { if (editorMode === "classic") { setEditorMode("pipeline"); } else { setEditorMode("classic"); if (!draft) setDraft(makeOpening(catalog, pipe.material || "fiberglass", "single_door", openingLabel)); } setResult(null); }}>
+                  {editorMode === "classic" ? "← Back to the step-by-step configurator" : "Use the classic price-book editor instead"}
+                </button>
+              ) : null}
+            </div>
+            <Field label="Opening label">
+              <input className="input w-44" value={editorMode === "classic" ? draft?.label || "" : openingLabel} onChange={(event) => (editorMode === "classic" && draft ? updateDraft({ ...draft, label: event.target.value }) : setOpeningLabel(event.target.value))} />
+            </Field>
+          </div>
+
+          <div className="mt-6">{favouritesPanel}</div>
+
+          {editorMode === "classic" && draft && data ? classicEditor(draft, data) : null}
           <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50 p-4">
             <div className="flex items-start justify-between gap-3">
               <div><p className="text-sm font-semibold text-slate-800">{presentationMode === "internal" ? "Sales strategy" : "Discount"}</p><p className="mt-1 text-xs text-slate-600">{presentationMode === "internal" ? "The same manager-controlled pricing, merchandise discount, protected installation, and project profit floor used by window quotes." : "Enter the discount agreed with the customer. Installation is never discounted."}</p></div>
@@ -893,7 +985,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false }: { pro
           {error && <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         </div>
 
-        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.material} · {opening.spec.opening_type.replace(/_/g, " ")} · {opening.spec.finish}</p></div><div className="flex items-center gap-3">{editDoors ? <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => selectEditOpening(opening)}>{opening.id === selectedEditDoorId ? "Editing" : "Edit"}</button> : <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => { setOpenings([...openings, { id: newEstimateLineId("door"), location: opening.location, description: opening.description, spec: JSON.parse(JSON.stringify(opening.spec)) }]); setResult(null); }}>Duplicate</button>}<button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></div></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><LocationInput className="input" value={opening.location} onChange={(value) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: value } : item))} placeholder="Location (e.g. Front entrance)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
+        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.pipeline && pipelineCatalog ? selectionSummary(pipelineCatalog, opening.spec.pipeline).join(" · ") : `${opening.spec.material} · ${opening.spec.opening_type.replace(/_/g, " ")} · ${opening.spec.finish}`}</p></div><div className="flex items-center gap-3">{editDoors ? <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => selectEditOpening(opening)}>{opening.id === selectedEditDoorId ? "Editing" : "Edit"}</button> : <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => { setOpenings([...openings, { id: newEstimateLineId("door"), location: opening.location, description: opening.description, spec: JSON.parse(JSON.stringify(opening.spec)) }]); setResult(null); }}>Duplicate</button>}<button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></div></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><LocationInput className="input" value={opening.location} onChange={(value) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: value } : item))} placeholder="Location (e.g. Front entrance)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
       </section>
       )}
       {presentationMode === "customer" ? (

@@ -44,15 +44,27 @@ type Props = {
   /** Energy ratings per section; omit for products without ratings on file. */
   energy?: UnitSectionDetails[] | null;
   qty: number;
-  onQty: (qty: number) => void;
+  /** Omit to hide the quantity stepper (one opening per line). */
+  onQty?: (qty: number) => void;
   location: string;
   onLocationChange: (value: string) => void;
   /** Add-to-project button; omitted while editing a saved line. */
   primaryAction?: { label: string; onClick: () => void; disabled?: boolean };
+  /**
+   * Ordered pipelines: per-step completion. Steps past the first incomplete
+   * one are locked, and Next waits for the current step. Omit for free
+   * navigation (windows, patio doors, bays).
+   */
+  completed?: boolean[];
+  /** Price-card note while the price cannot be computed yet. */
+  pricePlaceholder?: string;
 };
 
-export default function ConfiguratorShell({ eyebrow, title, steps, step, onStep, children, preview, price, noun, energy, qty, onQty, location, onLocationChange, primaryAction }: Props) {
+export default function ConfiguratorShell({ eyebrow, title, steps, step, onStep, children, preview, price, noun, energy, qty, onQty, location, onLocationChange, primaryAction, completed, pricePlaceholder }: Props) {
   const stepIndex = Math.max(0, steps.findIndex((item) => item.id === step));
+  const firstOpen = completed ? (completed.findIndex((value) => !value) === -1 ? steps.length : completed.findIndex((value) => !value)) : steps.length;
+  const locked = (index: number) => Boolean(completed) && index > firstOpen;
+  const canAdvance = !completed || Boolean(completed[stepIndex]);
   const rated = energy && energy.length > 0 && energy.every((section) => section.energy);
 
   return (
@@ -65,16 +77,19 @@ export default function ConfiguratorShell({ eyebrow, title, steps, step, onStep,
         <ol className="flex flex-wrap items-center gap-1" aria-label="Configuration steps">
           {steps.map((item, index) => {
             const active = index === stepIndex;
-            const done = index < stepIndex;
+            const done = completed ? Boolean(completed[index]) && index < firstOpen : index < stepIndex;
+            const isLocked = locked(index);
             return (
               <li key={item.id}>
                 <button
                   type="button"
                   onClick={() => onStep(item.id)}
+                  disabled={isLocked}
+                  title={isLocked ? "Finish the earlier steps first" : undefined}
                   aria-current={active ? "step" : undefined}
-                  className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition ${active ? "bg-brand-600 text-white shadow-sm" : done ? "bg-brand-50 text-brand-700 hover:bg-brand-100" : "text-slate-500 hover:bg-slate-100"}`}
+                  className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${active ? "bg-brand-600 text-white shadow-sm" : done ? "bg-brand-50 text-brand-700 hover:bg-brand-100" : "text-slate-500 hover:bg-slate-100"}`}
                 >
-                  <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${active ? "bg-white/20" : done ? "bg-brand-600 text-white" : "bg-slate-200 text-slate-600"}`}>{done ? "✓" : index + 1}</span>
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${active ? "bg-white/20" : done ? "bg-brand-600 text-white" : "bg-slate-200 text-slate-600"}`}>{done && !active ? "✓" : index + 1}</span>
                   {item.label}
                 </button>
               </li>
@@ -91,7 +106,7 @@ export default function ConfiguratorShell({ eyebrow, title, steps, step, onStep,
           <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
             <button type="button" className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40" onClick={() => onStep(steps[Math.max(0, stepIndex - 1)].id)} disabled={stepIndex === 0}>← Back</button>
             {stepIndex < steps.length - 1 ? (
-              <button type="button" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800" onClick={() => onStep(steps[stepIndex + 1].id)}>Next: {steps[stepIndex + 1].label} →</button>
+              <button type="button" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onStep(steps[stepIndex + 1].id)} disabled={!canAdvance} title={canAdvance ? undefined : "Complete this step first"}>Next: {steps[stepIndex + 1].label} →</button>
             ) : primaryAction ? (
               <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50" onClick={primaryAction.onClick} disabled={primaryAction.disabled}>{primaryAction.label}</button>
             ) : null}
@@ -120,7 +135,7 @@ export default function ConfiguratorShell({ eyebrow, title, steps, step, onStep,
               <div className="rounded-2xl bg-slate-900 p-4 text-white">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Price per {noun}</p>
                 <p className="mt-1 text-2xl font-bold tabular-nums">{price.pending && price.unitPrice == null ? "…" : money(price.unitPrice)}</p>
-                <p className="mt-1 text-xs text-slate-300">{qty} × = <b className="text-white">{money(price.lineTotal)}</b> incl. install, before HST</p>
+                {price.unitPrice == null && !price.pending && pricePlaceholder ? <p className="mt-1 text-xs text-slate-300">{pricePlaceholder}</p> : <p className="mt-1 text-xs text-slate-300">{onQty ? <>{qty} × = <b className="text-white">{money(price.lineTotal)}</b> incl. install, before HST</> : "Incl. install, before HST"}</p>}
                 <InternalOnly>
                   {price.dealerEach != null ? <p className="mt-2 border-t border-white/10 pt-2 text-[11px] text-slate-400">Dealer cost {money(price.dealerEach)} each</p> : null}
                 </InternalOnly>
@@ -152,9 +167,9 @@ export default function ConfiguratorShell({ eyebrow, title, steps, step, onStep,
                 <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Room / location</span>
                 <input className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" value={location} onChange={(event) => onLocationChange(event.target.value)} placeholder="e.g. Living room — front" />
               </label>
-              <div className="flex items-end">
+              {onQty ? <div className="flex items-end">
                 <Stepper label="Qty" value={qty} onChange={onQty} min={1} max={99} />
-              </div>
+              </div> : null}
             </div>
             {primaryAction ? (
               <button type="button" className="mt-4 w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50" onClick={primaryAction.onClick} disabled={primaryAction.disabled}>{primaryAction.label}</button>

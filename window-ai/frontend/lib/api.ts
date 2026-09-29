@@ -1,4 +1,5 @@
 import type { Hinge, LayoutPreset, LayoutSeries, WindowOperation } from "@/lib/windowLayout";
+import type { PipelineCatalog, PipelineSelection } from "@/lib/doorPipeline";
 
 export type WindowSpec = {
   type: string;
@@ -362,9 +363,12 @@ export type DoorOpeningSpec = {
     | "single_2_sidelites"
     | "double_door"
     | "double_2_sidelites";
-  door: DoorPartSpec;
+  /** Classic price-book openings name their parts; pipeline openings leave this empty. */
+  door?: DoorPartSpec;
   door2?: DoorPartSpec;
   sidelites: DoorPartSpec[];
+  /** Step-by-step configurator selection; the server derives every part from it. */
+  pipeline?: PipelineSelection;
   transom?: {
     shape: "rectangle" | "shapes";
     glass?: string;
@@ -462,6 +466,8 @@ export type DoorCatalog = {
     brickmould?: boolean;
     brickmould_qty?: number;
   };
+  /** Availability for the step-by-step door configurator; absent on older API versions. */
+  pipeline?: PipelineCatalog;
   currency: string;
 };
 
@@ -512,12 +518,38 @@ export type DoorCustomerItem = {
   line_total: number;
 };
 
+/** Door elevation from services/doors/pipeline.py:door_drawing. */
+export type DoorDrawingGeometry = {
+  doors: number;
+  sidelites: number;
+  transom: boolean;
+  /** Whole opening (slabs + sidelites + transom), inches; the CRM draws from this and `sections`. */
+  width: number;
+  height: number;
+  /** One slab, inches. Absent on snapshots priced before the CRM sections, where width/height were the slab. */
+  slab_width?: number;
+  slab_height?: number;
+  height_label?: string;
+  model?: string;
+  door_glass?: { size: string; family: string } | null;
+  sidelite_glass?: Array<{ size: string; family: string } | null>;
+  transom_glass?: string | null;
+  slab_colour: string;
+  frame_colour: string;
+  lock?: "double_bore" | "multipoint" | null;
+  exterior_colour?: string;
+  /** Positioned sections in the CRM drawing format (Betterview-Crm src/domain/drawn-item.ts). */
+  sections?: Array<{ x: number; y: number; width: number; height: number; op: string; hinge: string | null; panel?: "solid" | "glass"; lites?: Array<{ x: number; y: number; width: number; height: number }> }>;
+};
+
 export type DoorCustomerOpening = {
   id: string;
   location: string;
   label: string;
   material: string;
   finish_label: string;
+  /** Elevation geometry; absent on older snapshots and undrawable openings. */
+  drawing?: DoorDrawingGeometry | null;
   items: DoorCustomerItem[];
   subtotal: number;
   hst: number;
@@ -692,6 +724,8 @@ export type DoorSectionOpening = {
   label: string;
   material: string;
   finish_label: string;
+  /** Elevation geometry; absent on older snapshots and undrawable openings. */
+  drawing?: DoorDrawingGeometry | null;
   items: Array<{ description: string; qty: number; unit_price: number; line_total: number }>;
   subtotal: number;
   hst: number;

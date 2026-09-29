@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from services.descriptions import door_description
+from services.doors.pipeline import door_drawing
 
 
 def _money(value: Any) -> float:
@@ -56,6 +57,7 @@ def customer_door_openings(
                 "id": str(project_opening.get("id") or index + 1),
                 "location": project_opening.get("location") or "",
                 "label": door_description(project_opening, opening) or "Door opening",
+                "drawing": door_drawing(project_opening.get("spec")),
                 "material": opening.get("material"),
                 "finish_label": opening.get("finish_label"),
                 "items": customer_items,
@@ -67,11 +69,15 @@ def customer_door_openings(
     return customer_openings
 
 
-def customer_door_presentation(quote: dict[str, Any]) -> dict[str, Any]:
+def customer_door_presentation(quote: dict[str, Any], specs: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Return only customer-safe fields from a raw Palma project quote."""
 
+    specs = specs or []
     openings = customer_door_openings(
-        [{"id": str(index + 1)} for index, _ in enumerate(quote.get("openings") or [])],
+        [
+            {"id": str(index + 1), "spec": specs[index] if index < len(specs) else None}
+            for index, _ in enumerate(quote.get("openings") or [])
+        ],
         quote.get("openings") or [],
     )
     totals = quote.get("totals") or {}

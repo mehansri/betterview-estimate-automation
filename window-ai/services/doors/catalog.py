@@ -360,6 +360,8 @@ def pull_bar_choices(material: str) -> list[dict[str, Any]]:
 
 
 def catalog_payload(config: dict[str, Any]) -> dict[str, Any]:
+    from .pipeline import pipeline_catalog
+
     materials = []
     for material in FINISHES:
         materials.append(
@@ -418,5 +420,6 @@ def catalog_payload(config: dict[str, Any]) -> dict[str, Any]:
         ],
         "install": config["install"],
         "quote_defaults": config.get("quote_defaults", {}),
+        "pipeline": pipeline_catalog(config),
         "currency": "CAD",
     }

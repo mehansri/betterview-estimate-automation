@@ -362,7 +362,8 @@ class DoorQuote:
 
 
 def _customer_text(description: str) -> str:
-    text = description
+    # Price-book tags ("[NEW]", "*Tedee") are for the rep, not the customer.
+    text = re.sub(r"^\s*(\[NEW\]\s*|\*)+", "", description)
     text = re.sub(r"\s*\([^)]*\)", "", text)
     text = re.sub(r"\s*/\s*(box|door|sidelite|doorlite|pc|side|set)\b", "", text)
     replacements = {
@@ -377,8 +378,16 @@ def _customer_text(description: str) -> str:
 
 
 def quote(spec: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str, Any]:
-    _validate_opening(spec)
     cfg = config or load_config()
+    if spec.get("pipeline"):
+        # Step-by-step configurator selection: validated and priced step by step.
+        from .pipeline import PipelineError, quote_pipeline
+
+        try:
+            return quote_pipeline(spec, cfg)
+        except PipelineError as exc:
+            raise DoorValidationError(str(exc)) from exc
+    _validate_opening(spec)
     quote_obj = DoorQuote(spec, cfg)
     quote_obj.add_slab(spec["door"], "Door Slab", "door")
     if spec.get("door2"):

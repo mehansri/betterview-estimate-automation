@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import SignaturePad from "@/components/SignaturePad";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
+import { DoorGeometryDrawing } from "@/components/DoorDrawing";
 
 type PublicTier = PublicEstimate["tiers"][number];
 
@@ -589,7 +590,8 @@ export default function CustomerPortal({ token }: { token: string }) {
                 return (
                   <div key={opening.id} className="print:break-inside-avoid">
                     <div className="flex items-start justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200 print:bg-white">
-                      <div className="min-w-0">
+                      {opening.drawing ? <span className="shrink-0"><DoorGeometryDrawing geometry={opening.drawing} size={96} title={`Door ${openingIndex + 1}, viewed from outside`} /></span> : null}
+                      <div className="min-w-0 flex-1">
                         <h3 className="text-sm font-semibold text-slate-900">
                           Item {openingIndex + 1} · {opening.label}
                         </h3>

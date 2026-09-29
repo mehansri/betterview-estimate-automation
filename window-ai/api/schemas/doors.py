@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from api.schemas.quote import CommercialSettings, CostContext, SalesPricingSummary
 
 
@@ -63,12 +63,106 @@ class DoorOptionSpec(BaseModel):
     row: Optional[str] = None
 
 
+class PipelineSide(BaseModel):
+    type: Optional[str] = None
+    colour: Optional[str] = None
+
+
+class PipelineFrameColour(BaseModel):
+    mode: Literal["match", "split"] = "match"
+    exterior: Optional[PipelineSide] = None
+    interior: Optional[PipelineSide] = None
+
+
+class PipelineColours(BaseModel):
+    exterior: Optional[PipelineSide] = None
+    interior: Optional[PipelineSide] = None
+    frame: PipelineFrameColour = Field(default_factory=PipelineFrameColour)
+
+
+class PipelineGlass(BaseModel):
+    glazed: Optional[bool] = None
+    size: Optional[str] = None
+    family: Optional[str] = None
+    series: Optional[str] = None
+    # Order-spec only; decorative glass is one flat price whatever the pattern.
+    design: Optional[str] = None
+
+
+class PipelineSidelite(PipelineGlass):
+    model: Optional[str] = None
+    panel: Optional[str] = None
+
+
+class PipelineTransom(BaseModel):
+    shape: Literal["rectangle", "shapes"] = "rectangle"
+    glass: Optional[str] = None
+    height_in: Optional[float] = Field(default=None, gt=0)
+    tempered: bool = False
+
+
+class PipelineGlassSet(BaseModel):
+    door: PipelineGlass = Field(default_factory=PipelineGlass)
+    sidelites: list[PipelineSidelite] = Field(default_factory=list)
+    transom: Optional[PipelineTransom] = None
+
+
+class PipelineCustomSize(BaseModel):
+    enabled: bool = False
+    width_in: Optional[float] = Field(default=None, gt=0)
+    height_in: Optional[float] = Field(default=None, gt=0)
+
+
+class PipelineStandard(BaseModel):
+    brickmould: Literal["regular", "flat", "none"] = "regular"
+    sill: str = "black_anodized"
+    sill_extension: bool = False
+    hinges: Literal["black", "standard"] = "black"
+    lock: Optional[Literal["double_bore", "multipoint"]] = None
+    handle: Optional[str] = None
+
+
+class PipelineExtras(BaseModel):
+    tedee: bool = False
+    tedee_keypad: bool = False
+    tedee_bridge: bool = False
+    tedee_sensor: bool = False
+    screen: Literal["none", "white", "painted"] = "none"
+    screen_qty: int = Field(default=1, ge=1)
+    astragal_lock: bool = False
+    fire_rated: bool = False
+    fire_rated_list: Optional[float] = Field(default=None, ge=0)
+    mail_slot: bool = False
+    peep_viewer: bool = False
+
+
+class DoorPipelineSpec(BaseModel):
+    """A step-by-step configurator selection; see services/doors/pipeline.py."""
+
+    material: Optional[Literal["fiberglass", "steel"]] = None
+    frame_type: Optional[Literal["smooth", "textured"]] = None
+    width: Optional[int] = None
+    height: Optional[str] = None
+    custom_size: PipelineCustomSize = Field(default_factory=PipelineCustomSize)
+    configuration: Optional[str] = None
+    frame_depth: Optional[str] = None
+    model: Optional[str] = None
+    colours: PipelineColours = Field(default_factory=PipelineColours)
+    glass: PipelineGlassSet = Field(default_factory=PipelineGlassSet)
+    standard: PipelineStandard = Field(default_factory=PipelineStandard)
+    extras: PipelineExtras = Field(default_factory=PipelineExtras)
+    sidelite_width_in: Optional[float] = Field(default=None, gt=0)
+
+
 class DoorOpeningSpec(BaseModel):
     label: Optional[str] = None
     material: Literal["fiberglass", "steel"]
     finish: Optional[str] = None
     opening_type: OpeningType
-    door: DoorPartSpec
+    # Classic price-book openings name their parts; pipeline openings derive
+    # every part from ``pipeline`` and leave ``door`` empty.
+    door: Optional[DoorPartSpec] = None
+    pipeline: Optional[DoorPipelineSpec] = None
     door2: Optional[DoorPartSpec] = None
     sidelites: list[DoorPartSpec] = Field(default_factory=list)
     transom: Optional[DoorTransomSpec] = None
@@ -80,6 +174,12 @@ class DoorOpeningSpec(BaseModel):
     skip_defaults: list[Literal["sill", "hinges", "brickmould"]] = Field(
         default_factory=list
     )
+
+    @model_validator(mode="after")
+    def _door_or_pipeline(self) -> "DoorOpeningSpec":
+        if self.door is None and self.pipeline is None:
+            raise ValueError("A door opening needs a door slab or a pipeline selection.")
+        return self
 
 
 class DoorQuoteRequest(BaseModel):
@@ -145,6 +245,8 @@ class DoorCustomerOpening(BaseModel):
     label: str
     material: str
     finish_label: str
+    # Elevation geometry (services/doors/pipeline.py:door_drawing); None when not drawable.
+    drawing: Optional[dict] = None
     items: list[DoorCustomerItem]
     subtotal: float
     hst: float

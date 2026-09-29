@@ -6,9 +6,10 @@ export const metadata = {
   description: "Deterministic fiberglass and steel door quotes from the Palma price book.",
 };
 
-export default function DoorsPage({ searchParams }: { searchParams?: { projectId?: string | string[]; editDoors?: string | string[] } }) {
+export default function DoorsPage({ searchParams }: { searchParams?: { projectId?: string | string[]; editDoors?: string | string[]; editDoorId?: string | string[] } }) {
   const projectId = typeof searchParams?.projectId === "string" ? searchParams.projectId : undefined;
   const editDoors = typeof searchParams?.editDoors === "string" ? searchParams.editDoors === "1" || searchParams.editDoors === "true" : false;
+  const editDoorId = typeof searchParams?.editDoorId === "string" ? searchParams.editDoorId : undefined;
 
   return (
     <div>
@@ -20,7 +21,7 @@ export default function DoorsPage({ searchParams }: { searchParams?: { projectId
           Choose catalog-backed door, glass, hardware, transom, and installation options. Create or open a project first so door openings can be assigned alongside windows for the same customer.
         </p>
       </div>
-      {projectId ? <DoorQuoteBuilder projectId={projectId} editDoors={editDoors} /> : <ProjectAccessGate product="door" />}
+      {projectId ? <DoorQuoteBuilder projectId={projectId} editDoors={editDoors || Boolean(editDoorId)} editDoorId={editDoorId} /> : <ProjectAccessGate product="door" />}
     </div>
   );
 }
