@@ -673,6 +673,9 @@ export type CustomerEstimateDraft = {
   tiers: EstimateTier[];
   selected_tier: string | null;
   follow_up_on: string | null;
+  /** Openings copied from a same-model home, not yet confirmed by a site measure. */
+  is_preliminary?: boolean;
+  home_model_id?: string | null;
 };
 
 export type CustomerEstimateLineAppend = {
@@ -1265,6 +1268,140 @@ export async function finalizeCustomerEstimate(id: string): Promise<CustomerEsti
   const res = await apiFetch(`/api/customer-estimates/${id}/finalize`, { method: "POST" });
   if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
   return res.json();
+}
+
+// ---------------------------------------------------------------- same-model homes
+
+export type PermitRecord = {
+  permit_number: string;
+  address: string;
+  address_key: string;
+  dwelling_type: string;
+  work: string;
+  builder: string | null;
+  gfa: number | null;
+  storeys: number | null;
+  bedrooms: number | null;
+  issue_date: string | null;
+  lat: number | null;
+  lng: number | null;
+  model: string | null;
+  elevation: string | null;
+  options: string | null;
+  plan: string | null;
+  lot: string | null;
+  flags: string[];
+  parent_permit: string | null;
+  /** What differs from the looked-up home (neighbours only). */
+  differences?: string[];
+};
+
+/** One model of the builder's lineup around a home. */
+export type LineupModel = {
+  key: string;
+  model: string | null;
+  dwelling_type: string;
+  count: number;
+  gfa_min: number | null;
+  gfa_max: number | null;
+  elevations: Record<string, number>;
+  flags: Record<string, number>;
+  includes_subject: boolean;
+  addresses: string[];
+};
+
+export type HomeModelSummary = {
+  id: string;
+  relation: "same" | "similar" | null;
+  label: string;
+  builder: string;
+  model_name: string;
+  elevation: string;
+  plan: string;
+  variant_flags: string[];
+  differences: string[];
+  dwelling_type: string;
+  gfa: number;
+  storeys: number | null;
+  source: "measured" | "permit_pdf" | "manual";
+  source_address: string;
+  source_estimate_id: string | null;
+  window_count: number;
+  door_count: number;
+  notes: string;
+  updated_at: string | null;
+};
+
+export type MeasuredJob = {
+  estimate_id: string;
+  estimate_number: string | null;
+  status: CustomerEstimateStatus;
+  customer_name: string;
+  project_address: string;
+  relation: "this_home" | "same" | "similar";
+  window_count: number;
+  door_count: number;
+};
+
+export type ModelMatch = {
+  address_key: string | null;
+  supported: boolean;
+  source: { key: string; label: string; records_request_url: string; records_request_note: string; match_basis: string } | null;
+  subject: (PermitRecord & { label: string }) | null;
+  same_model: PermitRecord[];
+  similar: PermitRecord[];
+  home_models: HomeModelSummary[];
+  measured_jobs: MeasuredJob[];
+  lineup: LineupModel[];
+  message: string;
+};
+
+/** A window read off permit drawings, shaped as a measure-sheet row. */
+export type DrawingRow = {
+  location: string;
+  style: string;
+  width: string;
+  height: string;
+  qty: string;
+  roughOpening: boolean;
+  elevation: string;
+  operation: string;
+  size_basis: string;
+  confidence: "high" | "medium" | "low";
+  note: string;
+};
+
+export type DrawingExtraction = {
+  house_model: string;
+  builder: string;
+  rows: DrawingRow[];
+  doors: Array<{ elevation: string; location: string; kind: string; description: string; width_in: number | null; height_in: number | null; confidence: string; note: string }>;
+  warnings: string[];
+};
+
+export async function fetchModelMatch(address: string, estimateId?: string): Promise<ModelMatch> {
+  const params = new URLSearchParams({ address });
+  if (estimateId) params.set("estimate_id", estimateId);
+  return jsonOrThrow(await apiFetch(`/api/model-match?${params}`));
+}
+
+export async function fetchHomeModelOpenings(modelId: string, mirror: boolean): Promise<{ windows: CustomerWindowLine[]; doors: CustomerDoorOpening[]; model: HomeModelSummary }> {
+  return jsonOrThrow(await apiFetch(`/api/home-models/${modelId}/openings?mirror=${mirror ? "true" : "false"}`));
+}
+
+export async function saveHomeModelFromEstimate(estimateId: string, replaceModelId?: string): Promise<HomeModelSummary> {
+  return jsonOrThrow(await apiFetch(`/api/home-models/from-estimate/${estimateId}`, jsonInit("POST", { replace_model_id: replaceModelId || null })));
+}
+
+export async function fetchDrawingReaderStatus(): Promise<{ available: boolean }> {
+  return jsonOrThrow(await apiFetch("/api/drawings/status"));
+}
+
+export async function extractDrawingOpenings(file: File, address = ""): Promise<DrawingExtraction> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("address", address);
+  return jsonOrThrow(await apiFetch("/api/drawings/extract", { method: "POST", body: form }));
 }
 
 export async function duplicateCustomerEstimate(id: string): Promise<CustomerEstimate> {

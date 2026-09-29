@@ -29,6 +29,7 @@ import EstimateLifecycle from "@/components/estimate/EstimateLifecycle";
 import JobItemsCard from "@/components/estimate/JobItemsCard";
 import OptionTiersCard from "@/components/estimate/OptionTiersCard";
 import PhotosCard from "@/components/estimate/PhotosCard";
+import SameModelCard from "@/components/estimate/SameModelCard";
 import ProfitPanel from "@/components/estimate/ProfitPanel";
 import { estimateToDraft, newEstimateLineId } from "@/lib/quoteHandoff";
 import { useViewMode } from "@/lib/viewMode";
@@ -76,6 +77,8 @@ function blankEstimate(): CustomerEstimate {
     tiers: [],
     selected_tier: null,
     follow_up_on: null,
+    is_preliminary: false,
+    home_model_id: null,
     pricing: null,
     pricing_hash: null,
     created_at: "",
@@ -507,7 +510,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   return (
     <div className="project-estimate-shell">
       <div className="project-toolbar no-print">
-        <div><p className="eyebrow">Project estimate</p><h2>{estimate.estimate_number || "New Better View estimate"}{(estimate.revision_number || 1) > 1 ? <span className="status-pill ml-2 align-middle">Rev {estimate.revision_number}</span> : null}{estimate.deleted_at ? <span className="status-pill status-lost ml-2 align-middle">In trash</span> : null}{estimate.crm_opportunity_id ? <span className="status-pill ml-2 align-middle" title="Started from a CRM opportunity; it imports back to the same opportunity">Linked to CRM</span> : null}</h2><p className="text-muted">{!editable ? "Finalized customer document — create a revision to change it" : autoPricing ? "Updating the live price…" : "Window and door prices update automatically as selections change."}</p></div>
+        <div><p className="eyebrow">Project estimate</p><h2>{estimate.estimate_number || "New Better View estimate"}{(estimate.revision_number || 1) > 1 ? <span className="status-pill ml-2 align-middle">Rev {estimate.revision_number}</span> : null}{estimate.deleted_at ? <span className="status-pill status-lost ml-2 align-middle">In trash</span> : null}{estimate.crm_opportunity_id ? <span className="status-pill ml-2 align-middle" title="Started from a CRM opportunity; it imports back to the same opportunity">Linked to CRM</span> : null}{estimate.is_preliminary ? <span className="status-pill status-sent ml-2 align-middle" title="Openings copied from a same-model home; confirm with a site measure">Preliminary</span> : null}</h2><p className="text-muted">{!editable ? "Finalized customer document — create a revision to change it" : autoPricing ? "Updating the live price…" : "Window and door prices update automatically as selections change."}</p></div>
         <div className="project-actions">
           {!editable ? <><a className="button secondary" href={estimatePdfUrl(estimate.id)} target="_blank" rel="noreferrer">Download PDF</a><button className="button secondary" type="button" onClick={() => window.print()}>Print</button></> : <><button className="button secondary" type="button" onClick={saveDraft} disabled={busy || autoPricing}>Save draft</button>{error && needsReprice ? <button className="button secondary" type="button" onClick={priceProject} disabled={busy || autoPricing || (!estimate.windows.length && !estimate.doors.length)}>{autoPricing ? "Updating…" : "Retry pricing"}</button> : null}<button className="button primary" type="button" title={missingLocationLabels.length ? `Add a location to ${missingLocationLabels.join(", ")}` : undefined} onClick={finalizeProject} disabled={busy || autoPricing || !estimate.id || estimate.status !== "priced" || needsReprice || Boolean(estimate.pricing?.review_required) || missingLocationLabels.length > 0}>{busy || autoPricing ? "Working…" : "Finalize estimate"}</button></>}{CRM_URL && estimate.id ? <button className="button secondary" type="button" title={!estimate.pricing || needsReprice ? "Price the estimate before sending it to the CRM" : estimate.crm_opportunity_id ? "Import this estimate into the linked CRM opportunity" : "Add this customer to the CRM with this estimate"} onClick={sendToCrm} disabled={busy || autoPricing || !estimate.pricing || needsReprice}>Send to CRM</button> : null}
         </div>
@@ -537,6 +540,17 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <Field label="Notes" className="field-span-2"><textarea className="project-input" rows={2} value={estimate.notes} onChange={(event) => updateMetadata({ notes: event.target.value })} disabled={!editable} /></Field>
             <Field label="Terms" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.terms} onChange={(event) => updateMetadata({ terms: event.target.value })} disabled={!editable} /></Field>
           </div></div>
+
+          <SameModelCard
+            estimate={estimate}
+            editable={editable}
+            busy={busy || autoPricing}
+            ensureSaved={saveCurrent}
+            onApply={(openings, model) => {
+              productChanged((current) => ({ ...current, windows: openings.windows, doors: openings.doors, is_preliminary: true, home_model_id: model.id }));
+            }}
+            onPreliminaryChange={(value) => updateMetadata({ is_preliminary: value })}
+          />
 
           <div className="editor-card">
             <div className="card-heading"><div><p className="eyebrow">Sales price</p><h3>Agreed customer total</h3></div><span className="status-pill">{estimate.commercial.agreed_customer_total != null ? "Offer set" : "List / preset"}</span></div>

@@ -31,6 +31,7 @@ from services.customer_estimates import (
     price_customer_estimate,
     pricing_hash,
 )
+from services.address_key import address_key
 from services.estimate_documents import customer_view, render_pdf
 
 
@@ -121,6 +122,8 @@ def _row_response(row: CustomerEstimate) -> CustomerEstimateResponse:
         deleted_at=_iso(row.deleted_at),
         crm_opportunity_id=row.crm_opportunity_id,
         crm_contact_id=row.crm_contact_id,
+        is_preliminary=bool(row.is_preliminary),
+        home_model_id=str(row.home_model_id) if row.home_model_id else None,
     )
 
 
@@ -150,6 +153,14 @@ def _apply_body(row: CustomerEstimate, body: CustomerEstimateDraft) -> None:
     for field in ("crm_opportunity_id", "crm_contact_id"):
         if field in body.model_fields_set:
             setattr(row, field, (getattr(body, field) or "").strip() or None)
+    row.address_key = address_key(row.project_address) or ""
+    if "is_preliminary" in body.model_fields_set:
+        row.is_preliminary = body.is_preliminary
+    if "home_model_id" in body.model_fields_set:
+        try:
+            row.home_model_id = UUID(body.home_model_id) if body.home_model_id else None
+        except ValueError:
+            row.home_model_id = None
 
 
 def _require_manager_override(commercial: dict, token: str | None) -> bool:
@@ -245,6 +256,7 @@ def _summary(row: CustomerEstimate) -> CustomerEstimateSummary:
         revision_number=row.revision_number or 1,
         deleted_at=_iso(row.deleted_at),
         crm_opportunity_id=row.crm_opportunity_id,
+        is_preliminary=bool(row.is_preliminary),
     )
 
 
@@ -522,6 +534,9 @@ def _copy_fields(source: CustomerEstimate) -> dict:
         adders=source.adders or [],
         tiers=source.tiers or [],
         selected_tier=source.selected_tier,
+        address_key=source.address_key,
+        is_preliminary=bool(source.is_preliminary),
+        home_model_id=source.home_model_id,
     )
 
 

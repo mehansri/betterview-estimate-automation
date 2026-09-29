@@ -262,11 +262,18 @@ class CustomerEstimate(Base):
     # CRM can import it without matching customers by name.
     crm_opportunity_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     crm_contact_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # Normalised street address ("47 BROCK DR") for finding jobs on
+    # same-model homes (services/address_key.py).
+    address_key: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    # Openings copied from a same-model home instead of a site measure.
+    home_model_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    is_preliminary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     __table_args__ = (
         Index("ix_customer_estimates_status", "status"),
         Index("ix_customer_estimates_updated_at", "updated_at"),
         Index("ix_customer_estimates_crm_opportunity_id", "crm_opportunity_id"),
+        Index("ix_customer_estimates_address_key", "address_key"),
     )
 
 
@@ -350,6 +357,65 @@ class LineTemplate(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class PermitLookupCache(Base):
+    """Cached answers from a city's permit service (they rarely change)."""
+
+    __tablename__ = "permit_lookup_cache"
+
+    # "<source>:<kind>:<query>", e.g. "brampton:address:47 BROCK DR"
+    key: Mapped[str] = mapped_column(String(255), primary_key=True)
+    payload: Mapped[Any] = mapped_column(JSONType, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class HomeModel(Base):
+    """One builder house model's openings, reused for every home of that model.
+
+    A model is identified from permit data: same builder, dwelling type and
+    gross floor area. The openings come from a measured job, the permit
+    drawings, or manual entry.
+    """
+
+    __tablename__ = "home_models"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source_city: Mapped[str] = mapped_column(String(32), default="brampton", nullable=False)
+    # "" where the city records no builder (Oakville, Mississauga).
+    builder: Mapped[str] = mapped_column(String(150), default="", nullable=False)
+    dwelling_type: Mapped[str] = mapped_column(String(80), default="", nullable=False)
+    # 0 when the permit gave no floor area (the model name identifies it).
+    gfa: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    storeys: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Named in some cities' permits ("C38E THORNCLIFFE", elevation "CN").
+    model_name: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+    elevation: Mapped[str] = mapped_column(String(16), default="", nullable=False)
+    # Registered plan of subdivision ("M1255").
+    plan: Mapped[str] = mapped_column(String(32), default="", nullable=False)
+    # reversed / corner / end / walk_out ... of the home the openings came from.
+    variant_flags: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
+    lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    lng: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    label: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    windows: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
+    doors: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
+    # measured | permit_pdf | manual
+    source: Mapped[str] = mapped_column(String(16), default="measured", nullable=False)
+    # The home the openings were taken from; others of the model may be mirrored.
+    source_address: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    source_estimate_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    notes: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (Index("ix_home_models_builder", "builder"),)
 
 
 class PriceBookVersion(Base):

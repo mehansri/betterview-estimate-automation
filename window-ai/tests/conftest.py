@@ -31,3 +31,16 @@ def no_profit_floor(monkeypatch):
     monkeypatch.setattr(sales, "_bundled_config", lambda: {**bundled(), "project_profit_floor": 0.0})
     original_read = sales._read_config
     monkeypatch.setattr(sales, "_read_config", lambda: {**original_read(), "project_profit_floor": 0.0})
+
+
+@pytest.fixture(autouse=True)
+def offline_permit_services(monkeypatch):
+    """No test reaches a city's live permit service; tests fake the ones they use."""
+    from services.permits import brampton, mississauga, oakville, toronto
+    from services.permits.base import PermitSourceError
+
+    def offline(*_args, **_kwargs):
+        raise PermitSourceError("live permit services are disabled in tests")
+
+    for module in (brampton, mississauga, oakville, toronto):
+        monkeypatch.setattr(module, "fetch_json", offline)

@@ -26,7 +26,9 @@ def _default_sql(column) -> str | None:
         except TypeError:
             arg = arg()
     if isinstance(arg, bool):
-        return "1" if arg else "0"
+        # Postgres rejects an integer default on a BOOLEAN column; SQLite
+        # accepts TRUE/FALSE too.
+        return "TRUE" if arg else "FALSE"
     if isinstance(arg, (int, float)):
         return str(arg)
     if isinstance(arg, str):

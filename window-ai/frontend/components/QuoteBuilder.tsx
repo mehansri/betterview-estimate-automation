@@ -15,7 +15,6 @@ import {
   QuoteCatalog,
   QuoteLineInput,
   QuoteLineType,
-  PresentationMode,
   priceCustomerEstimate,
   SalesPreset,
   fetchCustomerEstimate,
@@ -40,7 +39,10 @@ import PatioDoorConfigurator, { PatioDoorValue } from "@/components/PatioDoorCon
 import BayConfigurator, { BayValue } from "@/components/BayConfigurator";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import { LayoutNode, layoutFromLegacySpec, STYLE_OPERATIONS, tryResolveLayout, WindowOperation } from "@/lib/windowLayout";
-import { useViewMode, VIEW_MODE_SHORTCUT } from "@/lib/viewMode";
+import { useViewMode } from "@/lib/viewMode";
+import DealPanel from "@/components/estimate/DealPanel";
+import FavouritesBar from "@/components/estimate/FavouritesBar";
+import QuoteProjectBar from "@/components/estimate/QuoteProjectBar";
 import {
   CUSTOM_JAMB,
   DEFAULT_JAMB_DEPTH,
@@ -725,118 +727,6 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
   );
 }
 
-/** "Sliding margin · 45% → 30%" or "Standard · 30% markup". */
-function presetLabel(preset: SalesPreset) {
-  if (preset.strategy === "sliding_margin" && preset.sliding) {
-    return `${preset.name} · ${preset.sliding.start_margin_percent}% → ${preset.sliding.end_margin_percent}% ${preset.sliding.basis}`;
-  }
-  return `${preset.name} · ${preset.markup_percent}% markup`;
-}
-
-const BAND_TEXT: Record<string, string> = {
-  floor: "profit floor",
-  sliding: "sliding",
-  flat: "flat rate",
-};
-
-function QuoteTotals({ result, mode = result.presentation_mode }: { result: DeterministicQuoteResponse; mode?: PresentationMode }) {
-  const totals = result.totals;
-  const internal = mode === "internal";
-  return (
-    <div className="rounded-2xl border border-brand-200 bg-brand-50 p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Customer total</p>
-      <p className="mt-1 text-3xl font-bold text-brand-800">{money(totals.customer_total, result.currency)}</p>
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-700">
-        {internal ? <>
-          <Metric label="List" value={totals.list} />
-          <Metric label="Dealer cost" value={totals.dealer_cost} />
-          <Metric label="Installation" value={totals.install} />
-          <Metric label="Profit" value={totals.markup} />
-        </> : null}
-        <Metric label="Sell before HST" value={totals.sell} />
-        <Metric label="HST" value={totals.hst} />
-      </div>
-    </div>
-  );
-}
-
-function Metric({ label, value, format = "money" }: { label: string; value?: number | null; format?: "money" | "percent" }) {
-  return (
-    <div className="rounded-lg bg-white/70 px-3 py-2">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="font-semibold">{typeof value === "number" ? (format === "percent" ? `${value.toFixed(2)}%` : money(value)) : "—"}</p>
-    </div>
-  );
-}
-
-function SalesResult({ result, mode = result.presentation_mode, lines }: { result: DeterministicQuoteResponse; mode?: PresentationMode; lines: Array<{ line: number; qty: number; line_total: number; unit_price: number; description: string; location: string }> }) {
-  const sales = result.sales_pricing;
-  const customer = result.customer_presentation;
-  const internal = mode === "internal";
-  const sliding = sales.sliding;
-  return (
-    <div className="space-y-4">
-      {internal ? (
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">Sales strategy</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {sales.preset_name || "Selected preset"} · {sales.strategy === "sliding_margin" && sliding
-                ? `${sliding.margin_percent.toFixed(1)}% margin (${BAND_TEXT[sliding.band] || sliding.band})`
-                : `${(sales.markup_percent ?? 0).toFixed(2)}% markup on cost`}
-            </p>
-          </div>
-          <span className={`rounded-full px-2 py-1 text-xs font-semibold ${sales.floor_status === "manager_override" ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800"}`}>
-            {sales.floor_status === "manager_override" ? "Manager override" : "Within floor"}
-          </span>
-        </div>
-        {sales.cost_basis != null ? (
-          <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
-            Priced on the project&apos;s product cost of <b>{money(sales.cost_basis)}</b>
-            {sliding ? <> · margin slides from the floor at {money(sliding.breakpoints[0])} to the flat rate at {money(sliding.breakpoints[1])}</> : null}
-            {sales.profit_floor ? <> · profit floor {money(sales.profit_floor)}{sales.floor_applied ? " (applied)" : ""}</> : null}
-          </p>
-        ) : null}
-        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <Metric label="Negotiated discount" value={sales.negotiated_discount_percent} format="percent" />
-          <Metric label="Minimum markup" value={sales.minimum_markup_percent} format="percent" />
-          <Metric label="Gross margin" value={sales.gross_margin_percent} format="percent" />
-          <Metric label="Maximum discount" value={sales.maximum_allowed_discount_percent} format="percent" />
-          <Metric label="Remaining discount" value={sales.remaining_discount_percent} format="percent" />
-          <Metric label="Floor price" value={sales.minimum_floor_sell} />
-          <Metric label="Floor headroom" value={result.internal_presentation?.floor_headroom as number | undefined} />
-          <Metric label="Merchandise discount" value={sales.merchandise_discount_amount} />
-        </div>
-        {sales.floor_status === "manager_override" ? <p className="mt-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-800">This quote used a manager-approved concession. The reason is retained in the audit record.</p> : null}
-      </div>
-      ) : null}
-
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Customer presentation</p>
-        <p className="mt-1 text-2xl font-bold text-emerald-900">{money(customer.total, result.currency)}</p>
-        <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-emerald-950">
-          <Metric label="Negotiated discount" value={customer.negotiated_discount_percent} format="percent" />
-          <Metric label="Merchandise discount" value={customer.merchandise_discount} />
-          <Metric label="Subtotal" value={customer.subtotal} />
-          <Metric label="HST" value={customer.hst} />
-        </div>
-        <div className="mt-4 space-y-2 text-sm text-emerald-950">
-          {lines.map((line) => (
-            <div key={line.line} className="flex justify-between gap-3">
-              <span className="min-w-0">
-                <span className="block truncate">{line.description || `Line ${line.line}`}</span>
-                <span className="block text-xs text-emerald-800">{line.location ? `${line.location} · ` : ""}{line.qty} × {money(line.unit_price, result.currency)}</span>
-              </span>
-              <span className="shrink-0 font-semibold">{money(line.line_total, result.currency)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function QuoteBuilder({ projectId, editWindowId, editWindows = false }: { projectId?: string; editWindowId?: string; editWindows?: boolean }) {
   const [catalog, setCatalog] = useState<QuoteCatalog | null>(null);
   const [project, setProject] = useState<CustomerEstimate | null>(null);
@@ -846,7 +736,6 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
   const [result, setResult] = useState<DeterministicQuoteResponse | null>(null);
   const [selectedPresetId, setSelectedPresetId] = useState("standard");
   const [negotiatedDiscount, setNegotiatedDiscount] = useState(0);
-  const [negotiationMode, setNegotiationMode] = useState<"percent" | "dollars" | "price">("percent");
   const [overrideReason, setOverrideReason] = useState("");
   const [managerToken, setManagerToken] = useState("");
   const [autoPriceError, setAutoPriceError] = useState<string | null>(null);
@@ -855,8 +744,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
   const [favouritesBusy, setFavouritesBusy] = useState(false);
   const [favouritesError, setFavouritesError] = useState<string | null>(null);
   const [favouritesNotice, setFavouritesNotice] = useState<string | null>(null);
-  const [discountText, setDiscountText] = useState("0");
-  const { mode: presentationMode, setMode: setPresentationMode, role } = useViewMode();
+  const { mode: presentationMode } = useViewMode();
   const internal = presentationMode === "internal";
   const [loading, setLoading] = useState(true);
   const [pricing, setPricing] = useState(false);
@@ -1406,36 +1294,11 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     }
   }
 
-  // --- Sales strategy: live negotiation preview (recomputed from the last price) ---
+  // --- Deal panel inputs (the live negotiation preview lives in DealPanel) ---
   const sp = result?.sales_pricing;
   const isPriced = Boolean(sp && sp.base_merchandise_sell != null);
-  const baseMerch = sp?.base_merchandise_sell ?? 0;
-  const protectedInstall = sp?.protected_install_sell ?? 0;
-  const hstRate = result?.totals?.sell_before_tax ? result.totals.hst / result.totals.sell_before_tax : 0.13;
-  const configuredCap = sp?.configured_max_discount_percent ?? (selectedPreset?.max_discount_percent ?? 0);
-  const floorCap = sp?.floor_derived_max_discount_percent ?? 0;
-  const allowedMax = sp?.maximum_allowed_discount_percent ?? configuredCap;
+  const allowedMax = sp?.maximum_allowed_discount_percent ?? sp?.configured_max_discount_percent ?? selectedPreset?.max_discount_percent ?? 0;
   const requestedPct = Math.max(0, negotiatedDiscount);
-  const overLimit = requestedPct > allowedMax + 1e-9;
-  const remainingPct = Math.max(0, allowedMax - requestedPct);
-  const sliderMax = Math.max(allowedMax, negotiatedDiscount, 5) + 0.5;
-  const frac = requestedPct / 100;
-  const previewDiscount = baseMerch * frac;
-  const previewPreTax = baseMerch * (1 - frac) + protectedInstall;
-  const previewTotal = previewPreTax * (1 + hstRate);
-  const maximumDiscountDollars = baseMerch * (allowedMax / 100);
-  const minimumCustomerTotal = (baseMerch * (1 - allowedMax / 100) + protectedInstall) * (1 + hstRate);
-  function capToAllowedDiscount(value: number) {
-    return Math.max(0, Math.min(allowedMax, value));
-  }
-  function pctFromDollars(dollars: number) {
-    return baseMerch > 0 ? capToAllowedDiscount((dollars / baseMerch) * 100) : 0;
-  }
-  function pctFromPrice(targetTotal: number) {
-    if (baseMerch <= 0) return 0;
-    const targetPreTax = targetTotal / (1 + hstRate);
-    return capToAllowedDiscount(((baseMerch + protectedInstall - targetPreTax) / baseMerch) * 100);
-  }
   const cp: Record<string, any> = result?.customer_presentation ?? {};
   const visibleLines: QuoteLineDraft[] = lines;
   const customerLines = Array.isArray(cp.lines)
@@ -1449,12 +1312,6 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     : [];
   // A discount that no longer matches the generated quote → quote is stale, needs regenerating.
   const stale = isPriced && Math.abs(requestedPct - (sp?.negotiated_discount_percent ?? -1)) > 1e-9;
-  // Keep the visible discount field freely editable without clearing the quote on each keystroke.
-  useEffect(() => {
-    if (negotiationMode === "percent") setDiscountText(String(negotiatedDiscount));
-    else if (negotiationMode === "dollars") setDiscountText(String(Number(previewDiscount.toFixed(2))));
-    else setDiscountText(String(Number(previewTotal.toFixed(2))));
-  }, [negotiationMode, negotiatedDiscount, previewDiscount, previewTotal]);
   // --------------------------------------------------------------------------------
 
   if (!projectId) return <ProjectAccessGate product="window" />;
@@ -1502,24 +1359,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Workflow</p>
-          <p className="text-base font-semibold text-slate-900">{internal ? "Internal pricing workspace" : "Customer presentation — costs hidden"}</p>
-          <p className="text-xs text-slate-500">{role === "rep" ? "This device is locked to the rep view." : `Switch views here, in the header, or with ${VIEW_MODE_SHORTCUT}.`}</p>
-        </div>
-        {role === "rep" ? null : (
-          <div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
-            <button type="button" className={`rounded-lg px-3 py-2 ${internal ? "bg-brand-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("internal")}>Internal view</button>
-            <button type="button" className={`rounded-lg px-3 py-2 ${!internal ? "bg-emerald-600 text-white" : "text-slate-700"}`} onClick={() => setPresentationMode("customer")}>Customer view</button>
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm">
-        <div><span className="text-brand-700">{editMode ? "Editing windows & doors in " : "Assigning this quote to "}</span><strong className="text-brand-900">{project.project_name || project.customer_name || "Selected project"}</strong>{project.estimate_number ? <span className="ml-2 text-xs text-brand-700">{project.estimate_number}</span> : null}</div>
-        <Link href={`/projects/${project.id}`} className="font-semibold text-brand-700 hover:underline">Open project</Link>
-      </div>
+      <QuoteProjectBar project={project} verb={editMode ? "Editing windows & doors in" : "Adding windows to"} />
 
       <ProductTabs value={draft.type} onChange={changeProduct} colour={draft.colour_ext} />
 
@@ -1574,37 +1414,26 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       <div className="grid gap-8 lg:grid-cols-5">
         <section className="space-y-6 lg:col-span-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">{draft.type === "window" || draft.type === "combination" ? (editMode ? "Edit catalog-backed window quotes" : "Build a catalog-backed window quote") : internal ? "Pricing, favourites & project lines" : "Favourites & project lines"}</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {editMode ? "All saved window and patio door lines are loaded below. Select a line to open it in its configurator, change it, then save the complete set back to this project." : "Prices come from Window City v18 with component traceability. Unsupported options are flagged for review."}
-            </p>
+            {draft.type === "window" || draft.type === "combination" ? <h2 className="mb-1 text-base font-semibold text-slate-900">{editMode ? "Edit catalog-backed window quotes" : "Build a catalog-backed window quote"}</h2> : null}
+            {editMode ? <p className="text-sm text-slate-500">Select a line below to open it in the configurator, then save the whole set back to the project.</p> : null}
 
           {loading ? <p className="mt-6 text-sm text-slate-500">Loading price-book catalog…</p> : null}
 
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex flex-wrap items-end gap-2">
-              <label className="block min-w-[12rem] flex-1 text-sm">
-                <span className="mb-1 block font-medium text-slate-700">Favourites</span>
-                <select
-                  className="input w-full"
-                  value={selectedFavouriteId}
-                  onChange={(e) => {
-                    setSelectedFavouriteId(e.target.value);
-                    if (e.target.value) applySavedFavourite(e.target.value);
-                  }}
-                  disabled={favouritesBusy || !favourites.length}
-                >
-                  <option value="">{favourites.length ? "Choose a saved favourite…" : "No saved favourites yet"}</option>
-                  {favourites.map((favourite) => <option key={favourite.id} value={favourite.id}>{favourite.name}</option>)}
-                </select>
-              </label>
-              <button type="button" className="min-h-[2.75rem] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={() => applySavedFavourite()} disabled={favouritesBusy || !selectedFavouriteId}>Apply again</button>
-              <button type="button" className="min-h-[2.75rem] rounded-lg border border-rose-200 bg-white px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60" onClick={removeFavourite} disabled={favouritesBusy || !selectedFavouriteId} aria-label="Delete the selected favourite">Delete</button>
-              <button type="button" className="min-h-[2.75rem] rounded-lg border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-60" onClick={saveFavourite} disabled={favouritesBusy}>Save current options as favourite</button>
-            </div>
-            <p className="mt-2 text-xs text-slate-500">A favourite stores the product, style or layout, colours, glazing and trim — not the size or quantity.</p>
-            {favouritesNotice ? <p className="mt-1 text-xs text-emerald-700" role="status">{favouritesNotice}</p> : null}
-            {favouritesError ? <p className="mt-1 text-xs text-rose-700" role="alert">{favouritesError}</p> : null}
+          <div className="mt-4">
+            <FavouritesBar
+              favourites={favourites}
+              selectedId={selectedFavouriteId}
+              onSelect={(id) => {
+                setSelectedFavouriteId(id);
+                if (id) applySavedFavourite(id);
+              }}
+              onSave={saveFavourite}
+              onDelete={removeFavourite}
+              busy={favouritesBusy}
+              help="A favourite stores the product, style or layout, colours, glazing and trim — not the size or quantity."
+              notice={favouritesNotice}
+              error={favouritesError}
+            />
           </div>
 
           {draft.type === "window" || draft.type === "combination" ? (
@@ -1681,12 +1510,11 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
 
           {renderOrderDetails()}
 
-          {renderSalesStrategy()}
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            {!editMode && (draft.type === "window" || draft.type === "combination") ? <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={addLine} disabled={!draftIsValid}>Add to project list</button> : null}
-            <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading || !draftIsValid}>{pricing ? "Updating price…" : "Refresh price"}</button>
-          </div>
+          {!editMode && (draft.type === "window" || draft.type === "combination") ? (
+            <div className="mt-6">
+              <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={addLine} disabled={!draftIsValid}>Add to project list</button>
+            </div>
+          ) : null}
         </div>
 
         {lines.length ? (
@@ -1713,40 +1541,62 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
           {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div> : null}
         </section>
 
-      <aside className="space-y-6 lg:col-span-2">
-        {autoPriceError ? <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><p className="font-semibold">{result ? "Price not updated — the figures below are for your previous selections." : "These selections could not be priced."}</p><p className="mt-1">{autoPriceError}</p></div> : null}
-        {result ? (
-          <>
-            <div className={`rounded-2xl border p-4 ${internal ? "border-brand-200 bg-brand-50" : "border-emerald-200 bg-emerald-50"}`}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current presentation</p>
-              <p className="mt-1 text-lg font-bold text-slate-900">{internal ? "Internal pricing view" : "Customer-facing view"}</p>
-              <p className="mt-1 text-xs text-slate-600">{internal ? "Shows protected dealer cost, profit, margin, floor, and bargaining room." : "Shows sell prices, the negotiated merchandise discount, HST, and total only."}</p>
-            </div>
-            <QuoteTotals result={result} mode={presentationMode} />
-            <SalesResult result={result} mode={presentationMode} lines={customerLines} />
-            <div className="rounded-2xl border border-brand-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
-              <p className="mt-1 text-sm text-slate-500">{editMode ? `Save all ${lines.length} line${lines.length === 1 ? "" : "s"} back to the same estimate. Select a line from the list to edit its options.` : `Assign all ${lines.length} added line${lines.length === 1 ? "" : "s"} to the selected project. Existing door and window lines stay in the same project.`}</p>
-              {isLockedStatus(project.status) ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This estimate is finalized and read-only. Create a revision from the project to change it.</p> : null}
-              <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || (!editMode && !lines.length) || isLockedStatus(project.status)}>{handoffBusy ? (editMode ? "Saving changes…" : "Saving…") : editMode ? "Save changes" : `Save ${lines.length || "all"} line${lines.length === 1 ? "" : "s"} to project`}</button>
+      <aside className="lg:col-span-2">
+        <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
+          <DealPanel
+            mode={presentationMode}
+            sp={sp}
+            totals={result ? {
+              cost: (result.totals.dealer_cost ?? 0) + (result.totals.install ?? 0),
+              profit: result.totals.markup ?? 0,
+              sell: result.totals.sell,
+              hst: result.totals.hst,
+              customerTotal: result.totals.customer_total,
+              list: result.totals.list,
+            } : null}
+            currency={result?.currency}
+            presets={salesPresets}
+            presetId={selectedPreset?.id || selectedPresetId}
+            onPresetChange={(id) => {
+              const next = salesPresets.find((preset) => preset.id === id);
+              setSelectedPresetId(id);
+              setNegotiatedDiscount(next?.default_discount_percent || 0);
+              setResult(null);
+            }}
+            discount={negotiatedDiscount}
+            onDiscountChange={setNegotiatedDiscount}
+            pricing={pricing}
+            stale={stale}
+            priceError={autoPriceError}
+            emptyText={internal ? "Choose valid options to see the price, cost and margin." : "Choose valid options to see the price."}
+            override={{ reason: overrideReason, token: managerToken, onReason: setOverrideReason, onToken: setManagerToken, applied: Boolean(sp?.override_applied) }}
+            reviewRequired={Boolean(result?.review_required)}
+            customerLines={customerLines.map((line) => ({
+              key: String(line.line),
+              label: line.description || `Line ${line.line}`,
+              detail: `${line.location ? `${line.location} · ` : ""}${line.qty} × ${money(line.unit_price, result?.currency)}`,
+              total: line.line_total,
+            }))}
+            details={result ? <>
+              <div>
+                <div className="flex items-center justify-between gap-3"><p className="font-semibold text-slate-700">Price-book audit</p><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${result.review_required ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>{result.review_required ? "Review required" : "Catalog priced"}</span></div>
+                <p className="mt-1 text-slate-500">{result.price_book_version} · config {result.config_version}</p>
+                {result.warnings.length ? <div className="mt-2 space-y-2">{result.warnings.map((warning, index) => <div key={`${warning.code}-${index}`} className="rounded-lg bg-amber-50 p-2 text-amber-900">{warning.message}</div>)}</div> : <p className="mt-2 text-emerald-700">All requested components matched supported catalog rules.</p>}
+              </div>
+              {result.lines.map((line) => <div key={line.line} className="rounded-xl bg-slate-50 p-3"><div className="flex justify-between gap-3 font-semibold text-slate-800"><span>Line {line.line} · {line.type} × {line.qty}</span><span>{money(line.customer_total, result.currency)}</span></div><div className="mt-2 space-y-1 text-slate-600">{line.components.map((component, index) => <div key={`${component.label}-${index}`} className="flex justify-between gap-3"><span>{component.label}</span><span>{money(component.dealer)}</span></div>)}</div><LineEnergy line={line} />{line.source_refs.length ? <p className="mt-2 text-[11px] text-slate-500">Sources: {line.source_refs.join("; ")}</p> : null}</div>)}
+            </> : null}
+            footer={<>
+              {isLockedStatus(project.status) ? <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This estimate is finalized and read-only. Create a revision from the project to change it.</p> : null}
+              <button type="button" className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !result || (!editMode && !lines.length) || isLockedStatus(project.status)}>{handoffBusy ? (editMode ? "Saving changes…" : "Saving…") : editMode ? `Save ${lines.length} line${lines.length === 1 ? "" : "s"} to ${project.estimate_number || "the estimate"}` : `Save ${lines.length || "all"} line${lines.length === 1 ? "" : "s"} to project`}</button>
+              <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500">
+                <span>{editMode ? "Saves every line back to the same estimate." : "Door and window lines already on the project stay."}</span>
+                <button type="button" className="shrink-0 font-semibold text-brand-700 hover:underline disabled:opacity-60" onClick={generateQuote} disabled={pricing || loading || !draftIsValid}>{pricing ? "Updating…" : "Refresh price"}</button>
+              </div>
               {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">{editMode ? "The changes were saved." : "The quote was assigned."} <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
               {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
-            </div>
-            {internal ? <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-3"><h2 className="text-base font-semibold text-slate-900">Price-book audit</h2><span className={`rounded-full px-2 py-1 text-xs font-semibold ${result.review_required ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>{result.review_required ? "Review required" : "Catalog priced"}</span></div>
-              <p className="mt-2 text-xs text-slate-500">{result.price_book_version} · config {result.config_version}</p>
-              {result.warnings.length ? <div className="mt-4 space-y-2">{result.warnings.map((warning, index) => <div key={`${warning.code}-${index}`} className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{warning.message}</div>)}</div> : <p className="mt-4 text-sm text-emerald-700">All requested components matched supported catalog rules.</p>}
-            </div> : null}
-            {internal ? <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold text-slate-900">Line breakdown</h2>
-              <div className="mt-4 space-y-4">
-                {result.lines.map((line) => <div key={line.line} className="rounded-xl bg-slate-50 p-4"><div className="flex justify-between gap-3 text-sm font-semibold"><span>Line {line.line} · {line.type} × {line.qty}</span><span>{money(line.customer_total, result.currency)}</span></div><div className="mt-3 space-y-1 text-xs text-slate-600">{line.components.map((component, index) => <div key={`${component.label}-${index}`} className="flex justify-between gap-3"><span>{component.label}</span><span>{money(component.dealer)}</span></div>)}</div><LineEnergy line={line} />{line.source_refs.length ? <p className="mt-3 text-[11px] text-slate-500">Sources: {line.source_refs.join("; ")}</p> : null}</div>)}
-              </div>
-            </div> : null}
-          </>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 shadow-sm">{internal ? "Choose valid options to see the live FastAPI component breakdown, review warnings, and customer total." : "Choose valid options to see the customer price."}</div>
-        )}
+            </>}
+          />
+        </div>
       </aside>
       </div>
     </div>
@@ -1762,10 +1612,20 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     const defaultTag = String(editMode
       ? (selectedEditIndex >= 0 ? selectedEditIndex + 1 : lines.length + 1)
       : (project?.windows.length ?? 0) + lines.length + 1);
+    const elevation = ELEVATIONS.find((item) => item.value === orderDetails.elevation)?.label;
+    const recap = [
+      `#${orderDetails.tag || defaultTag}`,
+      elevation,
+      ...(windowLike ? [screen ? `Screen ${orderDetails.screen_frame}/${orderDetails.screen_mesh}` : "No screen", hardware || null, `${orderDetails.spacer} spacer`] : []),
+      orderDetails.notes.trim() ? "Notes" : null,
+    ].filter(Boolean).join(" · ");
     return (
-          <div className="mt-6 rounded-xl bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-800">Order details</p>
-            <p className="mb-3 mt-1 text-xs text-slate-500">Printed on the estimate and the manufacturer order. These do not change the price.</p>
+          <details className="group mt-6 rounded-xl bg-slate-50 p-4">
+            <summary className="flex cursor-pointer select-none items-center justify-between gap-3 text-sm">
+              <span className="min-w-0"><span className="font-semibold text-slate-800">Order details</span> <span className="text-xs text-slate-500">· {recap}</span></span>
+              <span className="shrink-0 text-xs font-semibold text-brand-700 group-open:hidden">Edit</span>
+            </summary>
+            <p className="mb-3 mt-2 text-xs text-slate-500">Printed on the estimate and the manufacturer order. These do not change the price.</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Opening #"><input className="input" value={orderDetails.tag} onChange={(e) => updateOrderDetails({ tag: e.target.value })} placeholder={defaultTag} /></Field>
               <Field label="Elevation">
@@ -1807,166 +1667,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
                 <textarea className="input" rows={2} value={orderDetails.notes} onChange={(e) => updateOrderDetails({ notes: e.target.value })} placeholder="Order notes for this opening" />
               </label>
             </div>
-          </div>
-    );
-  }
-
-  /** Preset, negotiated discount and manager approval. Internal figures only in the internal view.
-   * Called as a function (not rendered as a component) so its inputs keep focus between renders. */
-  function renderSalesStrategy() {
-    return (
-          <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-800">{internal ? "Sales strategy" : "Discount"}</p>
-                <p className="mt-1 text-xs text-slate-600">
-                  {internal
-                    ? "Set the pricing approach and how much room to give the customer. Your discount applies to the product only — installation is never discounted — and no project goes below the profit floor without a manager."
-                    : "Enter the discount agreed with the customer. Installation is never discounted."}
-                </p>
-              </div>
-              {internal ? <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-brand-700">Manager-controlled floors</span> : null}
-            </div>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {internal ? (
-                <Field label="Preset">
-                  <select
-                    className="input"
-                    value={selectedPreset?.id || selectedPresetId}
-                    onChange={(e) => {
-                      const next = salesPresets.find((preset) => preset.id === e.target.value);
-                      setSelectedPresetId(e.target.value);
-                      setNegotiatedDiscount(next?.default_discount_percent || 0);
-                      setResult(null);
-                    }}
-                  >
-                    {salesPresets.map((preset) => <option key={preset.id} value={preset.id}>{presetLabel(preset)}</option>)}
-                  </select>
-                  {selectedPreset?.description ? <p className="mt-1 text-xs text-slate-500">{selectedPreset.description}</p> : null}
-                </Field>
-              ) : null}
-
-              <div>
-                <p className="mb-1 block text-sm font-medium text-slate-700">Negotiated discount</p>
-                <p className="mb-2 text-xs text-slate-500">How do you want to enter the room you give the customer?</p>
-                <div className="flex rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
-                  {([["percent", "% off"], ["dollars", "$ off"], ["price", "Total price"]] as const).map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`flex-1 rounded-md px-2 py-1 ${negotiationMode === key ? "bg-brand-600 text-white" : "text-slate-600"}`}
-                      onClick={() => {
-                        setNegotiationMode(key);
-                        if (key !== "percent") {
-                          setNegotiatedDiscount((current) => capToAllowedDiscount(current));
-                        }
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {/* Negotiation control with live preview */}
-            <div className="mt-5 rounded-lg border border-brand-200/70 bg-white p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {negotiationMode === "percent" ? "Discount off product price" : negotiationMode === "dollars" ? "Dollars off total" : "Customer price (incl. tax)"}
-                </p>
-                {isPriced ? (
-                  <span className="text-sm font-semibold text-brand-700">
-                    {negotiationMode === "percent" ? `${requestedPct.toFixed(1)}%` : negotiationMode === "dollars" ? money(previewDiscount) : money(previewTotal)}
-                  </span>
-                ) : null}
-              </div>
-
-              {!isPriced && negotiationMode !== "percent" ? (
-                <p className="mt-3 text-xs text-slate-500">The price will appear automatically, then you can enter the discount in dollars or as a total customer price.</p>
-              ) : negotiationMode === "percent" ? (
-                <>
-                  <input type="range" min={0} max={sliderMax} step={0.5} value={negotiatedDiscount} onChange={(e) => { setNegotiatedDiscount(Number(e.target.value)); }} className="mt-3 w-full" />
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    className="input mt-2 w-32"
-                    value={discountText}
-                    onChange={(e) => setDiscountText(e.target.value)}
-                    onBlur={() => { const v = Math.max(0, parseFloat(discountText) || 0); setNegotiatedDiscount(v); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                  />
-                </>
-              ) : negotiationMode === "dollars" ? (
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  className="input mt-3 w-40"
-                  value={discountText}
-                  onChange={(e) => setDiscountText(e.target.value)}
-                  onBlur={() => { setNegotiatedDiscount(pctFromDollars(parseFloat(discountText) || 0)); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                />
-              ) : (
-                <input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  className="input mt-3 w-40"
-                  value={discountText}
-                  onChange={(e) => setDiscountText(e.target.value)}
-                  onBlur={() => { setNegotiatedDiscount(pctFromPrice(parseFloat(discountText) || 0)); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                />
-              )}
-
-              {isPriced && negotiationMode === "dollars" ? <p className="mt-2 text-xs text-slate-500">Capped at {money(maximumDiscountDollars)} off.</p> : null}
-              {isPriced && negotiationMode === "price" ? <p className="mt-2 text-xs text-slate-500">The customer total cannot go below {money(minimumCustomerTotal)} without manager approval.</p> : null}
-
-              {isPriced ? (
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-700 sm:grid-cols-4">
-                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Discount</span><b>{money(previewDiscount)} ({requestedPct.toFixed(1)}%)</b></div>
-                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Pre-tax total</span><b>{money(previewPreTax)}</b></div>
-                  <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Customer total</span><b>{money(previewTotal)}</b></div>
-                  {internal ? <>
-                    <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Remaining room</span><b>{remainingPct.toFixed(1)}%</b></div>
-                    <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">{sp?.strategy === "sliding_margin" ? "Margin" : "Markup"}</span><b>{sp?.strategy === "sliding_margin" && sp.sliding ? `${sp.sliding.margin_percent.toFixed(1)}%` : `${(sp?.markup_percent ?? selectedPreset?.markup_percent ?? 0).toFixed(1)}%`}</b></div>
-                    <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Minimum markup</span><b>{(sp?.minimum_markup_percent ?? selectedPreset?.minimum_markup_percent ?? 0).toFixed(1)}%</b></div>
-                    <div className="rounded-lg bg-slate-50 px-3 py-2"><span className="block text-slate-500">Floor price</span><b>{money(sp?.minimum_floor_sell ?? 0)}</b></div>
-                    <div className={`rounded-lg px-3 py-2 ${overLimit ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}><span className="block text-slate-500">Status</span><b>{overLimit ? (sp?.override_applied && !stale ? "Manager approved" : overrideReason.trim() ? "Awaiting manager" : "Over limit") : "Within floor"}</b></div>
-                  </> : null}
-                </div>
-              ) : (
-                <p className="mt-3 text-xs text-slate-500">{internal ? "Generate a quote to see the dollar totals, the floor, your remaining room, and the binding limit." : "The price appears once the options are valid."}</p>
-              )}
-
-              {stale ? (
-                <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  Price is updating for the changed discount…
-                </p>
-              ) : null}
-            </div>
-            {/* Which limit is binding */}
-            {isPriced && internal ? (
-              <p className="mt-3 text-xs text-slate-600">
-                {floorCap < configuredCap - 1e-9
-                  ? `Allowed discount capped at ${allowedMax.toFixed(1)}% by the floor (${floorCap.toFixed(1)}%)${sp?.profit_floor ? ` — the ${money(sp.profit_floor)} project profit floor or the minimum markup` : ""}, tighter than the preset cap of ${configuredCap.toFixed(1)}%.`
-                  : `Allowed discount is the preset cap of ${configuredCap.toFixed(1)}%; the floor would permit up to ${floorCap.toFixed(1)}%.`}
-              </p>
-            ) : null}
-
-            {/* Guided manager approval */}
-            {overLimit ? (
-              <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3">
-                <p className="text-xs font-semibold text-rose-800">This discount needs manager approval.</p>
-                <p className="mt-1 text-xs text-rose-700">A manager approval reason is required. The override, the reason, and the resulting price are recorded in the audit log.</p>
-                <input type="text" className="input mt-2 w-full" placeholder="Manager approval reason (required)" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} />
-                <input type="password" className="input mt-2 w-full" placeholder="Manager authorization token (required)" value={managerToken} onChange={(e) => setManagerToken(e.target.value)} autoComplete="off" />
-              </div>
-            ) : null}
-          </div>
+          </details>
     );
   }
 }

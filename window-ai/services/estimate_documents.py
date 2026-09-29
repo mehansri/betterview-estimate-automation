@@ -38,6 +38,8 @@ def customer_view(row) -> dict[str, Any]:
         "estimate_number": row.estimate_number,
         "status": row.status,
         "revision_number": row.revision_number or 1,
+        # Openings taken from a same-model home, not yet measured on site.
+        "preliminary": bool(getattr(row, "is_preliminary", False)),
         "customer_name": row.customer_name or "",
         "company_name": row.company_name or "",
         "email": row.email or "",
@@ -239,7 +241,7 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
     story: list[Any] = []
 
     logo = Image(str(LOGO_PATH), width=1.9 * inch, height=0.6 * inch, kind="proportional") if LOGO_PATH.exists() else p(company.get("name"), h2)
-    title = "Accepted Estimate" if view.get("status") == "accepted" else "Estimate"
+    title = "Accepted Estimate" if view.get("status") == "accepted" else "Preliminary Estimate" if view.get("preliminary") else "Estimate"
     number = view.get("estimate_number") or "Draft"
     if (view.get("revision_number") or 1) > 1:
         number += f" · Rev {view['revision_number']}"
@@ -248,6 +250,13 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
     story += [header, Spacer(1, 4)]
     story.append(p(" · ".join(filter(None, [company.get("name"), company.get("phone"), company.get("email"), company.get("address")])), small))
     story.append(Spacer(1, 10))
+    if view.get("preliminary"):
+        story.append(p("PRELIMINARY — SUBJECT TO SITE MEASURE", ParagraphStyle("prelim", parent=body, fontName="Helvetica-Bold")))
+        story.append(p(
+            "Window and door sizes are based on the builder's plans for this home model. "
+            "Final sizes and pricing will be confirmed after we measure your home."
+        ))
+        story.append(Spacer(1, 10))
 
     customer = [p("PREPARED FOR", label), p(view.get("customer_name"), ParagraphStyle("c", parent=body, fontName="Helvetica-Bold"))]
     for line in (view.get("company_name"), view.get("email"), view.get("phone"), view.get("project_address")):

@@ -4,14 +4,38 @@
     {
       "name": "web-3005",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai\\frontend && set NEXT_PUBLIC_CRM_URL=http://localhost:3000&& npx next dev -p 3005"],
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai\\frontend && set NEXT_PUBLIC_CRM_URL=http://localhost:3100&& npx next dev -p 3005"],
       "port": 3005
+    },
+    {
+      "name": "web-3005-sandbox",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "const s=require('C:/Users/offic/Documents/Betterview-Crm/.sandbox/secrets.json');require('child_process').spawn(process.execPath,['node_modules/next/dist/bin/next','dev','-p','3005'],{cwd:'C:/Users/offic/Documents/betterview-estimate-automation/window-ai/frontend',stdio:'inherit',env:{...process.env,API_PROXY_URL:'http://localhost:8000',API_ACCESS_TOKEN:s.estimatorApiToken,NEXT_PUBLIC_CRM_URL:'http://localhost:3100'}}).on('exit',c=>process.exit(c??0))"],
+      "port": 3005
+    },
+    {
+      "name": "api-8000-sandbox",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "const s=require('C:/Users/offic/Documents/Betterview-Crm/.sandbox/secrets.json');const d='C:/Users/offic/Documents/betterview-estimate-automation/window-ai';require('child_process').spawn(d+'/.venv/Scripts/python.exe',['-m','uvicorn','api.main_vercel:app','--port','8000','--reload'],{cwd:d,stdio:'inherit',env:{...process.env,API_ACCESS_TOKEN:s.estimatorApiToken,PRICING_ADMIN_TOKEN:s.managerToken,DATABASE_URL:'sqlite:///C:/Users/offic/Documents/Betterview-Crm/.sandbox/estimator.db',PYTHONUTF8:'1'}}).on('exit',c=>process.exit(c??0))"],
+      "port": 8000
     },
     {
       "name": "api-8000",
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai && set DATABASE_URL=sqlite:///data/local.db&& .venv\\Scripts\\python.exe -m uvicorn api.main:app --reload --host 127.0.0.1 --port 8000"],
       "port": 8000
+    },
+    {
+      "name": "api-8011-scratch",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai && set DATABASE_URL=sqlite:///C:/Users/offic/AppData/Local/Temp/claude/C--Users-offic-Documents-betterview-estimate-automation/5c35bfa9-67ad-4b13-90e5-1421c4815c32/scratchpad/local-copy.db&& .venv\\Scripts\\python.exe -m uvicorn api.main:app --host 127.0.0.1 --port 8011"],
+      "port": 8011
+    },
+    {
+      "name": "web-3016-scratch",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai\\frontend && set API_PROXY_URL=http://127.0.0.1:8011&& npx next dev -p 3016"],
+      "port": 3016
     }
   ]
 }

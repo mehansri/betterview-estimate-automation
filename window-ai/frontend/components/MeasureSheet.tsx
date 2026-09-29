@@ -438,6 +438,29 @@ function readSavedSheet(estimateId: string): SavedSheet | null {
   }
 }
 
+export type QueuedMeasureRow = Pick<MeasureRow, "location" | "style" | "width" | "height" | "qty" | "roughOpening">;
+
+/**
+ * Add rows to an estimate's saved sheet (e.g. read off permit drawings) so
+ * the measure sheet opens with them for review. Returns the rows now queued.
+ */
+export function queueMeasureRows(estimateId: string, queued: QueuedMeasureRow[]): number {
+  const saved = readSavedSheet(estimateId);
+  const rows = [
+    ...(saved?.rows || []).filter((row) => !isBlankRow(row)),
+    ...queued.map((row) => ({ ...row, key: newEstimateLineId("row"), photo: null })),
+  ];
+  const sheet: SavedSheet = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    defaults: saved?.defaults || DEFAULT_SHEET,
+    rows,
+    submission: saved?.submission || null,
+  };
+  window.localStorage.setItem(storageKey(estimateId), JSON.stringify(sheet));
+  return rows.length;
+}
+
 function clearSavedSheet(estimateId: string) {
   try {
     window.localStorage.removeItem(storageKey(estimateId));

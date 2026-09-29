@@ -141,6 +141,11 @@ class CustomerEstimateDraft(BaseModel):
     # that leaves them out keeps the existing link.
     crm_opportunity_id: Optional[str] = Field(default=None, max_length=64)
     crm_contact_id: Optional[str] = Field(default=None, max_length=64)
+    # Openings copied from a same-model home (services/home_models.py) and
+    # not yet confirmed by a site measure. An update that leaves them out
+    # keeps the existing values.
+    is_preliminary: bool = False
+    home_model_id: Optional[str] = Field(default=None, max_length=64)
 
 
 class CustomerEstimateLineAppend(BaseModel):
@@ -189,6 +194,7 @@ class CustomerEstimateSummary(BaseModel):
     revision_number: int = 1
     deleted_at: Optional[str] = None
     crm_opportunity_id: Optional[str] = None
+    is_preliminary: bool = False
 
 
 class CrmLinkRequest(BaseModel):

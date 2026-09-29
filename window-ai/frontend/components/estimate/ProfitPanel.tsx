@@ -4,7 +4,7 @@ function money(value: number | undefined | null) {
   return new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(value || 0);
 }
 
-function marginTone(margin: number) {
+export function marginTone(margin: number) {
   if (margin < 20) return "text-rose-700";
   if (margin < 30) return "text-amber-700";
   return "text-emerald-700";

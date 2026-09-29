@@ -74,6 +74,8 @@ export function estimateToDraft(estimate: CustomerEstimate, patch: Partial<Custo
     tiers: estimate.tiers || [],
     selected_tier: estimate.selected_tier ?? null,
     follow_up_on: estimate.follow_up_on ?? null,
+    is_preliminary: estimate.is_preliminary ?? false,
+    home_model_id: estimate.home_model_id ?? null,
     ...patch,
   };
 }

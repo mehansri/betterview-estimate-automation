@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.app_setup import cors_options, ensure_database
 from api.security import require_api_token
-from api.routes import admin, business, customer_estimates, doors, public, quote
+from api.routes import admin, business, customer_estimates, doors, home_models, public, quote
 
 
 @asynccontextmanager
@@ -38,6 +38,7 @@ protected = [Depends(require_api_token)]
 app.include_router(quote.router, dependencies=protected)
 app.include_router(doors.router, dependencies=protected)
 app.include_router(customer_estimates.router, dependencies=protected)
+app.include_router(home_models.router, dependencies=protected)
 app.include_router(admin.router, dependencies=protected)
 app.include_router(business.router, dependencies=protected)
 # The customer portal is addressed by an unguessable token and stays public.

@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.app_setup import cors_options, ensure_database
 from api.security import require_api_token
-from api.routes import admin, business, customer_estimates, doors, health, import_estimates, predict, public, quote
+from api.routes import admin, business, customer_estimates, doors, health, home_models, import_estimates, predict, public, quote
 from api.services.predictor import get_predictor
 from utils.logging import get_logger
 from utils.paths import ensure_dirs
@@ -46,6 +46,7 @@ app.include_router(predict.router, dependencies=protected)
 app.include_router(quote.router, dependencies=protected)
 app.include_router(doors.router, dependencies=protected)
 app.include_router(customer_estimates.router, dependencies=protected)
+app.include_router(home_models.router, dependencies=protected)
 app.include_router(import_estimates.router, dependencies=protected)
 app.include_router(admin.router, dependencies=protected)
 app.include_router(business.router, dependencies=protected)
