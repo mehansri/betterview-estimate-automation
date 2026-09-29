@@ -638,6 +638,24 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
     setResult(null);
   }
 
+  function removeOpening(index: number) {
+    const target = openings[index];
+    if (!target) return;
+    // A saved opening leaves the estimate when the changes are saved; ask first.
+    if (editDoors && !window.confirm(`Remove ${target.location || target.spec.label || `opening ${index + 1}`} from this estimate? It is taken off when you save the changes.`)) return;
+    const remaining = openings.filter((_, itemIndex) => itemIndex !== index);
+    setOpenings(remaining);
+    if (editDoors && target.id === selectedEditDoorId) {
+      const next = remaining[Math.min(index, remaining.length - 1)];
+      setSelectedEditDoorId(next?.id || null);
+      if (next) {
+        loadIntoEditor(next.spec);
+        setDraftLocation(next.location);
+      }
+    }
+    setResult(null);
+  }
+
   function selectEditOpening(opening: DoorQuoteOpening) {
     if (!editDoors || opening.id === selectedEditDoorId) return;
     const spec = activeSpec;
@@ -670,7 +688,10 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
   }
 
   async function sendToProjectEstimate() {
-    if (!projectId || !project || isLockedStatus(project.status) || !result || !openings.length) return;
+    if (!projectId || !project || isLockedStatus(project.status)) return;
+    // Editing may remove every opening; that needs no price. Anything else does.
+    const removingAll = editDoors && !openings.length;
+    if (!removingAll && (!result || !openings.length)) return;
     setHandoffBusy(true);
     setHandoffEstimateId(null);
     setError(null);
@@ -693,6 +714,11 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
           commercial: { ...project.commercial, ...commercial },
         });
         const saved = await updateCustomerEstimate(project.id, draftPayload);
+        if (!doors.length && !saved.windows.length) {
+          // Nothing left to price; the project page offers to add products again.
+          window.location.href = `/projects/${saved.id}`;
+          return;
+        }
         const priced = await priceCustomerEstimate(saved.id);
         window.location.href = `/projects/${priced.id}`;
         return;
@@ -724,6 +750,20 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
   }
   if (!catalog || (editorMode === "classic" && (!draft || !data))) {
     return <p className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{error || "Door catalog unavailable."}</p>;
+  }
+  if (editDoors && editHydrated && !openings.length && project.doors.length) {
+    const count = project.doors.length;
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-700">
+        <p className="font-semibold text-slate-900">All {count} door opening{count === 1 ? "" : "s"} removed.</p>
+        <p className="mt-1 text-slate-500">Save to take {count === 1 ? "it" : "them"} off {project.estimate_number || "this estimate"}. {project.windows.length ? "The windows stay and the project is repriced." : "The estimate will have no products until you add some."}</p>
+        {error ? <p className="mt-3 text-rose-700">{error}</p> : null}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button type="button" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || isLockedStatus(project.status)}>{handoffBusy ? "Saving changes…" : "Save changes"}</button>
+          <Link href={`/projects/${project.id}`} className="text-sm font-semibold text-slate-600 hover:underline">Cancel — keep the doors</Link>
+        </div>
+      </div>
+    );
   }
 
   /** The full price-book form, kept for classic openings and options the pipeline does not cover. */
@@ -985,7 +1025,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
           {error && <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         </div>
 
-        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.pipeline && pipelineCatalog ? selectionSummary(pipelineCatalog, opening.spec.pipeline).join(" · ") : `${opening.spec.material} · ${opening.spec.opening_type.replace(/_/g, " ")} · ${opening.spec.finish}`}</p></div><div className="flex items-center gap-3">{editDoors ? <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => selectEditOpening(opening)}>{opening.id === selectedEditDoorId ? "Editing" : "Edit"}</button> : <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => { setOpenings([...openings, { id: newEstimateLineId("door"), location: opening.location, description: opening.description, spec: JSON.parse(JSON.stringify(opening.spec)) }]); setResult(null); }}>Duplicate</button>}<button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => { setOpenings(openings.filter((_, itemIndex) => itemIndex !== index)); setResult(null); }}>Remove</button></div></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><LocationInput className="input" value={opening.location} onChange={(value) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: value } : item))} placeholder="Location (e.g. Front entrance)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
+        {openings.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="text-sm font-semibold text-slate-900">Project openings ({openings.length})</h3><ul className="mt-3 divide-y divide-slate-100">{openings.map((opening, index) => <li key={opening.id} className="py-3 text-sm"><div className="flex items-center justify-between gap-4"><div><p className="font-medium text-slate-900">{opening.spec.label || `Opening ${index + 1}`}</p><p className="text-slate-500">{opening.spec.pipeline && pipelineCatalog ? selectionSummary(pipelineCatalog, opening.spec.pipeline).join(" · ") : `${opening.spec.material} · ${opening.spec.opening_type.replace(/_/g, " ")} · ${opening.spec.finish}`}</p></div><div className="flex items-center gap-3">{editDoors ? <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => selectEditOpening(opening)}>{opening.id === selectedEditDoorId ? "Editing" : "Edit"}</button> : <button type="button" className="text-xs font-medium text-brand-700 hover:underline" onClick={() => { setOpenings([...openings, { id: newEstimateLineId("door"), location: opening.location, description: opening.description, spec: JSON.parse(JSON.stringify(opening.spec)) }]); setResult(null); }}>Duplicate</button>}<button type="button" className="text-xs font-medium text-rose-600 hover:underline" onClick={() => removeOpening(index)}>Remove</button></div></div><div className="mt-2 grid gap-2 sm:grid-cols-2"><LocationInput className="input" value={opening.location} onChange={(value) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, location: value } : item))} placeholder="Location (e.g. Front entrance)" /><input className="input" value={opening.description} onChange={(event) => setOpenings(openings.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Customer description (optional)" /></div></li>)}</ul></div>}
       </section>
       )}
       {presentationMode === "customer" ? (
@@ -1017,7 +1057,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
           <h2 className="text-base font-semibold text-slate-900">Project estimate</h2>
           <p className="mt-1 text-sm text-slate-500">{editDoors ? "Save these door openings and return to the repriced project." : `Assign all ${openings.length} added door opening${openings.length === 1 ? "" : "s"} to the selected project. Existing window and door lines stay together.`}</p>
           {isLockedStatus(project.status) ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">This estimate is finalized and read-only. Create a revision from the project to change it.</p> : null}
-          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || !openings.length || !result || isLockedStatus(project.status)}>{handoffBusy ? (editDoors ? "Saving changes…" : "Saving doors…") : editDoors ? "Save door changes" : `Save ${openings.length} door${openings.length === 1 ? "" : "s"} to project`}</button>
+          <button type="button" className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={sendToProjectEstimate} disabled={handoffBusy || (editDoors && !openings.length ? false : !openings.length || !result) || isLockedStatus(project.status)}>{handoffBusy ? (editDoors ? "Saving changes…" : "Saving doors…") : editDoors ? "Save door changes" : `Save ${openings.length} door${openings.length === 1 ? "" : "s"} to project`}</button>
           {handoffEstimateId ? <p className="mt-3 text-xs text-rose-700">The quote was assigned. <Link href={`/projects/${handoffEstimateId}`} className="font-semibold underline">Open project</Link> to resolve the pricing issue.</p> : null}
           {error && handoffEstimateId ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
           {error && !handoffEstimateId ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p> : null}
