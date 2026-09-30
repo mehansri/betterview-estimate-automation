@@ -28,14 +28,14 @@
   },
   "pipeline": {
     "frame_depths": {
-      "steel": {"4.625": null, "6.625": null, "7.625": "Composite 7-5/8 Jamb"},
+      "steel": {"4.625": null, "5.25": "Composite 5-1/4 Jamb", "6.625": null, "7.25": "Composite 7-1/4 Jamb", "7.625": "Composite 7-5/8 Jamb"},
       "fiberglass": {"4.625": null, "5.625": "Composite 5-5/8 Jamb", "6.625": null, "7.625": "Composite 7-5/8 Jamb"}
     },
-    "smooth_only_depths": ["5.625"],
+    "smooth_only_depths": ["5.25", "5.625"],
     "fire_rated_panel_list": null,
     "sidelite_width_in": 14,
     "transom_height_in": 14
   },
-  "_pipeline": "Step-by-step door configurator. frame_depths maps each offered depth to its Palma jamb upcharge row (null = standard jamb, no charge); a depth left out is not offered. Palma lists no 5-5/8 jamb for steel (only 5-1/4), so steel skips 5.625. smooth_only_depths: the book sells these jambs in smooth only. fire_rated_panel_list: list price per slab for the fire-rated upcharge — not in the Palma book; while null the rep enters it on the quote. sidelite_width_in / transom_height_in size the transom glass area.",
+  "_pipeline": "Step-by-step door configurator. frame_depths maps each offered depth to its Palma jamb upcharge row (null = standard jamb, no charge); a depth left out is not offered. Steel sells 5-1/4 (smooth only) and 7-1/4 (for retractable screens and outswing sills) where fiberglass sells 5-5/8; fiberglass has no 7-1/4 price. smooth_only_depths: the book sells these jambs in smooth only. fire_rated_panel_list: legacy rep-entered fire-rated price for fiberglass (Palma's fiberglass book has no fire rating); steel uses the book's 20-min rating, +$230 (ST p38). sidelite_width_in / transom_height_in size the transom glass area.",
   "_quote_defaults":"Added to every opening unless the spec prices that row itself or lists the row in \"skip_defaults\": [\"sill\", \"hinges\", \"brickmould\"]. Hinges are per door slab. Brickmould length follows the opening (101\" with a transom or a 7'/8' system, otherwise 84\") and its finish follows the door's."
 }

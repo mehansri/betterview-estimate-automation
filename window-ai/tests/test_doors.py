@@ -50,11 +50,13 @@ def test_door_catalog_integrity():
 
 def test_reference_live_lookup_and_pricing_chain():
     result = quote(_live_opening(), load_config())
-    assert result["list_total"] == 8385.0  # 4402 + 3453 + 20 sill + 60 hinges + 450 brickmould
-    assert result["material_cost"] == 3354.0  # 60% off list
+    # 4402 + 3453 + 60 hinges + 450 brickmould; the black anodized sill is
+    # "included with painted doors" (FG p44), so $0 on a finished door.
+    assert result["list_total"] == 8365.0
+    assert result["material_cost"] == 3346.0  # 60% off list
     assert result["install"] == 750.0
-    assert result["sell"] == 5335.2
-    assert result["customer_total"] == 6028.78
+    assert result["sell"] == 5324.8
+    assert result["customer_total"] == 6017.02
     assert result["line_items"][0]["source"] == "fiberglass p5"
 
 
@@ -89,7 +91,7 @@ def test_transom_minimum_and_pull_bar_are_priced_once():
 def test_project_rollup_sums_openings():
     result = quote_project([_live_opening(), _live_opening()], load_config())
     assert len(result["openings"]) == 2
-    assert result["totals"]["customer_total"] == 12057.56
+    assert result["totals"]["customer_total"] == 12034.04
 
 
 @pytest.mark.usefixtures("no_profit_floor")
@@ -123,9 +125,9 @@ def test_door_api_catalog_and_validation():
     valid = client.post("/api/doors/quote", json={"openings": [_live_opening()]})
     assert valid.status_code == 200, valid.text
     body = valid.json()
-    assert body["totals"]["customer_total"] == 6028.78
+    assert body["totals"]["customer_total"] == 6017.02
     customer = body["customer_presentation"]
-    assert customer["total"] == 6028.78
+    assert customer["total"] == 6017.02
     assert customer["openings"][0]["items"]
     assert customer["openings"][0]["items"][-1]["description"] == "Professional installation"
     assert "material_cost" not in customer
@@ -158,13 +160,14 @@ def test_standing_defaults_ride_on_every_opening():
     }
     result = quote(bare, config)
     rows = {item["row"]: item for item in result["line_items"]}
-    assert rows["Sill"]["list"] == 20.0
+    assert rows["Sill"]["list"] == 0.0  # black anodized is included with painted doors
     assert rows["Hinges"]["list"] == 60.0
     assert rows["Brickmould"]["list"] == 300.0  # 84" painted x3
 
     # Factory white: standard brickmould is included, noted rather than priced.
     white = quote({**bare, "finish": "factory white"}, config)
     assert not any(item["row"] == "Brickmould" for item in white["line_items"])
+    assert next(item for item in white["line_items"] if item["row"] == "Sill")["list"] == 20.0  # black on a white door
     assert any("included at no charge" in note for note in white["notes"])
 
     # An explicit line overrides; skip_defaults silences.

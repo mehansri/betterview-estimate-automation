@@ -4107,7 +4107,7 @@
   "material": "steel",
   "series": "sandblast_triple",
   "series_label": "Sandblast Triple Glazed",
-  "component": "door",
+  "component": "direct_glazed_sidelite",
   "height": "6'8\"",
   "source_page": 16,
   "kind": "slab",
@@ -4126,7 +4126,7 @@
   "material": "steel",
   "series": "sandblast_triple",
   "series_label": "Sandblast Triple Glazed",
-  "component": "door",
+  "component": "direct_glazed_sidelite",
   "height": "6'8\"",
   "source_page": 16,
   "kind": "slab",
@@ -4145,7 +4145,7 @@
   "material": "steel",
   "series": "sandblast_triple",
   "series_label": "Sandblast Triple Glazed",
-  "component": "door",
+  "component": "direct_glazed_sidelite",
   "height": "6'8\"",
   "source_page": 16,
   "kind": "slab",
@@ -4164,7 +4164,7 @@
   "material": "steel",
   "series": "sandblast_triple",
   "series_label": "Sandblast Triple Glazed",
-  "component": "door",
+  "component": "direct_glazed_sidelite",
   "height": "6'8\"",
   "source_page": 16,
   "kind": "slab",
@@ -4183,7 +4183,7 @@
   "material": "steel",
   "series": "sandblast_triple",
   "series_label": "Sandblast Triple Glazed",
-  "component": "door",
+  "component": "direct_glazed_sidelite",
   "height": "6'8\"",
   "source_page": 16,
   "kind": "slab",
@@ -4202,7 +4202,7 @@
   "material": "steel",
   "series": "sandblast_triple",
   "series_label": "Sandblast Triple Glazed",
-  "component": "door",
+  "component": "direct_glazed_sidelite",
   "height": "6'8\"",
   "source_page": 16,
   "kind": "slab",
@@ -4221,7 +4221,7 @@
   "material": "steel",
   "series": "sandblast_triple",
   "series_label": "Sandblast Triple Glazed",
-  "component": "door",
+  "component": "direct_glazed_sidelite",
   "height": "6'8\"",
   "source_page": 16,
   "kind": "slab",
@@ -4240,7 +4240,7 @@
   "material": "steel",
   "series": "sandblast_triple",
   "series_label": "Sandblast Triple Glazed",
-  "component": "door",
+  "component": "direct_glazed_sidelite",
   "height": "6'8\"",
   "source_page": 16,
   "kind": "slab",
@@ -11017,7 +11017,9 @@
    "paint_2s_1c": 3539.0,
    "paint_2s_2c": 3719.0
   },
-  "raw": "22x36 London $2,689 $3,309 $3,539 $3,719"
+  "raw": "22x36 London $2,689 $3,309 $3,539 $3,719",
+  "variant": "elevation_clear",
+  "variant_label": "Elevation, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11036,7 +11038,9 @@
    "paint_2s_1c": 3510.0,
    "paint_2s_2c": 3690.0
   },
-  "raw": "22x48 Orleans $2,660 $3,280 $3,510 $3,690"
+  "raw": "22x48 Orleans $2,660 $3,280 $3,510 $3,690",
+  "variant": "elevation_clear",
+  "variant_label": "Elevation, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11055,7 +11059,9 @@
    "paint_2s_1c": 3630.0,
    "paint_2s_2c": 3810.0
   },
-  "raw": "22x48 Soho $2,780 $3,400 $3,630 $3,810"
+  "raw": "22x48 Soho $2,780 $3,400 $3,630 $3,810",
+  "variant": "elevation_clear",
+  "variant_label": "Elevation, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11074,7 +11080,9 @@
    "paint_2s_1c": 3614.0,
    "paint_2s_2c": 3794.0
   },
-  "raw": "20x64 Flush $2,764 $3,384 $3,614 $3,794"
+  "raw": "20x64 Flush $2,764 $3,384 $3,614 $3,794",
+  "variant": "elevation_clear",
+  "variant_label": "Elevation, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11093,7 +11101,9 @@
    "paint_2s_1c": 3668.0,
    "paint_2s_2c": 3848.0
   },
-  "raw": "22x64 Flush $2,818 $3,438 $3,668 $3,848"
+  "raw": "22x64 Flush $2,818 $3,438 $3,668 $3,848",
+  "variant": "elevation_clear",
+  "variant_label": "Elevation, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11112,7 +11122,9 @@
    "paint_2s_1c": 4036.0,
    "paint_2s_2c": 4216.0
   },
-  "raw": "22x36 London $3,186 $3,806 $4,036 $4,216"
+  "raw": "22x36 London $3,186 $3,806 $4,036 $4,216",
+  "variant": "elevation_grills",
+  "variant_label": "Elevation, grilles Standard (CAFA) or Georgian (CAAL)"
  },
  {
   "material": "steel",
@@ -11131,7 +11143,9 @@
    "paint_2s_1c": 4116.0,
    "paint_2s_2c": 4296.0
   },
-  "raw": "22x48 Orleans $3,266 $3,886 $4,116 $4,296"
+  "raw": "22x48 Orleans $3,266 $3,886 $4,116 $4,296",
+  "variant": "elevation_grills",
+  "variant_label": "Elevation, grilles Standard (CAFA) or Georgian (CAAL)"
  },
  {
   "material": "steel",
@@ -11150,7 +11164,9 @@
    "paint_2s_1c": 4236.0,
    "paint_2s_2c": 4416.0
   },
-  "raw": "22x48 Soho $3,386 $4,006 $4,236 $4,416"
+  "raw": "22x48 Soho $3,386 $4,006 $4,236 $4,416",
+  "variant": "elevation_grills",
+  "variant_label": "Elevation, grilles Standard (CAFA) or Georgian (CAAL)"
  },
  {
   "material": "steel",
@@ -11169,7 +11185,9 @@
    "paint_2s_1c": 4568.0,
    "paint_2s_2c": 4748.0
   },
-  "raw": "20x64 Flush $3,718 $4,338 $4,568 $4,748"
+  "raw": "20x64 Flush $3,718 $4,338 $4,568 $4,748",
+  "variant": "elevation_grills",
+  "variant_label": "Elevation, grilles Standard (CAFA) or Georgian (CAAL)"
  },
  {
   "material": "steel",
@@ -11188,7 +11206,9 @@
    "paint_2s_1c": 4278.0,
    "paint_2s_2c": 4458.0
   },
-  "raw": "22x64 Flush $3,428 $4,048 $4,278 $4,458"
+  "raw": "22x64 Flush $3,428 $4,048 $4,278 $4,458",
+  "variant": "elevation_grills",
+  "variant_label": "Elevation, grilles Standard (CAFA) or Georgian (CAAL)"
  },
  {
   "material": "steel",
@@ -11207,7 +11227,9 @@
    "paint_2s_1c": 3683.0,
    "paint_2s_2c": 3863.0
   },
-  "raw": "22x36 London $2,833 $3,453 $3,683 $3,863"
+  "raw": "22x36 London $2,833 $3,453 $3,683 $3,863",
+  "variant": "elevation_decorative",
+  "variant_label": "Elevation, Edge / Masterline / Optika / Transit glass"
  },
  {
   "material": "steel",
@@ -11226,7 +11248,9 @@
    "paint_2s_1c": 3946.0,
    "paint_2s_2c": 4126.0
   },
-  "raw": "22x48 Orleans $3,096 $3,716 $3,946 $4,126"
+  "raw": "22x48 Orleans $3,096 $3,716 $3,946 $4,126",
+  "variant": "elevation_decorative",
+  "variant_label": "Elevation, Edge / Masterline / Optika / Transit glass"
  },
  {
   "material": "steel",
@@ -11245,7 +11269,9 @@
    "paint_2s_1c": 4066.0,
    "paint_2s_2c": 4246.0
   },
-  "raw": "22x48 Soho $3,216 $3,836 $4,066 $4,246"
+  "raw": "22x48 Soho $3,216 $3,836 $4,066 $4,246",
+  "variant": "elevation_decorative",
+  "variant_label": "Elevation, Edge / Masterline / Optika / Transit glass"
  },
  {
   "material": "steel",
@@ -11264,7 +11290,9 @@
    "paint_2s_1c": 4221.0,
    "paint_2s_2c": 4401.0
   },
-  "raw": "20x64 Flush $3,371 $3,991 $4,221 $4,401"
+  "raw": "20x64 Flush $3,371 $3,991 $4,221 $4,401",
+  "variant": "elevation_decorative",
+  "variant_label": "Elevation, Edge / Masterline / Optika / Transit glass"
  },
  {
   "material": "steel",
@@ -11283,7 +11311,9 @@
    "paint_2s_1c": 4272.0,
    "paint_2s_2c": 4452.0
   },
-  "raw": "22x64 Flush $3,422 $4,042 $4,272 $4,452"
+  "raw": "22x64 Flush $3,422 $4,042 $4,272 $4,452",
+  "variant": "elevation_decorative",
+  "variant_label": "Elevation, Edge / Masterline / Optika / Transit glass"
  },
  {
   "material": "steel",
@@ -11302,7 +11332,9 @@
    "paint_2s_1c": 4048.0,
    "paint_2s_2c": 4228.0
   },
-  "raw": "22x36 London $3,198 $3,818 $4,048 $4,228"
+  "raw": "22x36 London $3,198 $3,818 $4,048 $4,228",
+  "variant": "elevation_vgroove_clear",
+  "variant_label": "Elevation, V-Groove Murano clear"
  },
  {
   "material": "steel",
@@ -11321,7 +11353,9 @@
    "paint_2s_1c": 4081.0,
    "paint_2s_2c": 4261.0
   },
-  "raw": "22x48 Orleans $3,231 $3,851 $4,081 $4,261"
+  "raw": "22x48 Orleans $3,231 $3,851 $4,081 $4,261",
+  "variant": "elevation_vgroove_clear",
+  "variant_label": "Elevation, V-Groove Murano clear"
  },
  {
   "material": "steel",
@@ -11340,7 +11374,9 @@
    "paint_2s_1c": 4201.0,
    "paint_2s_2c": 4381.0
   },
-  "raw": "22x48 Soho $3,351 $3,971 $4,201 $4,381"
+  "raw": "22x48 Soho $3,351 $3,971 $4,201 $4,381",
+  "variant": "elevation_vgroove_clear",
+  "variant_label": "Elevation, V-Groove Murano clear"
  },
  {
   "material": "steel",
@@ -11359,7 +11395,9 @@
    "paint_2s_1c": 4253.0,
    "paint_2s_2c": 4433.0
   },
-  "raw": "20x64 Flush $3,403 $4,023 $4,253 $4,433"
+  "raw": "20x64 Flush $3,403 $4,023 $4,253 $4,433",
+  "variant": "elevation_vgroove_clear",
+  "variant_label": "Elevation, V-Groove Murano clear"
  },
  {
   "material": "steel",
@@ -11378,7 +11416,9 @@
    "paint_2s_1c": 4325.0,
    "paint_2s_2c": 4505.0
   },
-  "raw": "22x64 Flush $3,475 $4,095 $4,325 $4,505"
+  "raw": "22x64 Flush $3,475 $4,095 $4,325 $4,505",
+  "variant": "elevation_vgroove_clear",
+  "variant_label": "Elevation, V-Groove Murano clear"
  },
  {
   "material": "steel",
@@ -11397,7 +11437,9 @@
    "paint_2s_1c": 4268.0,
    "paint_2s_2c": 4448.0
   },
-  "raw": "22x36 London $3,418 $4,038 $4,268 $4,448"
+  "raw": "22x36 London $3,418 $4,038 $4,268 $4,448",
+  "variant": "elevation_vgroove_sandblast",
+  "variant_label": "Elevation, V-Groove Murano sandblasted"
  },
  {
   "material": "steel",
@@ -11416,7 +11458,9 @@
    "paint_2s_1c": 4401.0,
    "paint_2s_2c": 4581.0
   },
-  "raw": "22x48 Orleans $3,551 $4,171 $4,401 $4,581"
+  "raw": "22x48 Orleans $3,551 $4,171 $4,401 $4,581",
+  "variant": "elevation_vgroove_sandblast",
+  "variant_label": "Elevation, V-Groove Murano sandblasted"
  },
  {
   "material": "steel",
@@ -11435,7 +11479,9 @@
    "paint_2s_1c": 4521.0,
    "paint_2s_2c": 4701.0
   },
-  "raw": "22x48 Soho $3,671 $4,291 $4,521 $4,701"
+  "raw": "22x48 Soho $3,671 $4,291 $4,521 $4,701",
+  "variant": "elevation_vgroove_sandblast",
+  "variant_label": "Elevation, V-Groove Murano sandblasted"
  },
  {
   "material": "steel",
@@ -11454,7 +11500,9 @@
    "paint_2s_1c": 4736.0,
    "paint_2s_2c": 4916.0
   },
-  "raw": "20x64 Flush $3,886 $4,506 $4,736 $4,916"
+  "raw": "20x64 Flush $3,886 $4,506 $4,736 $4,916",
+  "variant": "elevation_vgroove_sandblast",
+  "variant_label": "Elevation, V-Groove Murano sandblasted"
  },
  {
   "material": "steel",
@@ -11473,7 +11521,9 @@
    "paint_2s_1c": 4824.0,
    "paint_2s_2c": 5004.0
   },
-  "raw": "22x64 Flush $3,974 $4,594 $4,824 $5,004"
+  "raw": "22x64 Flush $3,974 $4,594 $4,824 $5,004",
+  "variant": "elevation_vgroove_sandblast",
+  "variant_label": "Elevation, V-Groove Murano sandblasted"
  },
  {
   "material": "steel",
@@ -11492,7 +11542,9 @@
    "paint_2s_1c": 3352.0,
    "paint_2s_2c": 3532.0
   },
-  "raw": "18x36 Flush $2,502 $3,122 $3,352 $3,532"
+  "raw": "18x36 Flush $2,502 $3,122 $3,352 $3,532",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11511,7 +11563,9 @@
    "paint_2s_1c": 3537.0,
    "paint_2s_2c": 3717.0
   },
-  "raw": "18x48 Flush $2,687 $3,307 $3,537 $3,717"
+  "raw": "18x48 Flush $2,687 $3,307 $3,537 $3,717",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11530,7 +11584,9 @@
    "paint_2s_1c": 3785.0,
    "paint_2s_2c": 3965.0
   },
-  "raw": "18x64 Flush $2,935 $3,555 $3,785 $3,965"
+  "raw": "18x64 Flush $2,935 $3,555 $3,785 $3,965",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11549,7 +11605,9 @@
    "paint_2s_1c": 3382.0,
    "paint_2s_2c": 3562.0
   },
-  "raw": "20x36 6-Panel $2,532 $3,152 $3,382 $3,562"
+  "raw": "20x36 6-Panel $2,532 $3,152 $3,382 $3,562",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11568,7 +11626,9 @@
    "paint_2s_1c": 3537.0,
    "paint_2s_2c": 3717.0
   },
-  "raw": "20x48 Flush $2,687 $3,307 $3,537 $3,717"
+  "raw": "20x48 Flush $2,687 $3,307 $3,537 $3,717",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11587,7 +11647,9 @@
    "paint_2s_1c": 3786.0,
    "paint_2s_2c": 3966.0
   },
-  "raw": "20x64 Flush $2,936 $3,556 $3,786 $3,966"
+  "raw": "20x64 Flush $2,936 $3,556 $3,786 $3,966",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11606,7 +11668,9 @@
    "paint_2s_1c": 3512.0,
    "paint_2s_2c": 3692.0
   },
-  "raw": "22x36 London $2,662 $3,282 $3,512 $3,692"
+  "raw": "22x36 London $2,662 $3,282 $3,512 $3,692",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11625,7 +11689,9 @@
    "paint_2s_1c": 3607.0,
    "paint_2s_2c": 3787.0
   },
-  "raw": "22x48 Orleans $2,757 $3,377 $3,607 $3,787"
+  "raw": "22x48 Orleans $2,757 $3,377 $3,607 $3,787",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11644,7 +11710,9 @@
    "paint_2s_1c": 3727.0,
    "paint_2s_2c": 3907.0
   },
-  "raw": "22x48 Soho $2,877 $3,497 $3,727 $3,907"
+  "raw": "22x48 Soho $2,877 $3,497 $3,727 $3,907",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11663,7 +11731,9 @@
    "paint_2s_1c": 3872.0,
    "paint_2s_2c": 4052.0
   },
-  "raw": "22x64 Flush $3,022 $3,642 $3,872 $4,052"
+  "raw": "22x64 Flush $3,022 $3,642 $3,872 $4,052",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11682,7 +11752,9 @@
    "paint_2s_1c": 2989.0,
    "paint_2s_2c": 3159.0
   },
-  "raw": "9x64 Flush $2,299 $2,799 $2,989 $3,159"
+  "raw": "9x64 Flush $2,299 $2,799 $2,989 $3,159",
+  "variant": "q550_clear",
+  "variant_label": "Q550, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11701,7 +11773,9 @@
    "paint_2s_1c": 3659.0,
    "paint_2s_2c": 3839.0
   },
-  "raw": "20x64 Flush $2,809 $3,429 $3,659 $3,839"
+  "raw": "20x64 Flush $2,809 $3,429 $3,659 $3,839",
+  "variant": "q550_grills",
+  "variant_label": "Q550, grilles/LowE"
  },
  {
   "material": "steel",
@@ -11720,7 +11794,9 @@
    "paint_2s_1c": 3587.0,
    "paint_2s_2c": 3767.0
   },
-  "raw": "22x36 London $2,737 $3,357 $3,587 $3,767"
+  "raw": "22x36 London $2,737 $3,357 $3,587 $3,767",
+  "variant": "q550_grills",
+  "variant_label": "Q550, grilles/LowE"
  },
  {
   "material": "steel",
@@ -11739,7 +11815,9 @@
    "paint_2s_1c": 3605.0,
    "paint_2s_2c": 3785.0
   },
-  "raw": "22x48 Orleans $2,755 $3,375 $3,605 $3,785"
+  "raw": "22x48 Orleans $2,755 $3,375 $3,605 $3,785",
+  "variant": "q550_grills",
+  "variant_label": "Q550, grilles/LowE"
  },
  {
   "material": "steel",
@@ -11758,7 +11836,9 @@
    "paint_2s_1c": 3725.0,
    "paint_2s_2c": 3905.0
   },
-  "raw": "22x48 Soho $2,875 $3,495 $3,725 $3,905"
+  "raw": "22x48 Soho $2,875 $3,495 $3,725 $3,905",
+  "variant": "q550_grills",
+  "variant_label": "Q550, grilles/LowE"
  },
  {
   "material": "steel",
@@ -11777,7 +11857,9 @@
    "paint_2s_1c": 3685.0,
    "paint_2s_2c": 3865.0
   },
-  "raw": "22x64 Flush $2,835 $3,455 $3,685 $3,865"
+  "raw": "22x64 Flush $2,835 $3,455 $3,685 $3,865",
+  "variant": "q550_grills",
+  "variant_label": "Q550, grilles/LowE"
  },
  {
   "material": "steel",
@@ -11796,7 +11878,9 @@
    "paint_2s_1c": 3132.0,
    "paint_2s_2c": 3302.0
   },
-  "raw": "9x64 Flush $2,442 $2,942 $3,132 $3,302"
+  "raw": "9x64 Flush $2,442 $2,942 $3,132 $3,302",
+  "variant": "q550_grills",
+  "variant_label": "Q550, grilles/LowE"
  },
  {
   "material": "steel",
@@ -11815,7 +11899,9 @@
    "paint_2s_1c": 3202.0,
    "paint_2s_2c": 3382.0
   },
-  "raw": "22x36 - Clear/LowE London $2,352 $2,972 $3,202 $3,382"
+  "raw": "22x36 - Clear/LowE London $2,352 $2,972 $3,202 $3,382",
+  "variant": "peak470_clear",
+  "variant_label": "Peak 470, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11834,7 +11920,9 @@
    "paint_2s_1c": 3429.0,
    "paint_2s_2c": 3609.0
   },
-  "raw": "22x36 - Grills London $2,579 $3,199 $3,429 $3,609"
+  "raw": "22x36 - Grills London $2,579 $3,199 $3,429 $3,609",
+  "variant": "peak470_grills",
+  "variant_label": "Peak 470, grilles"
  },
  {
   "material": "steel",
@@ -11853,7 +11941,9 @@
    "paint_2s_1c": 3454.0,
    "paint_2s_2c": 3634.0
   },
-  "raw": "22x36 - Decorative London $2,604 $3,224 $3,454 $3,634"
+  "raw": "22x36 - Decorative London $2,604 $3,224 $3,454 $3,634",
+  "variant": "peak470_decorative",
+  "variant_label": "Peak 470, decorative"
  },
  {
   "material": "steel",
@@ -11872,7 +11962,9 @@
    "paint_2s_1c": 3482.0,
    "paint_2s_2c": 3662.0
   },
-  "raw": "22x36 - Clear/LowE London $2,632 $3,252 $3,482 $3,662"
+  "raw": "22x36 - Clear/LowE London $2,632 $3,252 $3,482 $3,662",
+  "variant": "peak470_blackout_clear",
+  "variant_label": "Peak 470 Black-Out, Clear/LowE"
  },
  {
   "material": "steel",
@@ -11891,7 +11983,9 @@
    "paint_2s_1c": 3631.0,
    "paint_2s_2c": 3811.0
   },
-  "raw": "22x36 - Decorative London $2,781 $3,401 $3,631 $3,811"
+  "raw": "22x36 - Decorative London $2,781 $3,401 $3,631 $3,811",
+  "variant": "peak470_blackout_decorative",
+  "variant_label": "Peak 470 Black-Out, decorative"
  },
  {
   "material": "steel",
@@ -11910,7 +12004,9 @@
    "paint_2s_1c": 2956.0,
    "paint_2s_2c": 3136.0
   },
-  "raw": "20x36 6-Panel $2,106 $2,726 $2,956 $3,136"
+  "raw": "20x36 6-Panel $2,106 $2,726 $2,956 $3,136",
+  "variant": "elite_clear",
+  "variant_label": "Elite, clear"
  },
  {
   "material": "steel",
@@ -11929,7 +12025,9 @@
    "paint_2s_1c": 3086.0,
    "paint_2s_2c": 3266.0
   },
-  "raw": "22x36 London $2,236 $2,856 $3,086 $3,266"
+  "raw": "22x36 London $2,236 $2,856 $3,086 $3,266",
+  "variant": "elite_clear",
+  "variant_label": "Elite, clear"
  },
  {
   "material": "steel",
@@ -11948,7 +12046,9 @@
    "paint_2s_1c": 3724.0,
    "paint_2s_2c": 3904.0
   },
-  "raw": "22x36 - Rain Glass London $2,874 $3,494 $3,724 $3,904"
+  "raw": "22x36 - Rain Glass London $2,874 $3,494 $3,724 $3,904",
+  "variant": "elite_rain",
+  "variant_label": "Elite, rain glass"
  },
  {
   "material": "steel",
@@ -11967,7 +12067,9 @@
    "paint_2s_1c": 3147.0,
    "paint_2s_2c": 3327.0
   },
-  "raw": "22x36 - Grills London $2,297 $2,917 $3,147 $3,327"
+  "raw": "22x36 - Grills London $2,297 $2,917 $3,147 $3,327",
+  "variant": "elite_grills",
+  "variant_label": "Elite, grilles"
  },
  {
   "material": "steel",
@@ -11986,7 +12088,9 @@
    "paint_2s_1c": 3239.0,
    "paint_2s_2c": 3419.0
   },
-  "raw": "22x64 (22x36 with Flush $2,389 $3,009 $3,239 $3,419"
+  "raw": "22x64 (22x36 with Flush $2,389 $3,009 $3,239 $3,419",
+  "variant": "elite_extension",
+  "variant_label": "Elite 22x36 with extension (22x64 opening)"
  },
  {
   "material": "steel",
@@ -12005,7 +12109,9 @@
    "paint_2s_1c": 3183.0,
    "paint_2s_2c": 3363.0
   },
-  "raw": "22x36 London $2,333 $2,953 $3,183 $3,363"
+  "raw": "22x36 London $2,333 $2,953 $3,183 $3,363",
+  "variant": "elite_blackout",
+  "variant_label": "Elite Black-Out"
  },
  {
   "material": "steel",
@@ -12024,7 +12130,9 @@
    "paint_2s_1c": 3568.0,
    "paint_2s_2c": 3748.0
   },
-  "raw": "22x48 Orleans $2,718 $3,338 $3,568 $3,748"
+  "raw": "22x48 Orleans $2,718 $3,338 $3,568 $3,748",
+  "variant": "ezlift_clear",
+  "variant_label": "EZ Lift"
  },
  {
   "material": "steel",
@@ -12043,7 +12151,9 @@
    "paint_2s_1c": 3688.0,
    "paint_2s_2c": 3868.0
   },
-  "raw": "22x48 Soho $2,838 $3,458 $3,688 $3,868"
+  "raw": "22x48 Soho $2,838 $3,458 $3,688 $3,868",
+  "variant": "ezlift_clear",
+  "variant_label": "EZ Lift"
  },
  {
   "material": "steel",
@@ -12062,7 +12172,9 @@
    "paint_2s_1c": 3633.0,
    "paint_2s_2c": 3813.0
   },
-  "raw": "20x64 Flush $2,783 $3,403 $3,633 $3,813"
+  "raw": "20x64 Flush $2,783 $3,403 $3,633 $3,813",
+  "variant": "ezlift_clear",
+  "variant_label": "EZ Lift"
  },
  {
   "material": "steel",
@@ -12081,7 +12193,9 @@
    "paint_2s_1c": 3620.0,
    "paint_2s_2c": 3800.0
   },
-  "raw": "22x64 Flush $2,770 $3,390 $3,620 $3,800"
+  "raw": "22x64 Flush $2,770 $3,390 $3,620 $3,800",
+  "variant": "ezlift_clear",
+  "variant_label": "EZ Lift"
  },
  {
   "material": "steel",
@@ -12100,7 +12214,9 @@
    "paint_2s_1c": 3779.0,
    "paint_2s_2c": 3959.0
   },
-  "raw": "22x48 Orleans $2,929 $3,549 $3,779 $3,959"
+  "raw": "22x48 Orleans $2,929 $3,549 $3,779 $3,959",
+  "variant": "ezlift_blackout",
+  "variant_label": "EZ Lift Black-Out"
  },
  {
   "material": "steel",
@@ -12119,7 +12235,9 @@
    "paint_2s_1c": 3899.0,
    "paint_2s_2c": 4079.0
   },
-  "raw": "22x48 Soho $3,049 $3,669 $3,899 $4,079"
+  "raw": "22x48 Soho $3,049 $3,669 $3,899 $4,079",
+  "variant": "ezlift_blackout",
+  "variant_label": "EZ Lift Black-Out"
  },
  {
   "material": "steel",
@@ -12138,7 +12256,9 @@
    "paint_2s_1c": 3864.0,
    "paint_2s_2c": 4044.0
   },
-  "raw": "20x64 Flush $3,014 $3,634 $3,864 $4,044"
+  "raw": "20x64 Flush $3,014 $3,634 $3,864 $4,044",
+  "variant": "ezlift_blackout",
+  "variant_label": "EZ Lift Black-Out"
  },
  {
   "material": "steel",
@@ -12157,7 +12277,9 @@
    "paint_2s_1c": 3855.0,
    "paint_2s_2c": 4035.0
   },
-  "raw": "22x64 Flush $3,005 $3,625 $3,855 $4,035"
+  "raw": "22x64 Flush $3,005 $3,625 $3,855 $4,035",
+  "variant": "ezlift_blackout",
+  "variant_label": "EZ Lift Black-Out"
  },
  {
   "material": "steel",

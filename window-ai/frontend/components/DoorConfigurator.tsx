@@ -5,10 +5,15 @@ import ConfiguratorShell, { ConfiguratorPrice } from "@/components/configurator/
 import { ChipGroup, InchInput, OptionCard, SectionTitle, Stepper } from "@/components/configurator/parts";
 import DoorDrawing, { finishHex } from "@/components/DoorDrawing";
 import { useViewMode } from "@/lib/viewMode";
+import { isCustomColour, PALMA_PAINTS, PALMA_STAINS, standardColourName } from "@/lib/palmaColours";
 import {
+  accentsFor,
   availableModels,
   configurationOf,
+  configurationOffered,
+  customColours,
   customSizeProblem,
+  DEFAULT_PULL_BAR,
   defaultSidelite,
   designsFor,
   doorOffers,
@@ -16,25 +21,36 @@ import {
   FINISH_LABELS,
   finishKey,
   firstIncomplete,
+  framedLites,
   frameDepths,
   GlassFamilyMap,
+  handleOf,
   heightInches,
   interiorTypes,
   isCutDown,
   materialOf,
   modelOf,
+  multipointRequired,
   normalizeSelection,
+  patternsFor,
   PIPELINE_STEPS,
   PipelineCatalog,
   PipelineGlassChoice,
   PipelineSelection,
   PipelineSide,
   PipelineSideliteChoice,
+  pullBarLengths,
+  reededAccentAllowed,
+  retractableScreenAllowed,
   selectionSummary,
   sideliteModels,
   sideliteOffers,
+  sideTypes,
   sills,
   stepComplete,
+  tedeeAllowed,
+  verticalAccentAllowed,
+  widthsFor,
 } from "@/lib/doorPipeline";
 
 type Props = {
@@ -53,6 +69,19 @@ const MATERIAL_TEXT = {
   fiberglass: { title: "Fiberglass", body: "Painted or stained woodgrain skins. Textured composite frame.", accent: "from-amber-200 to-amber-500" },
 } as const;
 
+const BRICKMOULDS = [
+  { key: "regular", label: 'Standard 2"' },
+  { key: "flat", label: 'Flat 1-1/2"' },
+  { key: "none", label: "None" },
+  { key: "custom_pvc", label: 'Custom PVC, up to 6"' },
+  { key: "custom_textured", label: 'Custom textured, up to 4-1/2"' },
+];
+const HINGES = [
+  { key: "black", label: "Matte black heavy-duty (default)" },
+  { key: "satin_nickel", label: "Satin nickel heavy-duty" },
+  { key: "standard", label: "Standard" },
+];
+
 function Note({ tone = "slate", children }: { tone?: "slate" | "amber" | "brand" | "emerald"; children: ReactNode }) {
   const tones = {
     slate: "border-slate-200 bg-slate-50 text-slate-600",
@@ -61,6 +90,15 @@ function Note({ tone = "slate", children }: { tone?: "slate" | "amber" | "brand"
     emerald: "border-emerald-200 bg-emerald-50 text-emerald-900",
   };
   return <div className={`rounded-xl border px-3 py-2 text-xs ${tones[tone]}`}>{children}</div>;
+}
+
+function Check({ checked, onChange, children, hint }: { checked: boolean; onChange: (checked: boolean) => void; children: ReactNode; hint?: ReactNode }) {
+  return (
+    <div>
+      <label className="flex items-center gap-2 text-sm font-semibold text-slate-900"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />{children}</label>
+      {hint ? <p className="ml-6 text-[11px] text-slate-500">{hint}</p> : null}
+    </div>
+  );
 }
 
 /** Tiny schematic of a door configuration for the configuration cards. */
@@ -87,27 +125,38 @@ function LayoutGlyph({ doors, sidelites, transom }: { doors: number; sidelites: 
   );
 }
 
-function ColourPicker({ presets, value, onChange, type }: { presets: string[]; value?: string; onChange: (colour: string) => void; type: string }) {
+/** Palma's standard colours as swatches, plus a free-text custom colour (priced as a colour match). */
+function ColourPicker({ value, onChange, type }: { value?: string; onChange: (colour: string) => void; type: string }) {
   const [custom, setCustom] = useState("");
+  const [filter, setFilter] = useState("");
   const current = (value || "").trim();
+  const standard = standardColourName(type, current);
+  const swatches = type === "stained" ? PALMA_STAINS.map((stain) => ({ name: stain.name, code: "" })) : PALMA_PAINTS.map((paint) => ({ name: paint.name, code: paint.code }));
+  const shown = swatches.filter((swatch) => `${swatch.code} ${swatch.name}`.toLowerCase().includes(filter.trim().toLowerCase()));
   return (
     <div className="mt-2">
-      <div className="flex flex-wrap gap-2">
-        {presets.map((name) => {
-          const active = current.toLowerCase() === name.toLowerCase();
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[11px] text-slate-500">Palma standard {type === "stained" ? "stains" : "paint colours"} ({swatches.length})</p>
+        {swatches.length > 20 ? <input className="w-40 rounded-lg border border-slate-300 px-2 py-1 text-xs" placeholder="Find colour or code…" value={filter} onChange={(event) => setFilter(event.target.value)} /> : null}
+      </div>
+      <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto pr-1">
+        {shown.map((swatch) => {
+          const active = standard === swatch.name;
           return (
-            <button key={name} type="button" onClick={() => onChange(name)} aria-pressed={active} className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold transition ${active ? "border-brand-500 bg-brand-50 text-brand-800 ring-2 ring-brand-100" : "border-slate-200 bg-white text-slate-600 hover:border-brand-300"}`}>
-              <span className="h-4 w-4 rounded-full border border-slate-300" style={{ background: finishHex(type, name) }} />
-              {name}
+            <button key={swatch.name} type="button" onClick={() => onChange(swatch.name)} aria-pressed={active} title={swatch.code || undefined} className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold transition ${active ? "border-brand-500 bg-brand-50 text-brand-800 ring-2 ring-brand-100" : "border-slate-200 bg-white text-slate-600 hover:border-brand-300"}`}>
+              <span className="h-4 w-4 rounded-full border border-slate-300" style={{ background: finishHex(type, swatch.name) }} />
+              {swatch.name}{swatch.code ? <span className="font-normal text-slate-400">{swatch.code.replace("G-", "")}</span> : null}
             </button>
           );
         })}
       </div>
       <div className="mt-2 flex gap-2">
-        <input className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs" placeholder="Other colour (e.g. Benjamin Moore HC-154)" value={custom} onChange={(event) => setCustom(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && custom.trim()) onChange(custom.trim()); }} />
+        <input className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs" placeholder="Custom colour (e.g. Benjamin Moore HC-154)" value={custom} onChange={(event) => setCustom(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && custom.trim()) onChange(custom.trim()); }} />
         <button type="button" className="rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40" disabled={!custom.trim()} onClick={() => onChange(custom.trim())}>Use</button>
       </div>
-      {current && !presets.some((name) => name.toLowerCase() === current.toLowerCase()) ? <p className="mt-1 text-[11px] text-slate-500">Colour: <b>{current}</b></p> : null}
+      {current && isCustomColour(type, current) ? (
+        <p className="mt-1 text-[11px] text-amber-800">Custom colour <b>{current}</b>: not on Palma&apos;s list, so Palma&apos;s custom colour match upcharge applies and a physical colour chip is needed (about 2 weeks extra).</p>
+      ) : null}
     </div>
   );
 }
@@ -118,6 +167,7 @@ function GlassPicker({ catalog, sel, choice, offer, solidAllowed, onChange, labe
   const family = familyInfo(catalog, choice.family);
   const series = choice.size && choice.family ? families[choice.family] || [] : [];
   const designs = family?.flat_max ? designsFor(catalog, sel, series) : [];
+  const patterns = patternsFor(catalog, { ...choice, series: choice.series || series[0] });
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2">
@@ -155,9 +205,25 @@ function GlassPicker({ catalog, sel, choice, offer, solidAllowed, onChange, labe
           ) : null}
           {family && !family.flat_max && series.length > 1 ? (
             <div>
-              <SectionTitle>{family.label} option</SectionTitle>
-              <ChipGroup options={series.map((key) => ({ id: key, label: family.series.find((item) => item.key === key)?.label || key }))} value={choice.series || series[0]} onChange={(key) => onChange({ ...choice, series: key })} />
+              <SectionTitle>{family.key === "vented" ? "Vented unit" : `${family.label} option`}</SectionTitle>
+              <ChipGroup options={series.map((key) => ({ id: key, label: family.series.find((item) => item.key === key)?.label || key }))} value={choice.series || series[0]} onChange={(key) => onChange({ ...choice, series: key, design: undefined })} />
             </div>
+          ) : null}
+          {family?.per_square ? (
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">SDL squares per lite</span>
+              <input className="w-24 rounded-lg border border-slate-300 px-3 py-1.5 text-sm tabular-nums" type="number" min={1} step={1} value={choice.squares ?? ""} onChange={(event) => { const squares = Math.round(Number(event.target.value)); onChange({ ...choice, squares: event.target.value === "" || !Number.isFinite(squares) || squares < 1 ? undefined : squares }); }} />
+              <span className="mt-1 block text-[11px] text-slate-500">Palma charges per SDL square on top of the glass price — count the squares on the lite.</span>
+            </label>
+          ) : null}
+          {patterns.length ? (
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Pattern (optional, same price)</span>
+              <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={choice.design || ""} onChange={(event) => onChange({ ...choice, design: event.target.value || undefined })}>
+                <option value="">To be selected by the customer</option>
+                {patterns.map((pattern) => <option key={pattern} value={pattern}>{pattern}</option>)}
+              </select>
+            </label>
           ) : null}
           {family?.flat_max ? (
             <div>
@@ -173,6 +239,8 @@ function GlassPicker({ catalog, sel, choice, offer, solidAllowed, onChange, labe
               ) : null}
             </div>
           ) : null}
+          {family?.key === "specialty" && (choice.series || series[0]) === "special_order" ? <Note tone="amber">Palma orders special-order doorlites and sidelites together and prices both as special order — choose special-order for decorative sidelites too.</Note> : null}
+          {family?.key === "executive" ? <Note tone="amber">Executive panel layouts are priced as printed (ST p37); confirm the layout letters and glass with Palma.</Note> : null}
         </>
       ) : null}
     </div>
@@ -193,6 +261,8 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
   const model = modelOf(catalog, value);
   const offers = doorOffers(model, value);
   const finish = finishKey(value);
+  const mustMultipoint = multipointRequired(catalog, value);
+  const extrasInfo = material?.extras;
 
   /** Apply a change, then re-validate every downstream step. */
   function update(mutate: (draft: PipelineSelection) => void) {
@@ -237,12 +307,18 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
       slabColour={value.colours.exterior?.type ? slabColour : "#e2e8f0"}
       frameColour={frameColour}
       lock={value.standard.lock}
+      pullBarIn={value.standard.lock === "pull_bar" ? value.standard.pull_bar?.length_in ?? 36 : undefined}
       size={330}
     />
   );
 
   const summary = selectionSummary(catalog, value);
   const firstOpen = completed.findIndex((done) => !done);
+  const customs = customColours(value);
+  const handle = handleOf(catalog, value);
+  const pullBar = { ...DEFAULT_PULL_BAR, ...value.standard.pull_bar };
+  const accents = accentsFor(catalog, value);
+  const lites = framedLites(catalog, value);
 
   return (
     <ConfiguratorShell
@@ -275,6 +351,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
               </Note>
             ) : null}
             {isCutDown(catalog, value) ? <Note tone="brand">Custom cut-down upcharge will be added (per door and sidelite panel cut).</Note> : null}
+            {customs.length ? <Note tone="amber">Custom colour match for {customs.join(", ")} — Palma needs a colour chip.</Note> : null}
           </div>
         ),
       }}
@@ -306,19 +383,22 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
         <div className="space-y-5">
           <div>
             <SectionTitle>Slab height</SectionTitle>
-            <div className="grid grid-cols-2 gap-2">
-              {catalog.heights.map((height) => (
-                <OptionCard key={height.key} active={value.height === height.key} onClick={() => update((draft) => { draft.height = height.key; })} className="p-3">
-                  <p className="text-lg font-semibold tabular-nums text-slate-900">{height.key}</p>
-                  <p className="text-[11px] text-slate-500">{height.inches}" slab{height.inches > 80 ? " · limited models" : " · standard"}</p>
-                </OptionCard>
-              ))}
+            <div className="grid grid-cols-3 gap-2">
+              {catalog.heights.map((height) => {
+                const count = value.width ? availableModels(catalog, { ...value, height: height.key }).length : null;
+                return (
+                  <OptionCard key={height.key} active={value.height === height.key} onClick={() => update((draft) => { draft.height = height.key; })} className="p-3" disabled={count === 0}>
+                    <p className="text-lg font-semibold tabular-nums text-slate-900">{height.key}</p>
+                    <p className="text-[11px] text-slate-500">{height.inches}" slab · {count == null ? (height.inches > 80 ? "limited models" : "standard") : `${count} model${count === 1 ? "" : "s"}`}</p>
+                  </OptionCard>
+                );
+              })}
             </div>
           </div>
           <div>
             <SectionTitle note="model count for the chosen height">Slab width</SectionTitle>
             <div className="grid grid-cols-5 gap-2">
-              {catalog.widths.map((width) => {
+              {widthsFor(catalog, value).map((width) => {
                 const count = value.height ? availableModels(catalog, { ...value, width }).length : null;
                 return (
                   <OptionCard key={width} active={value.width === width} onClick={() => update((draft) => { draft.width = width; })} className="p-3 text-center" disabled={count === 0}>
@@ -328,6 +408,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
                 );
               })}
             </div>
+            {value.material === "steel" ? <p className="mt-2 text-[11px] text-slate-500">24"–28" and 38"–42" steel slabs are flush only, with Palma&apos;s non-standard panel upcharge.</p> : null}
           </div>
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
@@ -353,20 +434,21 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
             <SectionTitle>Door configuration</SectionTitle>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {catalog.configurations.map((item) => (
-                <OptionCard key={item.key} active={value.configuration === item.key} onClick={() => update((draft) => { draft.configuration = item.key; })} className="flex flex-col items-center gap-2 p-3">
+                <OptionCard key={item.key} active={value.configuration === item.key} onClick={() => update((draft) => { draft.configuration = item.key; })} className="flex flex-col items-center gap-2 p-3" disabled={!configurationOffered(catalog, value, item)}>
                   <LayoutGlyph doors={item.doors} sidelites={item.sidelites} transom={item.transom} />
                   <p className="text-center text-xs font-semibold text-slate-800">{item.label}</p>
                 </OptionCard>
               ))}
             </div>
+            {catalog.configurations.some((item) => !configurationOffered(catalog, value, item)) ? <p className="mt-2 text-[11px] text-slate-500">No {material?.label.toLowerCase()} sidelites are made at {value.height}.</p> : null}
           </div>
           <div>
-            <SectionTitle note={value.frame_type === "textured" ? "5-5/8\" jambs are smooth only" : undefined}>Frame depth</SectionTitle>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <SectionTitle note={value.frame_type === "textured" ? "5-1/4\" and 5-5/8\" jambs are smooth only" : undefined}>Frame depth</SectionTitle>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {frameDepths(catalog, value).map((depth) => (
                 <OptionCard key={depth.key} active={value.frame_depth === depth.key} onClick={() => update((draft) => { draft.frame_depth = depth.key; })} className="p-3">
                   <p className="text-lg font-semibold tabular-nums text-slate-900">{depth.label}</p>
-                  <p className="text-[11px] text-slate-500">{depth.standard ? "Standard jamb" : "Jamb upcharge"}</p>
+                  <p className="text-[11px] text-slate-500">{depth.standard ? "Standard jamb" : "Jamb upcharge"}{depth.key === "7.25" ? " · for retractable screens / outswing" : ""}</p>
                 </OptionCard>
               ))}
             </div>
@@ -388,9 +470,9 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
               const sizes = itemOffers.glazed ? Object.keys(itemOffers.glazed.glass).length : 0;
               return (
                 <OptionCard key={item.key} active={value.model === item.key} onClick={() => update((draft) => { draft.model = item.key; })} className="flex flex-col items-center p-2.5">
-                  <DoorDrawing doors={1} sidelites={0} transom={false} width={value.width || 36} heightIn={heightInches(catalog, value.height)} model={item.label} doorGlass={!itemOffers.solid && itemOffers.glazed ? { size: Object.keys(itemOffers.glazed.glass)[0], family: "clear" } : null} slabColour={value.material === "fiberglass" ? "#c8a165" : "#f1f5f9"} frameColour="#f8fafc" size={90} showDimensions={false} />
+                  <DoorDrawing doors={1} sidelites={0} transom={false} width={value.width || 36} heightIn={heightInches(catalog, value.height)} model={item.label} doorGlass={!itemOffers.solid && itemOffers.glazed ? { size: Object.keys(itemOffers.glazed.glass)[0], family: "clear" } : null} slabColour={value.material === "fiberglass" && !item.smooth ? "#c8a165" : "#f1f5f9"} frameColour="#f8fafc" size={90} showDimensions={false} />
                   <p className="mt-1 text-center text-xs font-semibold text-slate-900">{item.label}</p>
-                  <p className="text-center text-[10px] text-slate-500">{[itemOffers.solid ? "Solid" : null, sizes ? `${sizes} glass size${sizes === 1 ? "" : "s"}` : null].filter(Boolean).join(" · ")}</p>
+                  <p className="text-center text-[10px] text-slate-500">{[itemOffers.solid ? "Solid" : null, sizes ? `${sizes} glass size${sizes === 1 ? "" : "s"}` : null, item.smooth ? "smooth skin" : null].filter(Boolean).join(" · ")}</p>
                 </OptionCard>
               );
             })}
@@ -402,16 +484,17 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
       {step === "colours" && material ? (
         <div className="space-y-5">
           {(["exterior", "interior"] as const).map((side) => {
-            const types = side === "exterior" ? material.side_types : interiorTypes(catalog, value, value.colours.exterior?.type);
+            const types = side === "exterior" ? sideTypes(catalog, value) : interiorTypes(catalog, value, value.colours.exterior?.type);
             const current = value.colours[side];
             return (
               <div key={side} className="rounded-2xl border border-slate-200 bg-white p-4">
                 <SectionTitle>{side === "exterior" ? "Exterior finish" : "Interior finish"}</SectionTitle>
                 <ChipGroup options={types.map((type) => ({ id: type.key, label: type.label }))} value={current?.type || ""} onChange={(type) => setSide(side, { type })} />
                 {current?.type && current.type !== "white" ? (
-                  <ColourPicker type={current.type} presets={current.type === "stained" ? catalog.stain_presets : catalog.paint_presets} value={current.colour} onChange={(colour) => setSide(side, { colour })} />
+                  <ColourPicker type={current.type} value={current.colour} onChange={(colour) => setSide(side, { colour })} />
                 ) : null}
                 {side === "interior" && material.key === "fiberglass" && value.colours.exterior?.type === "painted" ? <p className="mt-2 text-[11px] text-slate-500">A painted exterior is painted inside too — Palma offers stained outside / painted inside, not the reverse.</p> : null}
+                {side === "exterior" && model?.smooth ? <p className="mt-2 text-[11px] text-slate-500">{model.label} is a smooth skin: Palma&apos;s stains are for woodgrain fiberglass, so it is paint only.</p> : null}
               </div>
             );
           })}
@@ -428,7 +511,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
                     <div key={side}>
                       <p className="mb-1 text-[11px] font-semibold uppercase text-slate-500">Frame {side}</p>
                       <ChipGroup options={types.map((type) => ({ id: type.key, label: type.label }))} value={current?.type || ""} onChange={(type) => update((draft) => { draft.colours.frame[side] = { type }; })} />
-                      {current?.type && current.type !== "white" ? <ColourPicker type={current.type} presets={current.type === "stained" ? catalog.stain_presets : catalog.paint_presets} value={current.colour} onChange={(colour) => update((draft) => { draft.colours.frame[side] = { ...draft.colours.frame[side], colour }; })} /> : null}
+                      {current?.type && current.type !== "white" ? <ColourPicker type={current.type} value={current.colour} onChange={(colour) => update((draft) => { draft.colours.frame[side] = { ...draft.colours.frame[side], colour }; })} /> : null}
                     </div>
                   );
                 })}
@@ -445,6 +528,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="mb-3 text-sm font-semibold text-slate-900">{layout?.doors === 2 ? "Door slabs (both leaves)" : "Door slab"} — {model.label}</p>
             <GlassPicker catalog={catalog} sel={value} choice={value.glass.door} offer={offers.glazed} solidAllowed={offers.solid} label="Door" onChange={(next) => update((draft) => { draft.glass.door = next; })} />
+            {value.height && value.height !== "6'8\"" && value.glass.door.glazed ? <p className="mt-3 text-[11px] text-slate-500">{value.height} glazed doors are priced as the 6&apos;8&quot; glass row plus Palma&apos;s {value.height} system charge.</p> : null}
           </div>
           {value.glass.sidelites.map((part, index) => {
             const choices = sideliteModels(catalog, value);
@@ -458,7 +542,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-slate-900">{value.glass.sidelites.length > 1 ? `Sidelite ${index + 1}` : "Sidelite"}</p>
                   <div className="flex gap-2">
-                    {matchSize ? <button type="button" className="rounded-lg border border-brand-200 px-2.5 py-1 text-[11px] font-semibold text-brand-700 hover:bg-brand-50" onClick={() => setPart({ model: part.model, glazed: true, size: matchSize, family: doorFamily, series: sideOffers.glazed!.glass[matchSize][doorFamily!][0] })}>Match door glass</button> : null}
+                    {matchSize ? <button type="button" className="rounded-lg border border-brand-200 px-2.5 py-1 text-[11px] font-semibold text-brand-700 hover:bg-brand-50" onClick={() => setPart({ model: part.model, glazed: true, size: matchSize, family: doorFamily, series: sideOffers.glazed!.glass[matchSize][doorFamily!][0], squares: value.glass.door.squares })}>Match door glass</button> : null}
                     {index > 0 ? <button type="button" className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50" onClick={() => setPart(JSON.parse(JSON.stringify(value.glass.sidelites[0])))}>Same as sidelite 1</button> : null}
                   </div>
                 </div>
@@ -486,6 +570,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
                   </OptionCard>
                 ))}
               </div>
+              {value.glass.transom.glass && /grills|sdls/.test(value.glass.transom.glass) ? <p className="mt-2 text-[11px] text-amber-800">Palma adds an unprinted per-box charge for transom grilles/SDLs — get it from Palma.</p> : null}
               <div className="mt-4 grid items-end gap-3 sm:grid-cols-3">
                 <ChipGroup label="Shape" options={[{ id: "rectangle", label: "Rectangular" }, { id: "shapes", label: "Shaped" }]} value={value.glass.transom.shape} onChange={(shape) => update((draft) => { draft.glass.transom = { ...draft.glass.transom!, shape }; })} />
                 <InchInput label="Glass height" value={value.glass.transom.height_in ?? catalog.default_transom_height} onChange={(height) => update((draft) => { draft.glass.transom = { ...draft.glass.transom!, height_in: height === "" ? undefined : Number(height) }; })} />
@@ -501,35 +586,52 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
         <div className="space-y-5">
           <div className={`rounded-2xl border p-4 ${value.standard.lock ? "border-slate-200 bg-white" : "border-amber-300 bg-amber-50/60"}`}>
             <SectionTitle note="required">Lock prep</SectionTitle>
-            <div className="grid grid-cols-2 gap-2">
-              <OptionCard active={value.standard.lock === "double_bore"} onClick={() => update((draft) => { draft.standard.lock = "double_bore"; })} className="p-3">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <OptionCard active={value.standard.lock === "double_bore"} onClick={() => update((draft) => { draft.standard.lock = "double_bore"; })} className="p-3" disabled={mustMultipoint && value.standard.lock !== "double_bore"}>
                 <p className="text-sm font-semibold text-slate-900">Double-bore prep</p>
-                <p className="text-[11px] text-slate-500">Deadbolt + handleset holes; hardware by others</p>
+                <p className="text-[11px] text-slate-500">{mustMultipoint ? "Not for this door — see below" : "Deadbolt + handleset holes; hardware by others"}</p>
               </OptionCard>
               <OptionCard active={value.standard.lock === "multipoint"} onClick={() => update((draft) => { draft.standard.lock = "multipoint"; })} className="p-3">
                 <p className="text-sm font-semibold text-slate-900">Multipoint lock</p>
                 <p className="text-[11px] text-slate-500">FERCO multipoint with handle set{layout?.doors === 2 ? "; dummy on the inactive leaf" : ""}</p>
               </OptionCard>
+              <OptionCard active={value.standard.lock === "pull_bar"} onClick={() => update((draft) => { draft.standard.lock = "pull_bar"; draft.standard.pull_bar = { ...DEFAULT_PULL_BAR, block: "with_multipoint_lock_and_t_bar_handle", ...draft.standard.pull_bar }; })} className="p-3">
+                <p className="text-sm font-semibold text-slate-900">Pull bar</p>
+                <p className="text-[11px] text-slate-500">Replaces the handle set, with its lock hardware{layout?.doors === 2 ? "; dummy bar on the inactive leaf" : ""}</p>
+              </OptionCard>
             </div>
+            {mustMultipoint ? <p className="mt-2 text-[11px] text-amber-800">Palma: &quot;Multipoint locks are necessary for all fiberglass doors and all 8&apos; doors&quot;.{value.standard.lock === "double_bore" ? " This saved door has double-bore prep — confirm with Palma or switch to multipoint." : ""}</p> : null}
             {value.standard.lock === "multipoint" ? (
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {material.handles.map((handle) => (
-                  <OptionCard key={handle.item} active={value.standard.handle === handle.item} onClick={() => update((draft) => { draft.standard.handle = handle.item; })} className="p-2.5">
-                    <p className="pr-6 text-xs font-semibold text-slate-900">{handle.label}</p>
+                {material.handles.map((item) => (
+                  <OptionCard key={item.item} active={value.standard.handle === item.item} onClick={() => update((draft) => { draft.standard.handle = item.item; })} className="p-2.5">
+                    <p className="pr-6 text-xs font-semibold text-slate-900">{item.label}</p>
+                    {item.tedee ? <p className="text-[10px] text-slate-500">{item.tedee === "yes" ? "Tedee compatible" : item.tedee === "miami_only" ? "Tedee: Miami handle only" : "Not Tedee compatible"}</p> : null}
                   </OptionCard>
                 ))}
+              </div>
+            ) : null}
+            {value.standard.lock === "pull_bar" && material.pull_bars ? (
+              <div className="mt-3 space-y-2">
+                {material.pull_bars.styles.length > 1 ? <ChipGroup label="Style" options={material.pull_bars.styles.map((item) => ({ id: item.key, label: item.label }))} value={pullBar.style} onChange={(style) => update((draft) => { draft.standard.pull_bar = { ...pullBar, style }; })} /> : null}
+                <ChipGroup label="Lock hardware" options={material.pull_bars.blocks.map((item) => ({ id: item.key, label: item.label.replace(/^with /, "") }))} value={pullBar.block || ""} onChange={(block) => update((draft) => { draft.standard.pull_bar = { ...pullBar, block }; })} />
+                <ChipGroup label="Length" options={pullBarLengths(catalog, value).map((length) => ({ id: length, label: `${length}"` }))} value={pullBar.length_in} onChange={(length_in) => update((draft) => { draft.standard.pull_bar = { ...pullBar, length_in }; })} />
+                <ChipGroup label="Finish" options={material.pull_bars.finishes.map((item) => ({ id: item.key, label: item.label }))} value={pullBar.finish} onChange={(finish) => update((draft) => { draft.standard.pull_bar = { ...pullBar, finish }; })} />
+                <ChipGroup label="Shape" options={material.pull_bars.shapes.map((item) => ({ id: item.key, label: item.label }))} value={pullBar.shape} onChange={(shape) => update((draft) => { draft.standard.pull_bar = { ...pullBar, shape }; })} />
+                {material.key === "fiberglass" && pullBar.style === "offset" ? <p className="text-[11px] text-slate-500">Offset bars now fit fiberglass doors with doorlites (Palma, June 2025).</p> : null}
               </div>
             ) : null}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <SectionTitle note="included by default">Brickmould</SectionTitle>
-              <ChipGroup options={[{ id: "regular", label: 'Standard 2"' }, { id: "flat", label: 'Flat 1-1/2"' }, { id: "none", label: "None" }]} value={value.standard.brickmould} onChange={(brickmould) => update((draft) => { draft.standard.brickmould = brickmould; })} />
-              <p className="mt-2 text-[11px] text-slate-500">Finish follows the door; 101" lengths with a transom or 8' door.</p>
+              <ChipGroup options={BRICKMOULDS.map((item) => ({ id: item.key as PipelineSelection["standard"]["brickmould"], label: item.label }))} value={value.standard.brickmould} onChange={(brickmould) => update((draft) => { draft.standard.brickmould = brickmould; })} />
+              <p className="mt-2 text-[11px] text-slate-500">Finish follows the door; 101" lengths with a transom or a 7&apos;/8&apos; door. Custom brickmould is 3 pieces.</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <SectionTitle>Hinges</SectionTitle>
-              <ChipGroup options={[{ id: "black", label: "Black heavy-duty (default)" }, { id: "standard", label: "Standard" }]} value={value.standard.hinges} onChange={(hinges) => update((draft) => { draft.standard.hinges = hinges; })} />
+              <ChipGroup options={HINGES.map((item) => ({ id: item.key as PipelineSelection["standard"]["hinges"], label: item.label }))} value={value.standard.hinges} onChange={(hinges) => update((draft) => { draft.standard.hinges = hinges; })} />
+              {value.extras.fire_rated && material.extras?.fire_rating ? <p className="mt-2 text-[11px] text-slate-500">The fire rating includes self-closing hinges.</p> : null}
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -549,49 +651,100 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
       {/* ------------------------------------------------ 8. Extras */}
       {step === "extras" && material ? (
         <div className="space-y-4">
-          {value.standard.lock === "multipoint" ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-900"><input type="checkbox" checked={value.extras.tedee} onChange={(event) => update((draft) => { draft.extras.tedee = event.target.checked; if (!event.target.checked) Object.assign(draft.extras, { tedee_keypad: false, tedee_bridge: false, tedee_sensor: false }); })} />Tedee smart lock integration</label>
-              <p className="ml-6 text-[11px] text-slate-500">Tedee-PRO on the FERCO multipoint</p>
-              {value.extras.tedee ? (
-                <div className="ml-6 mt-2 flex flex-wrap gap-4 text-xs text-slate-700">
-                  {([["tedee_keypad", "Biometric keypad"], ["tedee_bridge", "WiFi bridge"], ["tedee_sensor", "Door sensor"]] as const).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2"><input type="checkbox" checked={value.extras[key]} onChange={(event) => update((draft) => { draft.extras[key] = event.target.checked; })} />{label}</label>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : <Note>Tedee smart lock integration is offered with the multipoint lock (step 7).</Note>}
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <SectionTitle note={value.height === "8'0\"" ? "8' screen" : undefined}>Retractable sliding screen</SectionTitle>
-            <div className="flex flex-wrap items-center gap-4">
-              <ChipGroup options={[{ id: "none", label: "None" }, { id: "white", label: "White" }, { id: "painted", label: "Painted" }]} value={value.extras.screen} onChange={(screen) => update((draft) => { draft.extras.screen = screen; })} />
-              {value.extras.screen !== "none" ? <Stepper label="Screens" value={value.extras.screen_qty} onChange={(screen_qty) => update((draft) => { draft.extras.screen_qty = screen_qty; })} min={1} max={4} /> : null}
+            <SectionTitle>Locks and smart lock</SectionTitle>
+            {tedeeAllowed(catalog, value) ? (
+              <>
+                <Check checked={value.extras.tedee} onChange={(checked) => update((draft) => { draft.extras.tedee = checked; if (!checked) Object.assign(draft.extras, { tedee_keypad: false, tedee_bridge: false, tedee_sensor: false, tedee_knob: false }); })} hint={handle?.tedee === "miami_only" ? "Works only with the Miami handle from this handle row" : "Tedee-PRO on the FERCO multipoint or pull bar"}>Tedee smart lock integration</Check>
+                {value.extras.tedee ? (
+                  <div className="ml-6 mt-2 flex flex-wrap gap-4 text-xs text-slate-700">
+                    {([["tedee_keypad", "Biometric keypad"], ["tedee_bridge", "WiFi bridge"], ["tedee_sensor", "Door sensor"], ["tedee_knob", "Temporary knob"]] as const).map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-2"><input type="checkbox" checked={value.extras[key]} onChange={(event) => update((draft) => { draft.extras[key] = event.target.checked; })} />{label}</label>
+                    ))}
+                  </div>
+                ) : null}
+              </>
+            ) : <Note>Tedee works with FERCO handles, Miami handles and multipoint pull bars (step 7).</Note>}
+            <div className="mt-3 flex flex-wrap gap-6">
+              <Check checked={value.extras.key_alike} onChange={(checked) => update((draft) => { draft.extras.key_alike = checked; })} hint="Same brand only">Key alike</Check>
+              {layout?.doors === 2 ? <Check checked={value.extras.astragal_lock} onChange={(checked) => update((draft) => { draft.extras.astragal_lock = checked; })} hint="FERCO mortise lock for the inactive leaf">Astragal mortise lock</Check> : null}
             </div>
           </div>
-          {layout?.doors === 2 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <SectionTitle note={value.height === "8'0\"" ? "8' retractable screen" : undefined}>Screen</SectionTitle>
+            <div className="flex flex-wrap items-center gap-4">
+              <ChipGroup options={(extrasInfo?.screens || [{ key: "none", label: "None" }, { key: "white", label: "Retractable, white" }, { key: "painted", label: "Retractable, painted" }]).map((item) => ({ id: item.key as PipelineSelection["extras"]["screen"], label: item.label, disabled: (item.key === "white" || item.key === "painted") && !retractableScreenAllowed(catalog, value) }))} value={value.extras.screen} onChange={(screen) => update((draft) => { draft.extras.screen = screen; })} />
+              {value.extras.screen !== "none" ? <Stepper label="Screens" value={value.extras.screen_qty} onChange={(screen_qty) => update((draft) => { draft.extras.screen_qty = screen_qty; })} min={1} max={4} /> : null}
+            </div>
+            <p className="mt-2 text-[11px] text-slate-500">{retractableScreenAllowed(catalog, value) ? "Retractable screens: in-swing doors with regular 2\" brickmould; a double door takes two." : "Retractable screens need a 6-5/8\" or 7-1/4\" jamb (step 3)."}</p>
+          </div>
+          {material.key === "steel" && (accents.length || verticalAccentAllowed(catalog, value) || reededAccentAllowed(catalog, value)) ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-900"><input type="checkbox" checked={value.extras.astragal_lock} onChange={(event) => update((draft) => { draft.extras.astragal_lock = event.target.checked; })} />Astragal mortise lock</label>
-              <p className="ml-6 text-[11px] text-slate-500">FERCO mortise astragal lock for the inactive leaf</p>
+              <SectionTitle note="Novatech steel, priced per side">Decorative accents</SectionTitle>
+              {accents.length ? (
+                <div className="space-y-2">
+                  <ChipGroup label="Accent" options={[{ id: "", label: "None" }, ...accents.map((item) => ({ id: item.key, label: item.label }))]} value={value.extras.accent?.design || ""} onChange={(design) => update((draft) => { draft.extras.accent = design ? { design, finish: accents.find((item) => item.key === design)!.finishes[0].key, sides: draft.extras.accent?.sides || "exterior" } : undefined; })} />
+                  {value.extras.accent?.design ? (
+                    <>
+                      <ChipGroup label="Finish" options={(accents.find((item) => item.key === value.extras.accent!.design)?.finishes || []).map((item) => ({ id: item.key, label: item.label }))} value={value.extras.accent.finish || "ss"} onChange={(finish) => update((draft) => { draft.extras.accent = { ...draft.extras.accent, finish }; })} />
+                      <ChipGroup label="Sides" options={[{ id: "exterior", label: "Exterior" }, { id: "both", label: "Both sides" }]} value={value.extras.accent.sides || "exterior"} onChange={(sides) => update((draft) => { draft.extras.accent = { ...draft.extras.accent, sides }; })} />
+                      {(() => {
+                        const accent = accents.find((item) => item.key === value.extras.accent!.design);
+                        return accent && value.width && !accent.widths.includes(value.width) ? <p className="text-[11px] text-amber-800">Palma lists this accent for {accent.widths.join(", ")}" slabs — confirm {value.width}".</p> : null;
+                      })()}
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+              {verticalAccentAllowed(catalog, value) ? (
+                <div className="mt-3"><ChipGroup label="Vertical accent (7x64, exterior)" options={[{ id: "", label: "None" }, ...(extrasInfo?.vertical_accent?.finishes || []).map((item) => ({ id: item.key, label: item.label }))]} value={value.extras.vertical_accent || ""} onChange={(finish) => update((draft) => { draft.extras.vertical_accent = finish || undefined; })} /></div>
+              ) : null}
+              {reededAccentAllowed(catalog, value) ? <div className="mt-3"><Check checked={value.extras.reeded_accent} onChange={(checked) => update((draft) => { draft.extras.reeded_accent = checked; })} hint='10" x 76" wood accent for the Uno slab'>Reeded wood vertical accent</Check></div> : null}
+            </div>
+          ) : null}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <SectionTitle>Trim</SectionTitle>
+            <div className="flex flex-wrap gap-6">
+              <Check checked={value.extras.casing} onChange={(checked) => update((draft) => { draft.extras.casing = checked; if (!checked) draft.extras.casing_backband = false; })} hint={`Poplar 3-1/2" colonial, ${finish?.startsWith("stain") ? "stained" : "painted"}`}>Interior casing</Check>
+              {value.extras.casing ? <Check checked={value.extras.casing_backband} onChange={(checked) => update((draft) => { draft.extras.casing_backband = checked; })} hint="+50% of the casing">Backband</Check> : null}
+            </div>
+          </div>
+          {lites || (layout?.sidelites ?? 0) > 0 || (extrasInfo?.triple_glazing && value.glass.door.glazed) ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <SectionTitle>Glass and sidelite options</SectionTitle>
+              <div className="space-y-3">
+                {lites ? <ChipGroup label="Glass frame" options={[{ id: "", label: "Standard" }, ...(extrasInfo?.glass_frames || []).map((item) => ({ id: item.key, label: item.label.replace(" glass frame", "") }))]} value={value.extras.glass_frame || ""} onChange={(frame) => update((draft) => { draft.extras.glass_frame = frame || undefined; })} /> : null}
+                {extrasInfo?.triple_glazing && value.glass.door.glazed ? (
+                  <div>
+                    <ChipGroup label="Triple glazing" options={[{ id: "", label: "None" }, { id: "lowe_1x", label: "LowE 1x" }, { id: "lowe_2x", label: "LowE 2x" }]} value={value.extras.triple_glazing || ""} onChange={(glazing) => update((draft) => { draft.extras.triple_glazing = (glazing || undefined) as PipelineSelection["extras"]["triple_glazing"]; })} />
+                    <p className="mt-1 text-[11px] text-slate-500">Novatech Silkscreen and V-Groove doorlites only.</p>
+                  </div>
+                ) : null}
+                {(layout?.sidelites ?? 0) > 0 ? <Stepper label="Operating (hinged) sidelites" value={value.extras.operating_sidelite} onChange={(operating_sidelite) => update((draft) => { draft.extras.operating_sidelite = operating_sidelite; })} min={0} max={isCutDown(catalog, value) ? 0 : layout!.sidelites} /> : null}
+              </div>
             </div>
           ) : null}
           <div className={`rounded-2xl border p-4 ${isCutDown(catalog, value) ? "border-brand-200 bg-brand-50/60" : "border-slate-200 bg-white"}`}>
             <p className="text-sm font-semibold text-slate-900">Custom cut-down height</p>
             <p className="text-[11px] text-slate-600">{isCutDown(catalog, value) ? "Flagged from step 2 — the cut-down upcharge is on this quote." : "Not needed — standard size. Turn on a custom size in step 2 to flag it."}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-900"><input type="checkbox" checked={value.extras.fire_rated} onChange={(event) => update((draft) => { draft.extras.fire_rated = event.target.checked; if (event.target.checked && draft.extras.fire_rated_list == null && catalog.fire_rated_list) draft.extras.fire_rated_list = catalog.fire_rated_list; })} />Fire-rated panel</label>
-            {value.extras.fire_rated ? (
-              <div className="ml-6 mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-700">
-                <span>List price per slab $</span>
-                <input className="w-28 rounded-lg border border-slate-300 px-2 py-1 text-sm tabular-nums" inputMode="decimal" value={value.extras.fire_rated_list ?? ""} onChange={(event) => update((draft) => { const number = Number(event.target.value); draft.extras.fire_rated_list = event.target.value === "" || !Number.isFinite(number) ? undefined : number; })} />
-                <span className="text-[11px] text-amber-700">Not in the Palma book — confirm with Palma.</span>
-              </div>
-            ) : null}
-          </div>
+          {extrasInfo?.fire_rating || value.extras.fire_rated ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <Check checked={value.extras.fire_rated} onChange={(checked) => update((draft) => { draft.extras.fire_rated = checked; })} hint={extrasInfo?.fire_rating ? "Palma 20-minute rating, includes self-closing hinges" : undefined}>{extrasInfo?.fire_rating ? "20-minute fire rating" : "Fire-rated panel"}</Check>
+              {value.extras.fire_rated && extrasInfo?.fire_rating && value.glass.door.glazed ? <p className="ml-6 mt-1 text-[11px] text-amber-800">Palma prints the rating on the solid-slab page — confirm it is available with glass.</p> : null}
+              {value.extras.fire_rated && !extrasInfo?.fire_rating ? (
+                <div className="ml-6 mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-700">
+                  <span>List price per slab $</span>
+                  <input className="w-28 rounded-lg border border-slate-300 px-2 py-1 text-sm tabular-nums" inputMode="decimal" value={value.extras.fire_rated_list ?? ""} onChange={(event) => update((draft) => { const number = Number(event.target.value); draft.extras.fire_rated_list = event.target.value === "" || !Number.isFinite(number) ? undefined : number; })} />
+                  <span className="text-[11px] text-amber-700">Palma&apos;s fiberglass book has no fire rating — confirm with Palma.</span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-4 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-700">
-            <label className="flex items-center gap-2"><input type="checkbox" checked={value.extras.mail_slot} onChange={(event) => update((draft) => { draft.extras.mail_slot = event.target.checked; })} />Mail slot</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={value.extras.peep_viewer} onChange={(event) => update((draft) => { draft.extras.peep_viewer = event.target.checked; })} />Peep viewer</label>
+            {([["mail_slot", "Mail slot"], ["peep_viewer", "Peep viewer"], ["dentil_shelf", "Dentil shelf"], ["kick_panel", "Kick panel"]] as const).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2"><input type="checkbox" checked={value.extras[key]} onChange={(event) => update((draft) => { draft.extras[key] = event.target.checked; })} />{label}</label>
+            ))}
           </div>
         </div>
       ) : null}

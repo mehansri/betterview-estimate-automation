@@ -536,7 +536,9 @@ export type DoorDrawingGeometry = {
   transom_glass?: string | null;
   slab_colour: string;
   frame_colour: string;
-  lock?: "double_bore" | "multipoint" | null;
+  lock?: "double_bore" | "multipoint" | "pull_bar" | null;
+  /** Pull bar length in inches, drawn on the latch side (and the dummy on a double's inactive leaf). */
+  pull_bar_in?: number | null;
   exterior_colour?: string;
   /** Positioned sections in the CRM drawing format (Betterview-Crm src/domain/drawn-item.ts). */
   sections?: Array<{ x: number; y: number; width: number; height: number; op: string; hinge: string | null; panel?: "solid" | "glass"; lites?: Array<{ x: number; y: number; width: number; height: number }> }>;

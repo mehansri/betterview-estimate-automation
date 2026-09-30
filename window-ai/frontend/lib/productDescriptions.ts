@@ -6,7 +6,7 @@ import type {
   WindowDetails,
 } from "@/lib/api";
 import { PRIMED_MAX_IN, type JambProduct } from "@/lib/productOptions";
-import { selectionSummary } from "@/lib/doorPipeline";
+import { lockSummary, selectionSummary } from "@/lib/doorPipeline";
 import { fmt, LayoutNode, layoutSummary, sectionLabel, SERIES_LABELS, tryResolveLayout } from "@/lib/windowLayout";
 
 /** 5.5 -> "5 1/2", 4.75 -> "4 3/4" (sixteenths); mirrors descriptions.py _fraction. */
@@ -235,7 +235,7 @@ function doorFinish(spec: DoorOpeningSpec, catalog?: DoorCatalog | null) {
 export function describeDoorSpec(spec: DoorOpeningSpec, catalog?: DoorCatalog | null) {
   if (spec.pipeline && catalog?.pipeline) {
     const pipe = spec.pipeline;
-    const lock = pipe.standard.lock === "multipoint" ? `Multipoint lock: ${text(pipe.standard.handle).replace(/^[NEW]s*/, "")}` : pipe.standard.lock === "double_bore" ? "Double-bore prep" : "";
+    const lock = lockSummary(pipe);
     const design = pipe.glass.door.design ? `design: ${pipe.glass.door.design}` : "";
     return join([...selectionSummary(catalog.pipeline, pipe), design, lock]);
   }

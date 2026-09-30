@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import type { DoorDrawingGeometry } from "@/lib/api";
+import { palmaHex } from "@/lib/palmaColours";
 
 /**
  * Elevation drawing of an entrance door opening, viewed from outside: frame,
@@ -10,6 +11,7 @@ import type { DoorDrawingGeometry } from "@/lib/api";
  * where they would on the real slab.
  */
 
+// Swatches for colour names saved before the Palma lists (lib/palmaColours.ts).
 const PAINT_HEX: Record<string, string> = {
   white: "#f8fafc",
   "factory white": "#f8fafc",
@@ -35,6 +37,8 @@ const STAIN_HEX: Record<string, string> = {
 export function finishHex(type?: string, colour?: string): string {
   const key = (colour || "").trim().toLowerCase();
   if (type === "white" || !type) return PAINT_HEX.white;
+  const palma = palmaHex(type, colour);
+  if (palma) return palma;
   if (type === "stained") return STAIN_HEX[key] || STAIN_HEX["medium oak"];
   if (PAINT_HEX[key]) return PAINT_HEX[key];
   if (!key) return "#64748b";
@@ -166,13 +170,15 @@ export type DoorDrawingProps = {
   transomGlass?: string;
   slabColour: string;
   frameColour: string;
-  lock?: "double_bore" | "multipoint";
+  lock?: "double_bore" | "multipoint" | "pull_bar";
+  /** Pull bar length in inches; drawn to scale when the lock is a pull bar. */
+  pullBarIn?: number;
   size?: number;
   showDimensions?: boolean;
   heightLabel?: string;
 };
 
-export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, size = 360, showDimensions = true, heightLabel }: DoorDrawingProps) {
+export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, size = 360, showDimensions = true, heightLabel }: DoorDrawingProps) {
   const frame = 2;
   const mull = 1.5;
   const sideW = 14;
@@ -247,7 +253,10 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
             ))}
             {lites.map((lite, i) => <LiteShape key={i} lite={lite} id={id} family={doorGlass?.family} ox={part.x} oy={doorTop} />)}
             {[0.15, 0.5, 0.85].map((f) => <rect key={f} x={hingeX} y={doorTop + heightIn * f - 2} width={1} height={4} fill="#111827" />)}
-            {doors === 2 && part.index === 1 ? null : lock === "multipoint" ? (
+            {lock === "pull_bar" && pullBarIn ? (
+              // To scale on the latch side, centred near handle height; a double's inactive leaf carries the dummy bar.
+              <PullBar x={handleX} top={doorTop + pullBarTop(pullBarIn, heightIn)} length={Math.min(pullBarIn, heightIn - 8)} />
+            ) : doors === 2 && part.index === 1 ? null : lock === "multipoint" || lock === "pull_bar" ? (
               <g>
                 <rect x={handleX - 0.6} y={doorTop + heightIn * 0.44} width={1.2} height={9} rx={0.5} fill="#111827" />
                 <rect x={hingeLeft ? handleX - 3.6 : handleX - 0.2} y={doorTop + heightIn * 0.44 + 2} width={3.8} height={0.9} rx={0.4} fill="#111827" />
@@ -275,6 +284,24 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
   );
 }
 
+/** Top of a pull bar, inches below the slab top: centred ~42" off the floor, kept 4" inside the slab. */
+export function pullBarTop(length: number, slabHeight: number) {
+  const bar = Math.min(length, slabHeight - 8);
+  let centre = Math.max(42, bar / 2 + 6);
+  if (centre + bar / 2 > slabHeight - 4) centre = slabHeight - 4 - bar / 2;
+  return slabHeight - (centre + bar / 2);
+}
+
+function PullBar({ x, top, length }: { x: number; top: number; length: number }) {
+  return (
+    <g>
+      <rect x={x - 0.7} y={top} width={1.4} height={length} rx={0.7} fill="#111827" stroke="#cbd5e1" strokeWidth={0.3} />
+      <rect x={x - 0.3} y={top + 1.5} width={0.6} height={1.2} fill="#475569" />
+      <rect x={x - 0.3} y={top + length - 2.7} width={0.6} height={1.2} fill="#475569" />
+    </g>
+  );
+}
+
 /** Draw a door from the geometry the server attaches to estimate openings. */
 export function DoorGeometryDrawing({ geometry, size = 110, title }: { geometry: DoorDrawingGeometry; size?: number; title?: string }) {
   return (
@@ -293,6 +320,7 @@ export function DoorGeometryDrawing({ geometry, size = 110, title }: { geometry:
         slabColour={geometry.slab_colour}
         frameColour={geometry.frame_colour}
         lock={geometry.lock || undefined}
+        pullBarIn={geometry.pull_bar_in ?? undefined}
         size={size}
         showDimensions={false}
       />

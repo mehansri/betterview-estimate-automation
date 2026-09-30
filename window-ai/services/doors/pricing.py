@@ -8,7 +8,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
-from . import catalog
+from . import book_warnings, catalog
 from services.windowcity.sales import apply_sales_pricing
 
 
@@ -111,6 +111,11 @@ class DoorQuote:
             }
         )
 
+    def check_book(self, warning: str | None) -> None:
+        """Note a price Palma appears to have misprinted; it is still quoted as printed."""
+        if warning and warning not in self.notes:
+            self.notes.append(warning)
+
     def _series_for(self, part: dict[str, Any]) -> tuple[str, str | None]:
         if part.get("series"):
             return part["series"], None
@@ -128,6 +133,7 @@ class DoorQuote:
             panel=part.get("panel"),
             height=height,
         )
+        self.check_book(book_warnings.slab_warning(self.material, record))
         price = record["prices"][self.finish]
         label = " ".join(value for value in (record.get("glass_size"), record.get("panel")) if value)
         description = f"{record['series_label']} — {label}"
@@ -160,6 +166,9 @@ class DoorQuote:
             height=part.get("height", '6\'8"'),
             width=float(part.get("width", 36)),
         )
+        self.check_book(
+            book_warnings.panel_upcharge_warning(self.material, record, choice, float(part.get("width", 36)))
+        )
         if not choice["upcharge"]:
             self.notes.append(f"{record['panel']} ({record['code']}) carries no upcharge.")
             return
@@ -173,7 +182,15 @@ class DoorQuote:
 
     def add_option(self, option: dict[str, Any]) -> None:
         record = catalog.find_option(self.material, option.get("category"), option["item"])
+        self.check_book(book_warnings.option_warning(self.material, record))
         price = catalog.option_price(record, option.get("column"))
+        description = option.get("description") or record["item"]
+        if record["category"] == "sills" and "included with painted doors" in record["item"] and self.finish != "factory_white":
+            # "Black Anodized / box (included with painted doors) $20" (FG p44,
+            # ST p40): the $20 is for a white door; finished doors include it.
+            price = 0.0
+            if not option.get("description"):
+                description = record["item"].replace("(included with painted doors)", "(included with painted/stained doors)")
         row_by_category = {
             "hinges": "Hinges",
             "sills": "Sill",
@@ -186,7 +203,7 @@ class DoorQuote:
         }
         self.add(
             option.get("row") or row_by_category.get(record["category"], "Extras 1"),
-            option.get("description") or record["item"],
+            description,
             price,
             int(option.get("qty", 1)),
             f"{self.material} p{record['source_page']}",
@@ -194,6 +211,7 @@ class DoorQuote:
 
     def add_transom(self, transom: dict[str, Any]) -> None:
         record = catalog.transom(self.material, transom.get("shape", "rectangle"))
+        self.check_book(book_warnings.transom_warning(self.material, record, self.finish))
         frame = record["frame"][self.finish]
         self.add(
             "Transom",

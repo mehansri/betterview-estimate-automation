@@ -47,6 +47,26 @@ def _fiberglass_selection(**overrides) -> dict:
     return selection
 
 
+def _steel_selection(**overrides) -> dict:
+    selection = {
+        "material": "steel",
+        "width": 36,
+        "height": '6\'8"',
+        "configuration": "single",
+        "frame_depth": "4.625",
+        "model": "orleans",
+        "colours": {"exterior": {"type": "painted", "colour": "Black"}, "interior": {"type": "white"}},
+        "glass": {"door": {"glazed": False}},
+        "standard": {"lock": "double_bore"},
+    }
+    selection.update(overrides)
+    return selection
+
+
+def _lines(result: dict, text: str) -> list[dict]:
+    return [item for item in result["line_items"] if text in item["description"]]
+
+
 def _spec(selection: dict) -> dict:
     return {"label": "Front entry", "material": selection.get("material") or "steel", "opening_type": "single_door", "pipeline": selection}
 
@@ -59,10 +79,19 @@ def test_discount_is_sixty_percent_off_list():
 
 
 def test_size_filters_the_catalogue():
-    # 42" and 8' slabs are limited; steel narrows to the flush slab.
-    assert _models("steel", 42, '6\'8"') == ["Flush"]
-    assert _models("steel", 36, '8\'0"') == ["Flush"]
+    # 42" and the other non-standard steel widths are flush only (ST p40).
+    for width in (24, 26, 28, 38, 40, 42):
+        assert _models("steel", width, '6\'8"') == ["Flush"], width
+    # Steel 7'0" and 8'0" slabs are the ones Palma's Panel Selector lists (A13, A22).
+    assert set(_models("steel", 36, '8\'0"')) == {"Flush", "Tao", "Vog", "Soho", "London", "Orleans", "6-Panel"}
+    assert set(_models("steel", 36, '7\'0"')) == {
+        "Flush", "Tao", "Vog", "Era", "Victoria", "Soho", "Sydney", "Orleans", "London", "4-Panel BT", "6-Panel",
+    }
+    # Vogue, Tao and Oso are made 34"/36" only; Era 32"-36".
+    thirty = set(_models("steel", 30, '6\'8"'))
+    assert {"Vog", "Tao", "Oso", "Era"}.isdisjoint(thirty) and "Flush" in thirty
     assert len(_models("steel", 36, '6\'8"')) > 15
+    assert set(_models("fiberglass", 36, '7\'0"')) == {"Flush · WG00", "2-Panel 3/4 · WG25", "Modern Teak · TG71"}
     standard = set(_models("fiberglass", 36, '6\'8"'))
     wide = set(_models("fiberglass", 42, '6\'8"'))
     tall = set(_models("fiberglass", 36, '8\'0"'))
@@ -206,6 +235,7 @@ def test_standard_options_and_conditional_extras():
         },
         standard={"lock": "multipoint", "handle": "Berkeley Gripset (Black, Satin Nickel, Dark Bronze, Pewter)"},
         extras={"tedee": True, "astragal_lock": True, "screen": "white"},
+        frame_depth="6.625",
     )
     result = quote(_spec(selection), CFG)
     items = {item["description"]: item for item in result["line_items"]}
@@ -220,7 +250,7 @@ def test_standard_options_and_conditional_extras():
     assert any("inactive leaf" in item["customer_description"] for item in handles)
     assert any("Tedee-PRO" in text for text in items)
     assert any("Astragal" in text for text in items)
-    assert any(text == "White RETRACTABLE Screen*" for text in items)
+    assert items["White RETRACTABLE Screen*"]["qty"] == 2  # "For Double Door: RETRACTABLE Screen cost x 2"
     assert rows.count("Transom") == 2
 
     # Lock prep is a required choice; Tedee needs the multipoint; astragal needs a double.
@@ -272,11 +302,18 @@ def test_frame_depth_rules():
         quote(_spec(_fiberglass_selection(frame_depth="7.625", standard={"lock": "double_bore", "sill": "outswing"})), CFG)
 
 
-def test_fire_rated_needs_a_price_because_the_book_has_none():
+def test_fire_rating_is_the_steel_book_price_and_absent_on_fiberglass():
+    # "20 min. Fire Rating: +$230 (includes self-closing hinges)" (ST p38).
+    result = quote(_spec(_steel_selection(extras={"fire_rated": True})), CFG)
+    [rating] = _lines(result, "Fire Rating")
+    assert rating["unit_list"] == 230 and rating["source"] == "steel p38"
+    assert not any(item["row"] == "Hinges" for item in result["line_items"])  # self-closing hinges included
+    # The fiberglass book has no fire rating: only a legacy rep-entered price still prices.
     with pytest.raises(DoorValidationError):
         quote(_spec(_fiberglass_selection(extras={"fire_rated": True})), CFG)
-    result = quote(_spec(_fiberglass_selection(extras={"fire_rated": True, "fire_rated_list": 450})), CFG)
-    assert any(item["description"] == "Fire-rated panel upcharge" and item["unit_list"] == 450 for item in result["line_items"])
+    legacy = quote(_spec(_fiberglass_selection(extras={"fire_rated": True, "fire_rated_list": 450})), CFG)
+    assert any(item["description"] == "Fire-rated panel upcharge" and item["unit_list"] == 450 for item in legacy["line_items"])
+    assert not CATALOG["materials"]["fiberglass"]["extras"]["fire_rating"]
 
 
 def test_index_models_have_unique_keys():

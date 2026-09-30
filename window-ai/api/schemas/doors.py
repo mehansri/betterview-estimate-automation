@@ -87,6 +87,8 @@ class PipelineGlass(BaseModel):
     series: Optional[str] = None
     # Order-spec only; decorative glass is one flat price whatever the pattern.
     design: Optional[str] = None
+    # SDL glass: Palma charges per square on top of the glass row.
+    squares: Optional[int] = Field(default=None, ge=0)
 
 
 class PipelineSidelite(PipelineGlass):
@@ -113,13 +115,28 @@ class PipelineCustomSize(BaseModel):
     height_in: Optional[float] = Field(default=None, gt=0)
 
 
+class PipelinePullBar(BaseModel):
+    style: str = "straight"
+    block: Optional[str] = None
+    length_in: int = 36
+    finish: str = "satin"
+    shape: str = "round"
+
+
 class PipelineStandard(BaseModel):
-    brickmould: Literal["regular", "flat", "none"] = "regular"
+    brickmould: Literal["regular", "flat", "none", "custom_pvc", "custom_textured"] = "regular"
     sill: str = "black_anodized"
     sill_extension: bool = False
-    hinges: Literal["black", "standard"] = "black"
-    lock: Optional[Literal["double_bore", "multipoint"]] = None
+    hinges: Literal["black", "satin_nickel", "standard"] = "black"
+    lock: Optional[Literal["double_bore", "multipoint", "pull_bar"]] = None
     handle: Optional[str] = None
+    pull_bar: Optional[PipelinePullBar] = None
+
+
+class PipelineAccent(BaseModel):
+    design: Optional[str] = None
+    finish: Optional[str] = None
+    sides: Literal["exterior", "both"] = "exterior"
 
 
 class PipelineExtras(BaseModel):
@@ -127,13 +144,25 @@ class PipelineExtras(BaseModel):
     tedee_keypad: bool = False
     tedee_bridge: bool = False
     tedee_sensor: bool = False
-    screen: Literal["none", "white", "painted"] = "none"
+    tedee_knob: bool = False
+    key_alike: bool = False
+    screen: Literal["none", "white", "painted", "sliding_white", "sliding_painted_1s", "sliding_painted_2s"] = "none"
     screen_qty: int = Field(default=1, ge=1)
     astragal_lock: bool = False
     fire_rated: bool = False
     fire_rated_list: Optional[float] = Field(default=None, ge=0)
     mail_slot: bool = False
     peep_viewer: bool = False
+    dentil_shelf: bool = False
+    kick_panel: bool = False
+    casing: bool = False
+    casing_backband: bool = False
+    glass_frame: Optional[str] = None
+    operating_sidelite: int = Field(default=0, ge=0)
+    triple_glazing: Optional[Literal["lowe_1x", "lowe_2x"]] = None
+    accent: Optional[PipelineAccent] = None
+    vertical_accent: Optional[str] = None
+    reeded_accent: bool = False
 
 
 class DoorPipelineSpec(BaseModel):

@@ -198,8 +198,17 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
             continue
         rect(cursor, door_top, slab_w, slab_h, slab_colour, width=0.5)
         lites(cursor, door_top, slab_w, slab_h, geometry.get("door_glass"))
-        if not (doors == 2 and index == 1):
-            handle_x = cursor + slab_w - 3.2 if index == 0 else cursor + 3.2
+        handle_x = cursor + slab_w - 3.2 if index == 0 else cursor + 3.2
+        pull_bar = float(geometry.get("pull_bar_in") or 0) if geometry.get("lock") == "pull_bar" else 0.0
+        if pull_bar:
+            # To scale, as in DoorDrawing.tsx pullBarTop(): centred ~42" off the floor, 4" inside the slab.
+            bar = min(pull_bar, slab_h - 8)
+            centre = max(42.0, bar / 2 + 6)
+            if centre + bar / 2 > slab_h - 4:
+                centre = slab_h - 4 - bar / 2
+            top = door_top + slab_h - (centre + bar / 2)
+            d.add(Rect((handle_x - 0.7) * scale, (total_h - top - bar) * scale, 1.4 * scale, bar * scale, fillColor=colors.HexColor("#111827"), strokeColor=colors.HexColor("#cbd5e1"), strokeWidth=0.3))
+        elif not (doors == 2 and index == 1):
             d.add(Circle(handle_x * scale, (total_h - door_top - slab_h * 0.48) * scale, max(1.2 * scale, 0.8), fillColor=colors.HexColor("#111827"), strokeColor=None))
         cursor += slab_w
     d.add(Rect(0, 0, total_w * scale, max(1.5 * scale, 0.8), fillColor=colors.HexColor("#111827"), strokeColor=None))
