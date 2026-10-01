@@ -1485,6 +1485,11 @@ def quote_pipeline(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, An
             )
 
     # -- Step 6: sidelites -------------------------------------------------
+    if material == "steel" and any(part["kind"] == "glazed" and part["model"]["direct_glazed"] for part in plan["sidelites"]):
+        quote.notes.append(
+            "Direct-set sidelite: Palma prices the size bracket by the sidelite's overall width (frame width minus "
+            "slab width), not the glass width — e.g. a 69\" frame with a 42\" slab is \"up to 27.5\"\"."
+        )
     for number, part in enumerate(plan["sidelites"], start=1):
         row_name = "Sidelite" if number == 1 else "Sidelite 2"
         row = part["row"]
@@ -1548,9 +1553,38 @@ def quote_pipeline(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, An
         quote.add_option({"category": "jambs_brickmould", "item": plan["depth_item"], "qty": 1, "row": "Extras 1"})
     quote.notes.append(f"{FRAME_TYPES[plan['frame_type']]}, {FRAME_DEPTH_LABELS[plan['depth']]} frame depth.")
 
-    # -- Step 5: split frame colour and custom colours ---------------------
+    # -- Step 5: frame colour and custom colours ---------------------------
     frame = (plan["colours"] or {}).get("frame") or {}
-    if frame.get("mode") == "split":
+    if material == "steel":
+        # A painted steel frame is its own line: "Door Frame and Brickmould
+        # (per door or sidelite) $230" (ST p44). Palma quote 53326 (2026-09-29)
+        # charged it once for a door + direct-set sidelite: the direct-set
+        # sidelite's paint price already covers its frame.
+        split = frame.get("mode") == "split"
+        sides = [frame.get("exterior") or {}, frame.get("interior") or {}] if split else [
+            (plan["colours"] or {}).get("exterior") or {},
+            (plan["colours"] or {}).get("interior") or {},
+        ]
+        _require(all(side.get("type") != "stained" for side in sides), "Step 5: only fiberglass frames can be stained.")
+        if any(side.get("type") == "painted" for side in sides):
+            panel_sidelites = sum(1 for part in plan["sidelites"] if not part["model"]["direct_glazed"])
+            quote.add_option(
+                {
+                    "category": "paint",
+                    "item": "Door Frame and Brickmould (per door or sidelite)",
+                    "qty": doors + panel_sidelites,
+                    "description": "Door frame and brickmould painted (per door or panel sidelite)",
+                    "row": "Extras 1",
+                }
+            )
+            if panel_sidelites:
+                quote.notes.append(
+                    "Frame paint charged per door and per panel sidelite; Palma has only confirmed it per door "
+                    "(direct-set sidelites include their frame). Check panel sidelites with Palma."
+                )
+        if split:
+            quote.notes.append("Frame finished separately from the slab (split colour).")
+    elif frame.get("mode") == "split":
         frame_type_ext = (frame.get("exterior") or {}).get("type")
         frame_type_int = (frame.get("interior") or {}).get("type")
         frame_ext_colour = _clean((frame.get("exterior") or {}).get("colour")).lower()

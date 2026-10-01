@@ -345,3 +345,44 @@ def test_a_price_book_published_before_the_audit_still_quotes(monkeypatch):
     assert "venting_elevation" in families["vented"]
     with pytest.raises(DoorValidationError, match="re-import"):
         _quote(_sel("steel", model="orleans", extras={"fire_rated": True}))
+
+
+def test_palma_quote_53326_is_recreated_exactly():
+    """Palma quote 53326, door 1 (2026-09-29): list $9,371, $3,373.56 at 64% off."""
+    selection = _sel(
+        "steel",
+        width=42,
+        configuration="single_1sl",
+        frame_depth="6.625",
+        colours={"exterior": {"type": "painted", "colour": "525 Black"}, "interior": {"type": "white"}},
+        glass={"door": {"glazed": False}, "sidelites": [
+            {"model": "direct-glazed-full-lite", "glazed": True, "size": 'up to 27.5"', "family": "sandblast", "series": "sandblast_6mm_lami"},
+        ]},
+        standard={"lock": "multipoint", "handle": LARGE_LEVER},
+        extras={"accent": {"design": "uno_1", "finish": "ss", "sides": "both"}},
+    )
+    result = quote({"label": "Door 1", "material": "steel", "opening_type": "single_1_sidelite", "pipeline": selection}, CFG)
+    assert result["list_total"] == 9371
+    assert round(result["list_total"] * 0.36, 2) == 3373.56
+    [frame] = _lines(result, "frame and brickmould painted")
+    assert (frame["qty"], frame["unit_list"]) == (1, 230)  # the direct-set sidelite includes its frame
+    assert any("overall width" in note for note in result["notes"])
+
+
+def test_steel_frame_paint_follows_the_frame():
+    white = _quote(_sel("steel", colours={"exterior": {"type": "white"}, "interior": {"type": "white"}}))
+    assert not _lines(white, "frame and brickmould")
+    painted = _quote(_sel("steel", configuration="single_1sl",
+                          glass={"door": {"glazed": False}, "sidelites": [{"model": "solid-panel", "glazed": False, "panel": "Flush"}]}))
+    [frame] = _lines(painted, "frame and brickmould")
+    assert frame["qty"] == 2  # door + panel sidelite
+    assert any("Check panel sidelites with Palma" in note for note in painted["notes"])
+    # A split frame: a white slab with a painted frame is charged; a painted slab with a white frame isn't.
+    split_painted = _quote(_sel("steel", colours={"exterior": {"type": "white"}, "interior": {"type": "white"},
+                                                  "frame": {"mode": "split", "exterior": {"type": "painted", "colour": "Black"}, "interior": {"type": "white"}}}))
+    assert _lines(split_painted, "frame and brickmould")[0]["qty"] == 1
+    split_white = _quote(_sel("steel", colours={"exterior": {"type": "painted", "colour": "Black"}, "interior": {"type": "white"},
+                                                "frame": {"mode": "split", "exterior": {"type": "white"}, "interior": {"type": "white"}}}))
+    assert not _lines(split_white, "frame and brickmould")
+    # Fiberglass is unchanged until Palma confirms how its frames are charged.
+    assert not _lines(_quote(_sel("fiberglass")), "frame and brickmould")

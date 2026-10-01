@@ -166,4 +166,17 @@ We've loaded both price books into our quoting tool. Each question below says ho
     - FG/ST pp. 5–10: Group D above Special Order [D4]
 47. **Masterline maximum sheet size:** 71"×95" (FG p24) or 32"×82" "SL" (ST p22)? What does "SL" mean? [A23]
 
+## 9. From your quote 53326 (2026-09-29, door 1)
+
+We rebuilt door 1 from the book and got your $9,371 exactly, but only with these two readings. Please confirm them:
+
+48. **Frame & brickmould paint.** The rebuild only works with one $230 "Door Frame and Brickmould" line, for the door. The frame is painted 525 Black and the sidelite is direct-set.
+    - Is it charged per door, with direct-set sidelites including their own frame paint?
+    - With panel sidelites, is it also charged per sidelite? *We now charge it per door and per panel sidelite on steel.*
+    - Does a fiberglass frame painted or stained to match the slab carry the same line? *We don't charge it on fiberglass yet.*
+49. **Direct-set sidelite size bracket.** The glass is 24" wide, but the rebuild needs the "up to 27.5"" bracket. Is the bracket the sidelite's overall width, i.e. frame width minus slab width (69" − 42" = 27")?
+    *We now tell reps to pick by overall width.*
+
+The same rebuild matches our readings on two earlier questions: the black anodized sill at $0 on a painted door (Q3), and tempered glass included on a direct-set sidelite (Q19).
+
 Until we hear back, we quote the printed prices and flag these rows to our reps.

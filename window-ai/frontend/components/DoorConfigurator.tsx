@@ -515,8 +515,11 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
                     </div>
                   );
                 })}
-                <p className="text-[11px] text-slate-500 sm:col-span-2">A painted or stained frame adds Palma&apos;s frame &amp; brickmould finishing line for each door and sidelite.</p>
+                <p className="text-[11px] text-slate-500 sm:col-span-2">{material.key === "steel" ? "A painted frame adds Palma's frame & brickmould paint line for each door and panel sidelite (direct-set sidelites include it)." : "A painted or stained frame adds Palma's frame & brickmould finishing line for each door and sidelite."}</p>
               </div>
+            ) : null}
+            {material.key === "steel" && value.colours.frame.mode === "match" && [value.colours.exterior?.type, value.colours.interior?.type].includes("painted") ? (
+              <p className="mt-2 text-[11px] text-slate-500">The frame is painted to match, so Palma&apos;s frame &amp; brickmould paint line is added for each door and panel sidelite (direct-set sidelites include it).</p>
             ) : null}
           </div>
         </div>
@@ -552,6 +555,9 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
                   <div className="mt-4">
                     {sideOffers.solid && part.glazed === false ? (
                       <div className="mb-3"><ChipGroup label="Panel" options={sideOffers.solid.panels.map((panel) => ({ id: panel, label: panel }))} value={part.panel || sideOffers.solid.panels[0]} onChange={(panel) => setPart({ ...part, panel })} /></div>
+                    ) : null}
+                    {sidelite.direct_glazed && value.material === "steel" ? (
+                      <div className="mb-3"><Note tone="brand">Pick the size by the sidelite&apos;s <b>overall width</b> (frame width minus slab width), not the glass width — e.g. a 69&quot; frame with a 42&quot; slab is &quot;up to 27.5&quot;&quot;.</Note></div>
                     ) : null}
                     <GlassPicker catalog={catalog} sel={value} choice={part} offer={sideOffers.glazed} solidAllowed={Boolean(sideOffers.solid)} label="Sidelite" onChange={(next) => setPart({ ...next, model: part.model, panel: next.glazed === false ? sideOffers.solid?.panels[0] : undefined })} />
                   </div>
