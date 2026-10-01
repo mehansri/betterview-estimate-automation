@@ -27,8 +27,46 @@ function money(value: number, currency = "CAD") {
   return new Intl.NumberFormat("en-CA", { style: "currency", currency }).format(value || 0);
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return <div className="flex justify-between gap-3"><span className="text-slate-500">{label}</span><span className="font-medium text-slate-800">{value}</span></div>;
+function Row({ label, value, strong, hint }: { label: string; value: string; strong?: boolean; hint?: string }) {
+  return (
+    <div className={`flex justify-between gap-3 ${strong ? "border-t border-slate-200 pt-1 font-semibold" : ""}`}>
+      <span className={strong ? "text-slate-800" : "text-slate-500"}>{label}{hint ? <span className="block text-[10px] font-normal text-slate-400">{hint}</span> : null}</span>
+      <span className={strong ? "text-slate-900" : "font-medium text-slate-800"}>{value}</span>
+    </div>
+  );
+}
+
+/**
+ * How the price is built, top to bottom: list → dealer cost → + install →
+ * cost → + base markup → + extra profit (sliding margin or profit floor) →
+ * − discount → sell, then profit and margin. Each step adds up exactly to the
+ * sell price shown above, so the extra-profit line takes the rounding.
+ */
+export function priceBuildUp(sp: SalesPricing | null | undefined, totals: DealTotals, preset: SalesPreset | undefined, standardMarkup: number) {
+  const dealer = sp?.dealer_cost ?? null;
+  const install = sp?.install_cost ?? null;
+  if (dealer == null || install == null) return null;
+  const cost = dealer + install;
+  const basePercent = (sp?.strategy ?? preset?.strategy) === "sliding_margin" ? standardMarkup : preset?.markup_percent ?? standardMarkup;
+  const baseMarkup = cost * (basePercent / 100);
+  const discount = sp?.merchandise_discount_amount ?? 0;
+  const extra = totals.sell + discount - cost - baseMarkup;
+  const list = totals.list ?? null;
+  return {
+    list,
+    listOff: list && list > 0 ? (1 - dealer / list) * 100 : null,
+    dealer,
+    install,
+    cost,
+    basePercent,
+    baseMarkup,
+    extra,
+    discount,
+    sell: totals.sell,
+    profit: totals.sell - cost,
+    margin: totals.sell ? ((totals.sell - cost) / totals.sell) * 100 : 0,
+    markupOnCost: cost ? ((totals.sell - cost) / cost) * 100 : 0,
+  };
 }
 
 /**
@@ -96,6 +134,9 @@ export default function DealPanel({
   const roomLeft = Math.max(0, previewTotal - walkAway);
   const customerTotal = totals ? (stale && priced ? previewTotal : totals.customerTotal) : 0;
   const margin = sp?.gross_margin_percent ?? (totals?.sell ? (totals.profit / totals.sell) * 100 : 0);
+  // The "Standard" preset's markup is the base the extra profit is measured from.
+  const standardMarkup = presets.find((item) => item.id === "standard")?.markup_percent ?? 30;
+  const buildUp = totals ? priceBuildUp(sp, totals, preset, standardMarkup) : null;
 
   // Which limit binds: the preset's cap, or the floor (profit floor or minimum markup).
   const floorBinds = floorCap < configuredCap - 1e-9;
@@ -254,8 +295,29 @@ export default function DealPanel({
       {internal && totals ? (
         <details className="group mt-4 border-t border-slate-100 pt-3 text-xs">
           <summary className="cursor-pointer select-none font-semibold text-slate-600 hover:text-slate-900">Details</summary>
-          <div className="mt-3 space-y-1">
-            {totals.list != null ? <Row label="List" value={money(totals.list, currency)} /> : null}
+          {buildUp ? (
+            <div className="mt-3 space-y-1">
+              {buildUp.list != null ? <Row label="List" value={money(buildUp.list, currency)} /> : null}
+              <Row label={`Dealer cost${buildUp.listOff != null ? ` (${buildUp.listOff.toFixed(0)}% off list)` : ""}`} value={money(buildUp.dealer, currency)} />
+              <Row label="+ Install" value={money(buildUp.install, currency)} />
+              <Row label="= Cost (dealer + install)" value={money(buildUp.cost, currency)} strong />
+              <Row label={`+ Markup ${buildUp.basePercent.toFixed(0)}% on cost`} value={money(buildUp.baseMarkup, currency)} />
+              {Math.abs(buildUp.extra) >= 0.005 ? (
+                <Row
+                  label={`+ Extra profit`}
+                  hint={sp?.floor_applied ? `up to the ${money(sp.profit_floor ?? 0, currency)} profit floor` : sp?.strategy === "sliding_margin" && sp.sliding ? `sliding margin target ${sp.sliding.margin_percent.toFixed(1)}%` : undefined}
+                  value={money(buildUp.extra, currency)}
+                />
+              ) : null}
+              {buildUp.discount > 0.005 ? <Row label={`− Discount (${(sp?.negotiated_discount_percent ?? 0).toFixed(1)}% off product)`} value={`−${money(buildUp.discount, currency)}`} /> : null}
+              <Row label="= Sell (pre-tax)" value={money(buildUp.sell, currency)} strong />
+              <Row label="Profit (sell − cost)" value={money(buildUp.profit, currency)} />
+              <Row label="Margin (profit ÷ sell)" value={`${buildUp.margin.toFixed(1)}%`} />
+              <Row label="Markup (profit ÷ cost)" value={`${buildUp.markupOnCost.toFixed(1)}%`} />
+            </div>
+          ) : null}
+          <div className="mt-3 space-y-1 border-t border-slate-100 pt-2">
+            {!buildUp && totals.list != null ? <Row label="List" value={money(totals.list, currency)} /> : null}
             <Row label={sp?.strategy === "sliding_margin" ? "Target margin" : "Markup"} value={sp?.strategy === "sliding_margin" && sp.sliding ? `${sp.sliding.margin_percent.toFixed(1)}%` : `${(sp?.markup_percent ?? 0).toFixed(1)}%`} />
             <Row label="Minimum markup" value={`${(sp?.minimum_markup_percent ?? 0).toFixed(1)}%`} />
             <Row label="Floor price (pre-tax)" value={money(sp?.minimum_floor_sell ?? 0, currency)} />
