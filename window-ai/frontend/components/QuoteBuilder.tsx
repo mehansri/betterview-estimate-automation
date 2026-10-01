@@ -58,6 +58,7 @@ import {
   jambIsPrimed,
   jambLabel,
   primedMaxIn,
+  specExteriorColour,
   withColourRules,
 } from "@/lib/productOptions";
 import { bayProblem, DEFAULT_BAY, headSeatFor } from "@/lib/bayLayout";
@@ -682,7 +683,7 @@ function LineThumbnail({ spec }: { spec: QuoteLineInput }) {
   if (!drawable && spec.type === "patio_sliding") drawable = { layout: slidingPanels(String(raw.operation || (finiteNumber(raw.nominal_ft, 6) >= 10 ? "OXXO" : "XO"))), width: 72, height: 80 };
   if (!drawable && spec.type === "patio_swing") drawable = { layout: swingPanels(String(raw.kind || "single"), String(raw.hinge || "left")), width: finiteNumber(raw.width, 34), height: finiteNumber(raw.height, 80) };
   if (!drawable) return null;
-  return <div className="shrink-0"><WindowUnitDrawing layout={drawable.layout} width={drawable.width} height={drawable.height} colour={String(raw.colour_ext || "white")} size={52} showDimensions={false} showIndexes={false} /></div>;
+  return <div className="shrink-0"><WindowUnitDrawing layout={drawable.layout} width={drawable.width} height={drawable.height} colour={specExteriorColour(raw)} size={52} showDimensions={false} showIndexes={false} /></div>;
 }
 
 function starLabel(star: string | null | undefined) {

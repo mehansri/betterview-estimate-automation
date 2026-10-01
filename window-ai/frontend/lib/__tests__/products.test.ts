@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { describeWindowSpec } from "@/lib/productDescriptions";
-import { CUSTOM_JAMB, defaultJamb, jambAccessory, jambDepthOptions, jambFromAccessories, jambLabel, withColourRules } from "@/lib/productOptions";
+import { CUSTOM_JAMB, defaultJamb, jambAccessory, jambDepthOptions, jambFromAccessories, jambLabel, specExteriorColour, withColourRules } from "@/lib/productOptions";
+import { frameColourFor, FRAME_SWATCHES } from "@/components/WindowUnitDrawing";
 import { addLite, bayProblem, BAY_PRESETS, headSeatFor, removeLite } from "@/lib/bayLayout";
 import { slidingPanels } from "@/lib/patioLayout";
 import type { QuoteCatalog } from "@/lib/api";
@@ -25,6 +26,19 @@ describe("colour rules", () => {
   it("puts the interior back to white when the exterior leaves black", () => {
     expect(withColourRules({ colour_ext: "black", colour_int: "black" }, { colour_ext: "charcoal" })).toEqual({ colour_ext: "charcoal", colour_int: "white" });
     expect(withColourRules({ colour_ext: "black", colour_int: "white" }, { colour_ext: "white" })).toEqual({ colour_ext: "white" });
+  });
+  it("reads a line's exterior colour from the line or, for combinations, its lites", () => {
+    expect(specExteriorColour({ type: "window", colour_ext: "black" })).toBe("black");
+    expect(specExteriorColour({ type: "combination", lites: [{ colour_ext: "black" }, { colour_ext: "black" }] })).toBe("black");
+    expect(specExteriorColour({ type: "window" })).toBe("white");
+    expect(specExteriorColour(undefined)).toBe("white");
+  });
+  it("draws black frames for black and Cantor's Jet Black, white for unknown names", () => {
+    expect(frameColourFor("black")).toBe(FRAME_SWATCHES.black);
+    expect(frameColourFor("Jet Black")).toBe(FRAME_SWATCHES.black);
+    expect(frameColourFor("Dark Bronze")).toBe(FRAME_SWATCHES["dark bronze"]);
+    expect(frameColourFor(undefined)).toBe(FRAME_SWATCHES.white);
+    expect(frameColourFor("teal")).toBe(FRAME_SWATCHES.white);
   });
 });
 

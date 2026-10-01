@@ -14,6 +14,7 @@ from typing import Any
 
 from services import business_settings
 from services.doors.pipeline import door_lites
+from services.windowcity.layout import exterior_colour
 
 LOGO_PATH = Path(__file__).resolve().parents[1] / "frontend" / "public" / "branding" / "better-view-solutions.png"
 
@@ -22,6 +23,22 @@ def _iso(value: Any) -> str | None:
     if value is None:
         return None
     return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
+
+def _with_window_colours(windows: dict[str, Any], row, pricing: dict[str, Any]) -> dict[str, Any]:
+    """Snapshots priced before drawings carried a colour take it from the saved line."""
+    lines = windows.get("lines") or []
+    if all(not line.get("drawing") or line["drawing"].get("exterior_colour") for line in lines):
+        return windows
+    from services.customer_estimates import apply_tier
+
+    tier = next((t for t in row.tiers or [] if str(t.get("id")) == str(pricing.get("selected_tier"))), None)
+    specs = {str(line.get("id")): line.get("spec") or {} for line in apply_tier(row.windows or [], tier)}
+    return {**windows, "lines": [
+        {**line, "drawing": {**line["drawing"], "exterior_colour": exterior_colour(specs.get(str(line.get("id"))) or {})}}
+        if line.get("drawing") and not line["drawing"].get("exterior_colour") else line
+        for line in lines
+    ]}
 
 
 def customer_view(row) -> dict[str, Any]:
@@ -54,7 +71,7 @@ def customer_view(row) -> dict[str, Any]:
         "notes": row.notes or "",
         "terms": row.terms or "",
         "sections": {
-            "windows": sections.get("windows") or {"lines": [], "subtotal": 0},
+            "windows": _with_window_colours(sections.get("windows") or {"lines": [], "subtotal": 0}, row, pricing),
             "doors": sections.get("doors") or {"openings": [], "subtotal": 0},
             "adders": sections.get("adders") or {"lines": [], "subtotal": 0},
         },
@@ -82,11 +99,31 @@ def _money(value: Any) -> str:
     return f"${float(value or 0):,.2f}"
 
 
+# Exterior capstock frame fill and edge, as in frontend/components/WindowUnitDrawing.tsx.
+WINDOW_FRAME_COLOURS: dict[str, tuple[str, str]] = {
+    "white": ("#f8fafc", "#64748b"),
+    "black": ("#1f2328", "#0b0d10"),
+    "dark bronze": ("#4a3a2c", "#2a2018"),
+    "charcoal": ("#3b4146", "#23272a"),
+    "sandstone": ("#d4c5a3", "#8f8161"),
+    "sandalwood": ("#c9b48f", "#877454"),
+}
+
+
+def window_frame_colours(name: Any) -> tuple[str, str]:
+    """Frame (fill, edge) for an exterior colour name; Cantor names like 'Jet Black' match 'black'."""
+    key = str(name or "white").strip().lower()
+    if key not in WINDOW_FRAME_COLOURS:
+        key = next((known for known in sorted(WINDOW_FRAME_COLOURS, key=len, reverse=True) if known in key), "white")
+    return WINDOW_FRAME_COLOURS[key]
+
+
 def window_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max_height: float):
     """A small elevation of a window line, viewed from outside (reportlab points).
 
-    Matches frontend/components/WindowUnitDrawing.tsx: swing lines meet at the
-    hinge side, sliders and hung sashes get an arrow on the moving sash.
+    Matches frontend/components/WindowUnitDrawing.tsx: the frame is drawn in the
+    exterior colour, swing lines meet at the hinge side, sliders and hung sashes
+    get an arrow on the moving sash.
     """
     if not geometry or not geometry.get("sections"):
         return None
@@ -97,11 +134,12 @@ def window_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, m
     if W <= 0 or H <= 0:
         return None
     scale = min(max_width / W, max_height / H)
-    frame = colors.HexColor("#334155")
+    fill, edge = window_frame_colours(geometry.get("exterior_colour"))
+    frame = colors.HexColor(edge)
     glass = colors.HexColor("#e0f2fe")
     mark = colors.HexColor("#64748b")
     d = Drawing(W * scale, H * scale)
-    d.add(Rect(0, 0, W * scale, H * scale, fillColor=frame, strokeColor=None))
+    d.add(Rect(0, 0, W * scale, H * scale, fillColor=colors.HexColor(fill), strokeColor=frame, strokeWidth=0.5))
     inset = max(min(W, H) * scale * 0.035, 1.2)
 
     def pt(x: float, y: float) -> tuple[float, float]:

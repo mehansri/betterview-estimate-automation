@@ -87,6 +87,12 @@ export function withColourRules<T extends Pick<FinishOptions, "colour_ext" | "co
   return patch;
 }
 
+/** A saved line's exterior colour; combinations and older bays keep it on their lites. */
+export function specExteriorColour(spec: Record<string, unknown> | null | undefined): string {
+  const lites = Array.isArray(spec?.lites) ? (spec.lites as Array<Record<string, unknown> | null>) : [];
+  return String(spec?.colour_ext || lites[0]?.colour_ext || "white");
+}
+
 /** The styles offering black in / black out (HC-4xx, WC-100/125/175). */
 export function blackInteriorStyles(catalog?: QuoteCatalog | null): Set<string> {
   return new Set(catalog?.colours?.black_interior_styles || ["HC-401", "HC-426", "HC-451", "HC-476", "WC-100", "WC-125", "WC-175"]);

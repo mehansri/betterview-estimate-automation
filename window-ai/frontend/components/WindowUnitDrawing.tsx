@@ -25,6 +25,14 @@ const FRAME_COLOURS: Record<string, { fill: string; edge: string; light: string 
 
 export const FRAME_SWATCHES = FRAME_COLOURS;
 
+const COLOUR_NAMES = Object.keys(FRAME_COLOURS).sort((a, b) => b.length - a.length);
+
+/** Frame tones for a colour name; Cantor names like "Jet Black" match "black". */
+export function frameColourFor(name: string | null | undefined) {
+  const key = String(name || "white").trim().toLowerCase();
+  return FRAME_COLOURS[key] || FRAME_COLOURS[COLOUR_NAMES.find((known) => key.includes(known)) || "white"];
+}
+
 const INK = "#334155";
 const SELECT = "#2563eb";
 
@@ -34,7 +42,7 @@ type Props = {
   height?: number | string;
   /** Pre-resolved geometry (estimate snapshots) instead of layout + size. */
   geometry?: WindowDrawingGeometry | null;
-  /** Exterior colour name; the frame is drawn in it. */
+  /** Exterior colour name; the frame is drawn in it. Defaults to the geometry's colour, else white. */
   colour?: string;
   /** Selected sections (by tree path). */
   selectedPaths?: number[][];
@@ -151,7 +159,7 @@ export default function WindowUnitDrawing({
   width,
   height,
   geometry,
-  colour = "white",
+  colour,
   selectedPaths = [],
   onSelect,
   onJointDrag,
@@ -175,7 +183,7 @@ export default function WindowUnitDrawing({
   const W = resolved.width;
   const H = resolved.height;
   const u = Math.max(W, H) / 100;
-  const frameColour = FRAME_COLOURS[String(colour || "white").toLowerCase()] || FRAME_COLOURS.white;
+  const frameColour = frameColourFor(colour || geometry?.exterior_colour);
   const frame = Math.min(Math.max(Math.min(W, H) * 0.045, 1.4), 2.6);
   const mullion = frame * 0.8;
   const sash = frame * 0.75;

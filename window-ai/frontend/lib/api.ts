@@ -196,6 +196,8 @@ export type UnitSectionDetails = {
 export type WindowDrawingGeometry = {
   width: number;
   height: number;
+  /** Exterior colour name (older snapshots have none). */
+  exterior_colour?: string | null;
   sections: Array<{ index: number; x: number; y: number; width: number; height: number; op: WindowOperation; hinge?: Hinge | null }>;
 };
 

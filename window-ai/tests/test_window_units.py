@@ -271,3 +271,48 @@ def test_estimate_pdf_draws_window_units() -> None:
         {"description": "AW5", "energy": "ER 36", "qty": 1, "unit_price": 100, "line_total": 100, "drawing": geometry},
         {"description": "old line without drawing", "qty": 1, "unit_price": 0, "line_total": 0}]}}, "totals": {}}
     assert render_pdf(view)[:4] == b"%PDF"
+
+
+def test_window_drawings_carry_the_exterior_colour() -> None:
+    from reportlab.graphics.shapes import Rect
+    from services.estimate_documents import window_drawing_flowable, window_frame_colours
+    from services.windowcity.layout import drawing
+
+    assert drawing(unit(72, 72, AW5))["exterior_colour"] == "white"
+    assert drawing({**unit(72, 72, AW5), "colour_ext": "black"})["exterior_colour"] == "black"
+    assert drawing({"type": "window", "style": "WC-100", "width": 30, "height": 60, "colour_ext": "Black"})["exterior_colour"] == "black"
+    # Combinations keep the colour on their lites.
+    combo = drawing({"type": "combination", "layout": {"cols": 2, "rows": 1}, "lites": [
+        {"style": "WC-175", "width": 30, "height": 60, "colour_ext": "black"},
+        {"style": "WC-100", "width": 30, "height": 60, "colour_ext": "black"}]})
+    assert combo["exterior_colour"] == "black"
+    assert drawing({"type": "patio_sliding", "nominal_ft": 6, "colour_ext": "black"})["exterior_colour"] == "black"
+
+    assert window_frame_colours("black") == window_frame_colours("Jet Black") == ("#1f2328", "#0b0d10")
+    assert window_frame_colours(None) == window_frame_colours("unknown") == window_frame_colours("white")
+    black = window_drawing_flowable(drawing({**unit(72, 72, AW5), "colour_ext": "black"}), 80, 60)
+    white = window_drawing_flowable(drawing(unit(72, 72, AW5)), 80, 60)
+    frame_fill = lambda d: next(shape for shape in d.contents if isinstance(shape, Rect)).fillColor.hexval()
+    assert frame_fill(black) == "0x1f2328"
+    assert frame_fill(white) == "0xf8fafc"
+
+
+def test_customer_view_colours_drawings_priced_before_they_carried_one() -> None:
+    from types import SimpleNamespace
+
+    from services.estimate_documents import _with_window_colours
+    from services.windowcity.layout import drawing
+
+    old = {k: v for k, v in drawing(unit(72, 72, AW5)).items() if k != "exterior_colour"}
+    windows = {"subtotal": 100, "lines": [{"id": "a", "drawing": old}, {"id": "b", "drawing": old}, {"id": "c"}]}
+    row = SimpleNamespace(tiers=[], windows=[
+        {"id": "a", "spec": {**unit(72, 72, AW5), "colour_ext": "black"}},
+        {"id": "b", "spec": unit(72, 72, AW5)}])
+    lines = _with_window_colours(windows, row, {})["lines"]
+    assert [line.get("drawing", {}).get("exterior_colour") for line in lines] == ["black", "white", None]
+    # The option the customer picked decides the colour.
+    row.tiers = [{"id": "t1", "window_overrides": {"colour_ext": "black"}}]
+    lines = _with_window_colours(windows, row, {"selected_tier": "t1"})["lines"]
+    assert [line["drawing"]["exterior_colour"] for line in lines[:2]] == ["black", "black"]
+    current = {"lines": [{"id": "a", "drawing": drawing(unit(72, 72, AW5))}]}
+    assert _with_window_colours(current, row, {}) is current

@@ -6,6 +6,7 @@ import AddressAutocomplete from "@/components/AddressAutocomplete";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import { DoorGeometryDrawing } from "@/components/DoorDrawing";
 import { layoutFromLegacySpec } from "@/lib/windowLayout";
+import { specExteriorColour } from "@/lib/productOptions";
 
 const BRAND = {
   blue: "#248fd0",
@@ -80,11 +81,13 @@ function EditableArea({
 
 /** Elevation of a window line: the priced snapshot's geometry, else drawn from the saved spec. */
 function WindowLineSketch({ line, estimate }: { line: NonNullable<CustomerEstimatePricing["sections"]>["windows"]["lines"][number]; estimate: CustomerEstimate }) {
-  if (line.drawing) return <span className="mb-1 block"><WindowUnitDrawing geometry={line.drawing} size={84} showDimensions={false} showIndexes={false} /></span>;
-  const spec = estimate.windows.find((item) => item.id === line.id)?.spec;
-  const drawable = spec ? layoutFromLegacySpec(spec as Record<string, unknown>) : null;
+  const spec = estimate.windows.find((item) => item.id === line.id)?.spec as Record<string, unknown> | undefined;
+  // Snapshots priced before drawings carried a colour fall back to the saved line's.
+  const colour = line.drawing?.exterior_colour || specExteriorColour(spec);
+  if (line.drawing) return <span className="mb-1 block"><WindowUnitDrawing geometry={line.drawing} colour={colour} size={84} showDimensions={false} showIndexes={false} /></span>;
+  const drawable = spec ? layoutFromLegacySpec(spec) : null;
   if (!drawable) return null;
-  return <span className="mb-1 block"><WindowUnitDrawing layout={drawable.layout} width={drawable.width} height={drawable.height} size={84} showDimensions={false} showIndexes={false} /></span>;
+  return <span className="mb-1 block"><WindowUnitDrawing layout={drawable.layout} width={drawable.width} height={drawable.height} colour={colour} size={84} showDimensions={false} showIndexes={false} /></span>;
 }
 
 export default function EstimateDocument({

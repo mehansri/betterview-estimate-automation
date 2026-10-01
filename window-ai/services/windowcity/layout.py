@@ -413,8 +413,15 @@ def patio_layout(spec: dict) -> tuple[dict, float, float]:
     return _split("cols", ["*"] * len(panels), panels), w, h
 
 
+def exterior_colour(spec: dict) -> str:
+    """A line's exterior colour name; combinations and older bays keep it on their lites."""
+    lites = [lite for lite in spec.get("lites") or [] if isinstance(lite, dict)]
+    colour = spec.get("colour_ext") or (lites[0].get("colour_ext") if lites else None)
+    return str(colour or "white").strip().lower()
+
+
 def drawing(spec: dict) -> dict | None:
-    """Section geometry for drawing a window line (viewed from outside), or None."""
+    """Section geometry and exterior colour for drawing a window line (viewed from outside), or None."""
     kind = spec.get("type", "window")
     try:
         if kind == "unit":
@@ -452,6 +459,7 @@ def drawing(spec: dict) -> dict | None:
     return {
         "width": resolved.width,
         "height": resolved.height,
+        "exterior_colour": exterior_colour(spec),
         "sections": [
             {"index": s.index, "x": round(s.x, 4), "y": round(s.y, 4), "width": round(s.width, 4),
              "height": round(s.height, 4), "op": s.node["op"], "hinge": s.node.get("hinge")}
