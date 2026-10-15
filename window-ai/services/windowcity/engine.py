@@ -187,6 +187,13 @@ def _attach_source_metadata(result: dict[str, Any], spec: dict[str, Any]) -> Non
             component["source_refs"] = refs
 
 
+def _capped_max(style: dict, index: int, value: float, cap: float | None) -> float:
+    """Height ranges (odd entries) of a casement stop at the casement cap."""
+    if cap and index % 2 == 1 and style["name"].strip().upper() == "CASEMENT":
+        return min(value, float(cap))
+    return value
+
+
 def catalog_payload() -> dict[str, Any]:
     """Return only the catalog data required to build a guided quote form."""
     windows = catalog.load("windows")
@@ -194,6 +201,7 @@ def catalog_payload() -> dict[str, Any]:
     shapes = catalog.load("shapes")
     patio = catalog.load("patio_doors")
     baybow = catalog.load("baybow")
+    cap = load_config()["engine"].get("casement_max_height_in")
     return {
         "price_book_version": BOOK_VERSION,
         "config_version": _config_version(),
@@ -209,8 +217,8 @@ def catalog_payload() -> dict[str, Any]:
                     {
                         "label": size_row.get("label"),
                         "ranges": [
-                            {"min": item["min"], "max": item["max"]}
-                            for item in size_row.get("ranges", [])
+                            {"min": item["min"], "max": _capped_max(row, index, item["max"], cap)}
+                            for index, item in enumerate(size_row.get("ranges", []))
                         ],
                     }
                     for size_row in row.get("sizes", [])

@@ -262,3 +262,21 @@ def test_accessory_exact_row_name_resolves_when_it_is_a_substring_of_another_row
 
     row = catalog.accessory("brickmould", '2" brickmould (heritage)')
     assert row["name"] == '2" brickmould (heritage)'
+
+
+def test_casement_taller_than_72_is_flagged_for_a_division() -> None:
+    def warnings_for(height: float) -> list[str]:
+        result = price_quote({"lines": [{"type": "window", "style": "WC-100", "width": 30,
+                                         "height": height, "glazing": {"loe180": True}}]})
+        return [w["message"] for w in result["warnings"]]
+
+    assert not any("max out" in m for m in warnings_for(72))
+    assert any("max out at 72\"" in m for m in warnings_for(76))
+
+
+def test_catalog_serves_casement_heights_capped_at_72() -> None:
+    from services.windowcity.engine import catalog_payload
+
+    wc100 = next(s for s in catalog_payload()["styles"] if s["code"] == "WC-100")
+    heights = [r["max"] for row in wc100["size_ranges"] for r in row["ranges"][1::2]]
+    assert heights and max(heights) == 72

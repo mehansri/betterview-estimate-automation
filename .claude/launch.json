@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "crm-sandbox-all",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\Betterview-Crm && npm run sandbox:all"],
+      "port": 3100
+    },
+    {
       "name": "web-3005",
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai\\frontend && set NEXT_PUBLIC_CRM_URL=http://localhost:3100&& npx next dev -p 3005"],

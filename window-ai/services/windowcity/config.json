@@ -27,6 +27,7 @@
       "pct_scale": 0.75
     },
     "triple_loe_panes": 2,
+    "casement_max_height_in": 72,
     "brickmould_override": {
       "code": "EP326",
       "rate_white_lf": 5.0,

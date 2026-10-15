@@ -245,7 +245,7 @@ def price_window(line: dict, cfg: dict, warnings: list[str],
                 comps.append(Component(f"Shape charge: {sh['name']} ({key})",
                                        sh["charges"][key]))
 
-    _check_limits(s, w, h, gl, warnings)
+    _check_limits(s, w, h, gl, warnings, cfg)
     return comps
 
 
@@ -293,7 +293,16 @@ def _accessory_label(acc: dict, row: dict) -> str:
     return row["name"]
 
 
-def _check_limits(s: dict, w: float, h: float, gl: dict, warnings: list[str]):
+def _check_limits(s: dict, w: float, h: float, gl: dict, warnings: list[str],
+                  cfg: dict | None = None):
+    # The book prints casements to 78" with sash reinforcement, but Better View
+    # caps them at 72" (user rule 2026-10-15); taller openings get a division.
+    cap = ((cfg or {}).get("engine") or {}).get("casement_max_height_in")
+    if cap and s["name"].strip().upper() == "CASEMENT" and h > float(cap) + layout.EPS:
+        warnings.append(
+            f"{s['code']} {w:g}x{h:g}: casement sashes max out at {float(cap):g}\" tall — "
+            "divide the opening (e.g. add a fixed transom)")
+        return
     triple = gl.get("triple") or gl.get("tri_pane_lami")
     wanted = ("triple" if triple else "double")
     for row in s["sizes"]:
