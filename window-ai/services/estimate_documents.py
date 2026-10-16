@@ -255,195 +255,341 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     return d
 
 
+# Brand palette of the on-screen estimate (frontend/components/EstimateDocument.tsx
+# and the .estimate-* rules in frontend/app/globals.css); the PDF mirrors it.
+PDF_BRAND = {
+    "blue": "#248fd0",
+    "navy": "#08243a",
+    "muted": "#5f7384",
+    "line": "#d8e7f2",
+    "soft": "#f2f9fe",
+    "text": "#315269",
+    "row": "#edf3f6",
+}
+
+
+def _document_title(view: dict[str, Any]) -> str:
+    """Same title as the site preview: draft until finalized, accepted once signed."""
+    status = view.get("status")
+    if status == "accepted":
+        return "Accepted Estimate"
+    if view.get("preliminary"):
+        return "Preliminary Estimate"
+    if status in ("draft", "priced"):
+        return "Draft Estimate"
+    return "Estimate"
+
+
+def _website(company: dict[str, Any]) -> str:
+    """The company website, else the domain of its email (info@betterview.ca -> betterview.ca)."""
+    website = str(company.get("website") or "").strip()
+    if website:
+        return re.sub(r"^https?://", "", website).rstrip("/")
+    email = str(company.get("email") or "")
+    return email.split("@", 1)[1] if "@" in email else ""
+
+
 def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -> bytes:
+    """The customer estimate as a PDF, laid out like the site preview (EstimateDocument.tsx)."""
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_RIGHT
     from reportlab.lib.pagesizes import LETTER
-    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import inch
-    from reportlab.platypus import Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import CondPageBreak, Image, Indenter, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-    brand = colors.HexColor("#1d4ed8")
-    ink = colors.HexColor("#0f172a")
-    muted = colors.HexColor("#64748b")
-    rule = colors.HexColor("#e2e8f0")
-    styles = getSampleStyleSheet()
-    body = ParagraphStyle("body", parent=styles["BodyText"], fontSize=9, leading=12, textColor=ink)
-    small = ParagraphStyle("small", parent=body, fontSize=8, leading=10, textColor=muted)
-    label = ParagraphStyle("label", parent=small, fontName="Helvetica-Bold", textColor=brand, spaceAfter=2)
-    h1 = ParagraphStyle("h1", parent=body, fontName="Helvetica-Bold", fontSize=18, leading=22, alignment=TA_RIGHT)
-    h2 = ParagraphStyle("h2", parent=body, fontName="Helvetica-Bold", fontSize=12, leading=15, spaceBefore=10, spaceAfter=4)
-    right = ParagraphStyle("right", parent=body, alignment=TA_RIGHT)
+    blue, navy, muted = (colors.HexColor(PDF_BRAND[key]) for key in ("blue", "navy", "muted"))
+    line_colour, soft, text_colour, row_rule = (colors.HexColor(PDF_BRAND[key]) for key in ("line", "soft", "text", "row"))
+
+    body = ParagraphStyle("body", fontName="Helvetica", fontSize=8.5, leading=12, textColor=text_colour)
+    small = ParagraphStyle("small", parent=body, fontSize=7.5, leading=10, textColor=muted)
+    cell = ParagraphStyle("cell", parent=body, fontSize=8, leading=10.5)
+    cell_right = ParagraphStyle("cell_right", parent=cell, alignment=TA_RIGHT)
+    cell_strong = ParagraphStyle("cell_strong", parent=cell, fontName="Helvetica-Bold", textColor=navy)
+    cell_strong_right = ParagraphStyle("cell_strong_right", parent=cell_strong, alignment=TA_RIGHT)
+    head = ParagraphStyle("head", parent=small, fontName="Helvetica-Bold", fontSize=6.5, leading=8)
+    head_right = ParagraphStyle("head_right", parent=head, alignment=TA_RIGHT)
+    kicker = ParagraphStyle("kicker", parent=body, fontName="Helvetica-Bold", fontSize=6.5, leading=9, textColor=blue)
+    kicker_right = ParagraphStyle("kicker_right", parent=kicker, alignment=TA_RIGHT)
+    title_style = ParagraphStyle("title", parent=body, fontName="Helvetica-Bold", fontSize=17, leading=21, textColor=navy, alignment=TA_RIGHT)
+    number_style = ParagraphStyle("number", parent=small, fontSize=8, alignment=TA_RIGHT)
+    company_style = ParagraphStyle("company", parent=small, fontName="Helvetica-Bold", fontSize=7)
+    customer_style = ParagraphStyle("customer", parent=body, fontName="Helvetica-Bold", fontSize=12, leading=15, textColor=navy)
+    h2 = ParagraphStyle("h2", parent=body, fontName="Helvetica-Bold", fontSize=12, leading=15, textColor=navy)
+    h2_right = ParagraphStyle("h2_right", parent=h2, fontSize=10.5, alignment=TA_RIGHT)
+    h3 = ParagraphStyle("h3", parent=body, fontName="Helvetica-Bold", fontSize=9.5, leading=12, textColor=navy)
+    h3_right = ParagraphStyle("h3_right", parent=h3, alignment=TA_RIGHT)
 
     def p(text: Any, style=body) -> Paragraph:
         escaped = str(text or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br/>")
         return Paragraph(escaped, style)
 
+    def label(text: str, style=kicker) -> Paragraph:
+        # Small bold capitals, as .estimate-section-label.
+        return Paragraph(text.upper(), style)
+
     company = view.get("company") or {}
     buffer = io.BytesIO()
+    margin = 0.5 * inch
+    footer_height = 0.34 * inch
     doc = SimpleDocTemplate(
-        buffer, pagesize=LETTER, leftMargin=0.6 * inch, rightMargin=0.6 * inch,
-        topMargin=0.55 * inch, bottomMargin=0.6 * inch,
+        buffer, pagesize=LETTER, leftMargin=margin, rightMargin=margin,
+        topMargin=0.4 * inch, bottomMargin=margin + footer_height + 4,
         title=f"Estimate {view.get('estimate_number') or ''}".strip(), author=company.get("name", ""),
     )
-    width = doc.width
+    width = doc.width - 12  # the frame keeps 6pt of padding on each side
+    pad = 16  # inner padding, like the preview's 2rem gutters inside the card
     story: list[Any] = []
 
-    logo = Image(str(LOGO_PATH), width=1.9 * inch, height=0.6 * inch, kind="proportional") if LOGO_PATH.exists() else p(company.get("name"), h2)
-    title = "Accepted Estimate" if view.get("status") == "accepted" else "Preliminary Estimate" if view.get("preliminary") else "Estimate"
-    number = view.get("estimate_number") or "Draft"
+    def padded(content: Any, top: float = 0, bottom: float = 0) -> list[Any]:
+        """Content inset by the gutter (bands like the header run the full width); tables still split across pages."""
+        items = content if isinstance(content, list) else [content]
+        return [Spacer(1, top), Indenter(pad, pad), *items, Indenter(-pad, -pad), *([Spacer(1, bottom)] if bottom else [])]
+
+    # Header: logo and company name | "Customer document" title block with a rule on its left.
+    logo: Any = (Image(str(LOGO_PATH), width=2.2 * inch, height=0.62 * inch, kind="proportional")
+                 if LOGO_PATH.exists() else p(company.get("name"), h2))
+    if isinstance(logo, Image):
+        logo.hAlign = "LEFT"
+    number = view.get("estimate_number") or "Draft estimate"
     if (view.get("revision_number") or 1) > 1:
         number += f" · Rev {view['revision_number']}"
-    header = Table([[logo, [p(title, h1), p(number, right)]]], colWidths=[width * 0.55, width * 0.45])
-    header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
-    story += [header, Spacer(1, 4)]
-    story.append(p(" · ".join(filter(None, [company.get("name"), company.get("phone"), company.get("email"), company.get("address")])), small))
-    story.append(Spacer(1, 10))
-    if view.get("preliminary"):
-        story.append(p("PRELIMINARY — SUBJECT TO SITE MEASURE", ParagraphStyle("prelim", parent=body, fontName="Helvetica-Bold")))
-        story.append(p(
-            "Window and door sizes are based on the builder's plans for this home model. "
-            "Final sizes and pricing will be confirmed after we measure your home."
-        ))
-        story.append(Spacer(1, 10))
-
-    customer = [p("PREPARED FOR", label), p(view.get("customer_name"), ParagraphStyle("c", parent=body, fontName="Helvetica-Bold"))]
-    for line in (view.get("company_name"), view.get("email"), view.get("phone"), view.get("project_address")):
-        if line:
-            customer.append(p(line))
-    project = [p("PROJECT", label)]
-    for key, text in (("Project", view.get("project_name")), ("Estimate date", view.get("estimate_date")),
-                      ("Valid until", view.get("valid_until")), ("Salesperson", view.get("salesperson"))):
-        if text:
-            project.append(p(f"{key}: {text}"))
-    info = Table([[customer, project]], colWidths=[width / 2, width / 2])
-    info.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"), ("BOX", (0, 0), (-1, -1), 0.5, rule),
-        ("INNERGRID", (0, 0), (-1, -1), 0.5, rule), ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    brand_block = [logo, Spacer(1, 4), p(company.get("name"), company_style)]
+    title_block = [label("Customer document", kicker_right), Spacer(1, 2), p(_document_title(view), title_style), p(number, number_style)]
+    title_width = 2.35 * inch
+    header = Table([[brand_block, title_block]], colWidths=[width - title_width, title_width])
+    header.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (0, 0), pad), ("RIGHTPADDING", (-1, 0), (-1, 0), pad),
+        ("LEFTPADDING", (1, 0), (1, 0), 14), ("LINEBEFORE", (1, 0), (1, 0), 0.75, line_colour),
+        ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
     ]))
-    story += [info, Spacer(1, 8)]
-    if view.get("description"):
-        story += [p("PROJECT DESCRIPTION", label), p(view["description"]), Spacer(1, 4)]
+    story.append(header)
 
-    def table(rows: list[list[Any]], widths: list[float], numeric_columns: int = 3) -> Table:
-        t = Table(rows, colWidths=widths, repeatRows=1)
-        t.setStyle(TableStyle([
-            ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 8), ("TEXTCOLOR", (0, 0), (-1, 0), muted),
-            ("LINEBELOW", (0, 0), (-1, 0), 0.75, brand), ("LINEBELOW", (0, 1), (-1, -1), 0.25, rule),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (-numeric_columns, 0), (-1, -1), "RIGHT"),
-            ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    # Contact bar: blue top rule over a pale band.
+    contact = [company.get("phone"), company.get("email"), company.get("address")]
+    contact_text = " &nbsp; &nbsp; &nbsp; ".join(
+        str(item).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;") for item in contact if item)
+    bar = Table([[Paragraph(contact_text, small)]], colWidths=[width])
+    bar.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), soft), ("LINEABOVE", (0, 0), (-1, -1), 2.25, blue),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.75, line_colour),
+        ("LEFTPADDING", (0, 0), (-1, -1), pad), ("RIGHTPADDING", (0, 0), (-1, -1), pad),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+    ]))
+    story.append(bar)
+
+    if view.get("preliminary"):
+        notice = [p("PRELIMINARY — SUBJECT TO SITE MEASURE", cell_strong), p(
+            "Window and door sizes are based on the builder's plans for this home model. "
+            "Final sizes and pricing will be confirmed after we measure your home.", body)]
+        box = Table([[notice]], colWidths=[width - 2 * pad])
+        box.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), soft), ("BOX", (0, 0), (-1, -1), 0.75, line_colour),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
         ]))
+        story.extend(padded(box, top=12))
+
+    # Prepared for | project details (label column + value, a light rule under each row).
+    customer = [label("Prepared for"), Spacer(1, 4), p(view.get("customer_name") or "—", customer_style)]
+    for value in (view.get("company_name"), view.get("email"), view.get("phone"), view.get("project_address")):
+        if value:
+            customer += [Spacer(1, 2), p(value)]
+    detail_rows = [[p(key, small), p(value or "—")] for key, value in (
+        ("Project", view.get("project_name")), ("Estimate date", view.get("estimate_date")),
+        ("Valid until", view.get("valid_until")), ("Salesperson", view.get("salesperson")))]
+    right_width = (width - 2 * pad) * 0.4
+    details = Table(detail_rows, colWidths=[0.95 * inch, right_width - 0.95 * inch])
+    details.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LINEBELOW", (0, 0), (-1, -1), 0.5, row_rule),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    meta = Table([[customer, details]], colWidths=[width - 2 * pad - right_width, right_width])
+    meta.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (-1, 0), (-1, 0), 0),
+    ]))
+    story.extend(padded(meta, top=14))
+
+    if view.get("description"):
+        story.extend(padded([label("Project description"), Spacer(1, 4), p(view["description"])], top=14))
+
+    def section_heading(eyebrow: str, title: str, amount: Any = None) -> list[Any]:
+        """Eyebrow, title and amount over a blue rule; starts a new page rather than sit alone at the bottom."""
+        left = [label(eyebrow), Spacer(1, 2), p(title, h2)]
+        t = Table([[left, p(_money(amount), h2_right) if amount is not None else ""]],
+                  colWidths=[width - 2 * pad - 1.6 * inch, 1.6 * inch])
+        t.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LINEBELOW", (0, 0), (-1, -1), 1.5, blue),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        return [CondPageBreak(1.6 * inch), t]
+
+    def product_table(rows: list[list[Any]], widths: list[float], header: bool = True) -> Table:
+        t = Table(rows, colWidths=widths, repeatRows=1 if header else 0)
+        style = [
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LINEBELOW", (0, 1 if header else 0), (-1, -1), 0.5, row_rule),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]
+        if header:
+            style += [("LINEBELOW", (0, 0), (-1, 0), 0.75, line_colour),
+                      ("TOPPADDING", (0, 0), (-1, 0), 7), ("BOTTOMPADDING", (0, 0), (-1, 0), 5)]
+        t.setStyle(TableStyle(style))
         return t
 
+    def heads(*names: str) -> list[Paragraph]:
+        numeric = {"Qty", "Unit", "Amount", "Total"}
+        return [label(name, head_right if name in numeric else head) for name in names]
+
+    inner = width - 2 * pad
     sections = view.get("sections") or {}
     windows = (sections.get("windows") or {}).get("lines") or []
     if windows:
-        story.append(p(f"Windows — {_money(sections['windows'].get('subtotal'))}", h2))
-        rows = [["#", "Description", "Location", "Qty", "Unit", "Amount"]]
+        rows: list[list[Any]] = [heads("#", "Description", "Location", "Qty", "Unit", "Amount")]
         for index, line in enumerate(windows, start=1):
-            cell: list[Any] = []
-            sketch = window_drawing_flowable(line.get("drawing"), 1.1 * inch, 0.9 * inch)
+            description: list[Any] = []
+            # 84px in the preview's 850px-wide document
+            sketch = window_drawing_flowable(line.get("drawing"), 0.8 * inch, 0.75 * inch)
             if sketch is not None:
                 sketch.hAlign = "LEFT"
-                cell += [sketch, Spacer(1, 3)]
-            cell.append(p(line.get("description")))
+                description += [sketch, Spacer(1, 4)]
+            description.append(p(line.get("description"), cell))
             if line.get("energy"):
-                cell.append(p(line["energy"], small))
-            rows.append([str(index), cell, p(line.get("location") or "—", small), str(line.get("qty")),
-                         _money(line.get("unit_price")), _money(line.get("line_total"))])
-        story.append(table(rows, [0.3 * inch, width - 3.9 * inch, 1.2 * inch, 0.5 * inch, 0.9 * inch, 1.0 * inch]))
+                description.append(p(line["energy"], small))
+            rows.append([p(index, cell_strong), description, p(line.get("location") or "—", cell),
+                         p(line.get("qty"), cell_right), p(_money(line.get("unit_price")), cell_right),
+                         p(_money(line.get("line_total")), cell_strong_right)])
+        widths = [0.3 * inch, inner - 3.4 * inch, 1.0 * inch, 0.4 * inch, 0.85 * inch, 0.85 * inch]
+        story.extend(padded([*section_heading("Scope of work", "Windows", sections["windows"].get("subtotal")),
+                             product_table(rows, widths)], top=14))
 
     openings = (sections.get("doors") or {}).get("openings") or []
     if openings:
-        story.append(p(f"Doors — {_money(sections['doors'].get('subtotal'))}", h2))
+        story.extend(padded(section_heading("Scope of work", "Doors", sections["doors"].get("subtotal")), top=14))
         for index, opening in enumerate(openings, start=1):
-            heading = f"Item {index} · {opening.get('label')}"
             detail = " · ".join(filter(None, [opening.get("location"), opening.get("material"), opening.get("finish_label")]))
-            rows = [["Description", "Qty", "Unit", "Amount"]]
-            for item in opening.get("items") or []:
-                rows.append([p(item.get("description")), str(item.get("qty")), _money(item.get("unit_price")), _money(item.get("line_total"))])
-            head: Any = [p(heading, ParagraphStyle("dh", parent=body, fontName="Helvetica-Bold")), p(detail, small)]
+            title_cell = [p(f"Item {index} · {opening.get('label')}", h3), Spacer(1, 2), p(detail, small)]
             sketch = door_drawing_flowable(opening.get("drawing"), 1.3 * inch, 1.1 * inch)
-            if sketch is not None:
-                head = Table([[sketch, head]], colWidths=[1.45 * inch, width - 1.45 * inch])
-                head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (0, 0), 0)]))
-                head = [head]
-            story.append(KeepTogether([
-                *head,
-                table(rows, [width - 2.9 * inch, 0.5 * inch, 1.2 * inch, 1.2 * inch]), Spacer(1, 6),
+            cells = ([sketch] if sketch is not None else []) + [title_cell, p(_money(opening.get("subtotal")), h3_right)]
+            widths = ([1.45 * inch] if sketch is not None else []) + [0, 1.2 * inch]
+            widths[-2] = inner - sum(widths)
+            heading = Table([cells], colWidths=widths)
+            heading.setStyle(TableStyle([
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
             ]))
+            items = [[p(item.get("description"), cell), p(item.get("qty"), cell_right),
+                      p(_money(item.get("unit_price")), cell_right), p(_money(item.get("line_total")), cell_strong_right)]
+                     for item in opening.get("items") or []]
+            block: list[Any] = [heading]
+            if items:
+                block.append(product_table(items, [inner - 2.85 * inch, 0.45 * inch, 1.2 * inch, 1.2 * inch], header=False))
+            story.extend(padded(KeepTogether(block), top=12))
 
     adders = (sections.get("adders") or {}).get("lines") or []
     if adders:
-        story.append(p(f"Additional work — {_money(sections['adders'].get('subtotal'))}", h2))
-        rows = [["Description", "Qty", "Unit", "Amount"]]
+        rows = [heads("Description", "Qty", "Unit", "Amount")]
         for line in adders:
-            text = line.get("name") + (f" — {line['note']}" if line.get("note") else "")
-            rows.append([p(text), f"{float(line.get('qty') or 0):g}", _money(line.get("unit_price")), _money(line.get("line_total"))])
-        story.append(table(rows, [width - 2.9 * inch, 0.5 * inch, 1.2 * inch, 1.2 * inch]))
+            description = [p(line.get("name"), cell)] + ([p(line["note"], small)] if line.get("note") else [])
+            rows.append([description, p(f"{float(line.get('qty') or 0):g}", cell_right),
+                         p(_money(line.get("unit_price")), cell_right), p(_money(line.get("line_total")), cell_strong_right)])
+        story.extend(padded([*section_heading("Scope of work", "Additional work", sections["adders"].get("subtotal")),
+                             product_table(rows, [inner - 2.85 * inch, 0.45 * inch, 1.2 * inch, 1.2 * inch])], top=18))
 
+    # Totals: right-aligned block, a blue rule over the grand total.
     totals = view.get("totals") or {}
+    total_style = ParagraphStyle("total", parent=body, fontSize=8.5)
+    total_value = ParagraphStyle("total_value", parent=total_style, fontName="Helvetica-Bold", textColor=navy, alignment=TA_RIGHT)
+    grand = ParagraphStyle("grand", parent=body, fontName="Helvetica-Bold", fontSize=12, leading=15, textColor=navy)
+    grand_value = ParagraphStyle("grand_value", parent=grand, alignment=TA_RIGHT)
     total_rows: list[list[Any]] = []
+    if float(totals.get("base_subtotal") or 0) > float(totals.get("subtotal") or 0) + 0.01:
+        total_rows.append([p("Original subtotal", total_style), p(_money(totals.get("base_subtotal")), total_value)])
     if float(totals.get("discount") or 0) > 0:
-        total_rows.append(["Original subtotal", _money(totals.get("base_subtotal"))])
-        total_rows.append(["Offer discount", f"-{_money(totals.get('discount'))}"])
-    total_rows.append(["Subtotal", _money(totals.get("subtotal"))])
+        total_rows.append([p("Offer discount", total_style), p(f"−{_money(totals.get('discount'))}", total_value)])
+    total_rows.append([p("Subtotal", total_style), p(_money(totals.get("subtotal")), total_value)])
     for tax in totals.get("tax_lines") or [{"label": "HST", "amount": totals.get("hst")}]:
-        total_rows.append([tax.get("label"), _money(tax.get("amount"))])
-    total_rows.append(["Total", _money(totals.get("total"))])
+        total_rows.append([p(tax.get("label"), total_style), p(_money(tax.get("amount")), total_value)])
+    grand_row = len(total_rows)
+    total_rows.append([p("Total", grand), p(_money(totals.get("total")), grand_value)])
     deposit = float(view.get("deposit") or 0)
     if deposit > 0:
-        total_rows.append(["Deposit due on acceptance", _money(deposit)])
-    totals_table = Table(total_rows, colWidths=[2.2 * inch, 1.3 * inch], hAlign="RIGHT")
-    last = len(total_rows) - (2 if deposit > 0 else 1)
+        total_rows.append([p("Deposit due on acceptance", total_style), p(_money(deposit), total_value)])
+    totals_table = Table(total_rows, colWidths=[2.15 * inch, 1.35 * inch], hAlign="RIGHT")
     totals_table.setStyle(TableStyle([
-        ("ALIGN", (1, 0), (1, -1), "RIGHT"), ("FONT", (0, 0), (-1, -1), "Helvetica", 9),
-        ("FONT", (0, last), (-1, last), "Helvetica-Bold", 11), ("LINEABOVE", (0, last), (-1, last), 1, brand),
+        ("LINEABOVE", (0, 0), (-1, 0), 0.75, line_colour),
+        ("LINEABOVE", (0, grand_row), (-1, grand_row), 1.5, blue),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
         ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, 0), 8), ("TOPPADDING", (0, grand_row), (-1, grand_row), 8),
     ]))
-    story += [Spacer(1, 10), totals_table]
+    story.extend(padded(KeepTogether(totals_table), top=12))
 
     tiers = view.get("tiers") or []
     if tiers:
-        rows = [["Option", "Description", "Total"]]
+        rows = [heads("Option", "What changes", "Total")]
         for tier in tiers:
-            name = tier.get("name") + (" (selected)" if tier.get("selected") else "")
-            rows.append([p(name, ParagraphStyle("tn", parent=body, fontName="Helvetica-Bold")), p(tier.get("description"), small), _money(tier.get("total"))])
-        story.append(KeepTogether([p("Your options", h2), table(rows, [1.6 * inch, width - 2.8 * inch, 1.2 * inch], numeric_columns=1)]))
+            name = tier.get("name") + (" (quoted above)" if tier.get("selected") else "")
+            rows.append([p(name, cell_strong), p(tier.get("description") or "—", cell), p(_money(tier.get("total")), cell_strong_right)])
+        story.extend(padded(KeepTogether([*section_heading("Choose your package", "Options"),
+                                          product_table(rows, [1.6 * inch, inner - 2.8 * inch, 1.2 * inch])]), top=18))
 
     financing = view.get("financing")
     if financing and financing.get("options"):
-        payments = "; ".join(f"{option['months']} months: {_money(option['monthly_payment'])}/mo" for option in financing["options"])
-        story += [Spacer(1, 8), p("FINANCING AVAILABLE", label),
-                  p(f"{payments} at {financing.get('apr_percent', 0):g}% APR."), p(financing.get("disclaimer"), small)]
-
-    for heading, text in (("NOTES", view.get("notes")), ("TERMS", view.get("terms"))):
-        if text:
-            story += [Spacer(1, 8), p(heading, label), p(text, small)]
+        payments = " · ".join(f"{option['months']} months: {_money(option['monthly_payment'])}/mo" for option in financing["options"])
+        story.extend(padded([label("Financing available"), Spacer(1, 4),
+                             p(f"{payments} at {financing.get('apr_percent', 0):g}% APR."), p(financing.get("disclaimer"), small)], top=14))
 
     accepted = view.get("accepted")
     if accepted:
-        block: list[Any] = [Spacer(1, 12), p("ACCEPTANCE", label)]
         summary = f"Accepted by {accepted.get('name')} on {str(accepted.get('accepted_at') or '')[:10]}"
         if accepted.get("tier_name"):
-            summary += f" — option: {accepted['tier_name']}"
-        summary += f" — total {_money(accepted.get('total'))}"
-        block.append(p(summary))
+            summary += f" — option {accepted['tier_name']}"
+        if accepted.get("total") is not None:
+            summary += f" — {_money(accepted.get('total'))}"
+        block = [label("Acceptance"), Spacer(1, 4), p(summary + ".")]
         if signature_data_url and "," in signature_data_url:
             try:
                 raw = base64.b64decode(signature_data_url.split(",", 1)[1])
-                block.append(Image(io.BytesIO(raw), width=2.4 * inch, height=0.8 * inch, kind="proportional"))
+                signature = Image(io.BytesIO(raw), width=2.4 * inch, height=0.8 * inch, kind="proportional")
+                signature.hAlign = "LEFT"
+                block.append(signature)
             except Exception:  # an unreadable signature image never blocks the document
                 pass
-        story.append(KeepTogether(block))
+        story.extend(padded(KeepTogether(block), top=14))
+
+    # Notes | Terms side by side, as .estimate-copy-grid.
+    notes = [label("Notes"), Spacer(1, 4), p(view.get("notes") or "—", small)]
+    terms = [label("Terms"), Spacer(1, 4), p(view.get("terms") or "—", small)]
+    copy_grid = Table([[notes, terms]], colWidths=[inner * 0.5, inner * 0.5])
+    copy_grid.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (0, 0), 14), ("RIGHTPADDING", (1, 0), (1, 0), 0),
+    ]))
+    story.extend(padded(copy_grid, top=14))
+
+    footer_items = [company.get("name"), " · ".join(filter(None, [company.get("phone"), company.get("email")])), _website(company)]
 
     def footer(canvas, document) -> None:
         canvas.saveState()
-        canvas.setFont("Helvetica", 7.5)
+        x, y = document.leftMargin + 6, margin
+        canvas.setFillColor(soft)
+        canvas.setStrokeColor(line_colour)
+        canvas.setLineWidth(0.75)
+        canvas.rect(x, y, width, footer_height, stroke=0, fill=1)
+        canvas.line(x, y + footer_height, x + width, y + footer_height)
+        canvas.setFont("Helvetica", 7)
         canvas.setFillColor(muted)
-        canvas.drawString(document.leftMargin, 0.35 * inch, " · ".join(filter(None, [company.get("name"), company.get("phone"), company.get("email")])))
-        canvas.drawRightString(document.leftMargin + document.width, 0.35 * inch, f"Page {document.page}")
+        baseline = y + footer_height / 2 - 2.5
+        canvas.drawString(x + pad, baseline, footer_items[0] or "")
+        canvas.drawCentredString(x + width / 2, baseline, footer_items[1] or "")
+        right_text = " · ".join(filter(None, [footer_items[2], f"Page {document.page}"]))
+        canvas.drawRightString(x + width - pad, baseline, right_text)
         canvas.restoreState()
 
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
