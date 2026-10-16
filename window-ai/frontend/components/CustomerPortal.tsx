@@ -721,6 +721,7 @@ export default function CustomerPortal({ token }: { token: string }) {
                         </span>
                       </span>
                       {tier.description ? <span className="mt-1 whitespace-pre-line text-sm text-slate-600">{tier.description}</span> : null}
+                      {tier.customer_note ? <span className="mt-1 text-xs text-slate-500">{tier.customer_note}</span> : null}
                       <span className="mt-auto pt-4">
                         <span className="block text-2xl font-bold tabular-nums text-slate-900">{tier.total != null ? money(tier.total) : "—"}</span>
                         <span className="block text-xs text-slate-500">incl. tax</span>

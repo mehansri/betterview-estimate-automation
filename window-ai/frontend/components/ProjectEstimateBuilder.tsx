@@ -11,6 +11,7 @@ import {
   SavedTemplate,
   TaxRateEntry,
   createCustomerEstimate,
+  applyEstimateVariation,
   createTemplate,
   duplicateCustomerEstimate,
   estimatePdfUrl,
@@ -260,6 +261,24 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
 
   function asDraft(value: CustomerEstimate): CustomerEstimateDraft {
     return estimateToDraft(value);
+  }
+
+  /** Make a variation the quoted product; pending edits are saved first so nothing is lost. */
+  async function bakeVariation(tierId: string) {
+    if (!estimate.id) return null;
+    setBusy(true);
+    setError(null);
+    try {
+      await updateCustomerEstimate(estimate.id, asDraft(estimate));
+      const result = await applyEstimateVariation(estimate.id, tierId);
+      productChanged(() => result.estimate);
+      return result;
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not apply the variation.");
+      return null;
+    } finally {
+      setBusy(false);
+    }
   }
 
   /** Scope changes that affect price (job items, tiers, province) also reprice. */
@@ -617,7 +636,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
           ) : null}
 
           <JobItemsCard estimate={estimate} editable={editable} onChange={(adders: EstimateAdder[]) => scopeChanged({ adders })} />
-          <OptionTiersCard estimate={estimate} editable={editable} internal={showInternal} onChange={(tiers: EstimateTier[], selected_tier: string | null) => scopeChanged({ tiers, selected_tier })} />
+          <OptionTiersCard estimate={estimate} editable={editable} internal={showInternal} updating={needsReprice || autoPricing || busy} onBake={estimate.id ? bakeVariation : undefined} onChange={(tiers: EstimateTier[], selected_tier: string | null) => scopeChanged({ tiers, selected_tier })} />
           {estimate.pricing?.profitability ? (
             showInternal ? <ProfitPanel pricing={estimate.pricing} /> : null
           ) : null}

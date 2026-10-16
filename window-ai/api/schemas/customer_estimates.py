@@ -98,6 +98,8 @@ class EstimateAdder(BaseModel):
 
 
 class TierOverrides(BaseModel):
+    # Collection (layout series): classic, classic_400, heritage, heritage_maximum.
+    series: Optional[str] = None
     glazing: dict[str, Any] = Field(default_factory=dict)
     colour_ext: Optional[str] = None
     colour_int: Optional[str] = None
@@ -214,6 +216,25 @@ class SendEstimateRequest(BaseModel):
 
 class LostRequest(BaseModel):
     reason: str = Field(min_length=1)
+
+
+class ApplyVariationRequest(BaseModel):
+    tier_id: str = Field(min_length=1)
+
+
+class KeptChange(BaseModel):
+    line_id: Optional[str] = None
+    location: str = ""
+    change: str
+    reason: str
+
+
+class ApplyVariationResponse(BaseModel):
+    """The estimate with a variation written into its window lines."""
+
+    estimate: "CustomerEstimateResponse"
+    applied_lines: int
+    kept_as_quoted: list[KeptChange] = Field(default_factory=list)
 
 
 class FollowUpRequest(BaseModel):

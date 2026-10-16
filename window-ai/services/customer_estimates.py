@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -21,8 +22,11 @@ from services.doors.pricing import (
 from services.descriptions import line_energy, window_description
 from services.windowcity.layout import drawing as window_drawing
 from services.job_adders import JobAdderError, price_adders
-from services.windowcity.engine import BOOK_VERSION, catalog_cost, price_quote as price_windowcity_quote
-from services.windowcity.quote import CONFIG_PATH as WINDOW_CONFIG_PATH
+from services.windowcity import catalog as window_catalog
+from services.windowcity.catalog import CatalogError
+from services.windowcity.engine import BOOK_VERSION, catalog_cost, check_line, price_quote as price_windowcity_quote
+from services.windowcity.layout import OPERATIONS, SERIES, STYLE_OPERATIONS
+from services.windowcity.quote import CONFIG_PATH as WINDOW_CONFIG_PATH, load_config as load_window_config
 from services.windowcity.sales import SALES_CONFIG_PATH, SalesPricingError, sales_config_version
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -171,21 +175,152 @@ def _agreed_total_discount(
 
 # ------------------------------------------------------------------ tiers
 TIER_WINDOW_KEYS = ("colour_ext", "colour_int")
+# Applied in this order, each kept only if the window can take it, so a
+# slider that isn't made in Heritage still gets the option's colour and glass.
+TIER_CHANGES = ("collection", "colour", "glazing")
+
+
+def _series_of(code: str) -> str | None:
+    for key, series in SERIES.items():
+        if code in series["styles"].values():
+            return key
+    try:
+        return window_catalog.style(code).get("collection")
+    except CatalogError:
+        return None
+
+
+def _restyle(code: Any, target: str) -> str:
+    """The same operation in another collection, or CatalogError if it isn't made there."""
+    try:
+        canonical = window_catalog.style(str(code))["code"]
+    except CatalogError:
+        canonical = str(code or "").upper()
+    if _series_of(canonical) == target:
+        return str(code)
+    label = SERIES[target]["label"]
+    op = STYLE_OPERATIONS.get(canonical)
+    if not op:
+        raise CatalogError(f"{canonical} has no match in the {label}")
+    new = SERIES[target]["styles"].get(op)
+    if not new:
+        raise CatalogError(f"{OPERATIONS[op]['label']} is not offered in the {label}")
+    return new
+
+
+def _restyle_layout(node: dict[str, Any], target: str) -> None:
+    if node.get("children"):
+        for child in node["children"]:
+            if isinstance(child, dict):
+                _restyle_layout(child, target)
+        return
+    styles = SERIES[target]["styles"]
+    if node.get("style"):
+        code = str(node["style"]).upper()
+        if _series_of(code) == target:
+            return
+        op = STYLE_OPERATIONS.get(code)
+        if not op or op not in styles:
+            raise CatalogError(f"{OPERATIONS.get(op or '', {}).get('label', code)} is not offered in the {SERIES[target]['label']}")
+        node.pop("style")
+        node["op"] = op
+    elif node.get("op") and node["op"] not in styles:
+        raise CatalogError(f"{OPERATIONS[node['op']]['label']} is not offered in the {SERIES[target]['label']}")
+
+
+def _apply_collection(spec: dict[str, Any], target: str) -> dict[str, Any]:
+    """Move a window line to another collection (series), keeping each section's operation."""
+    if target not in SERIES:
+        raise CatalogError(f"unknown collection {target!r}")
+    out = copy.deepcopy(spec)
+    if isinstance(out.get("layout"), dict) and out.get("type") in ("unit", "bay_bow"):
+        _restyle_layout(out["layout"], target)
+        out["series"] = target
+    if out.get("style"):
+        out["style"] = _restyle(out["style"], target)
+    if isinstance(out.get("defaults"), dict) and out["defaults"].get("style"):
+        out["defaults"]["style"] = _restyle(out["defaults"]["style"], target)
+    if isinstance(out.get("lites"), list):
+        out["lites"] = [
+            {**lite, "style": _restyle(lite["style"], target)} if isinstance(lite, dict) and lite.get("style") else lite
+            for lite in out["lites"]
+        ]
+    return out
+
+
+def _apply_colour(spec: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
+    """Window City colour rules: an interior colour only as matching in / out."""
+    out = copy.deepcopy(spec)
+    ext, inner = overrides.get("colour_ext"), overrides.get("colour_int")
+    if inner and inner != "white":
+        ext = inner
+    if ext:
+        out["colour_ext"] = ext
+    if inner:
+        out["colour_int"] = inner
+    elif ext and str(out.get("colour_int") or "white").lower() not in ("white", str(ext).lower()):
+        out["colour_int"] = "white"
+    if isinstance(out.get("lites"), list):
+        out["lites"] = [_apply_colour(lite, overrides) if isinstance(lite, dict) else lite for lite in out["lites"]]
+    return out
+
+
+def _apply_glazing(spec: dict[str, Any], glazing: dict[str, Any]) -> dict[str, Any]:
+    out = copy.deepcopy(spec)
+    out["glazing"] = {**(out.get("glazing") or {}), **glazing}
+    if isinstance(out.get("lites"), list):
+        out["lites"] = [_apply_glazing(lite, glazing) if isinstance(lite, dict) else lite for lite in out["lites"]]
+    if isinstance(out.get("layout"), dict):
+        _override_section_glazing(out["layout"], glazing)
+    return out
+
+
+def _requested_changes(overrides: dict[str, Any]) -> list[str]:
+    changes = []
+    if overrides.get("series"):
+        changes.append("collection")
+    if overrides.get("colour_ext") or overrides.get("colour_int"):
+        changes.append("colour")
+    if isinstance(overrides.get("glazing"), dict) and overrides["glazing"]:
+        changes.append("glazing")
+    return changes
+
+
+def _apply_change(spec: dict[str, Any], change: str, overrides: dict[str, Any]) -> dict[str, Any]:
+    if change == "collection":
+        if spec.get("type") in ("patio_sliding", "patio_swing"):
+            return spec
+        return _apply_collection(spec, str(overrides["series"]))
+    if change == "colour":
+        return _apply_colour(spec, overrides)
+    return _apply_glazing(spec, overrides["glazing"])
 
 
 def _apply_overrides(spec: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
-    out = copy.deepcopy(spec)
-    glazing = overrides.get("glazing")
-    if isinstance(glazing, dict) and glazing:
-        out["glazing"] = {**(out.get("glazing") or {}), **glazing}
-    for key in TIER_WINDOW_KEYS:
-        if overrides.get(key):
-            out[key] = overrides[key]
-    if isinstance(out.get("lites"), list):
-        out["lites"] = [_apply_overrides(lite, overrides) for lite in out["lites"]]
-    if isinstance(glazing, dict) and glazing and isinstance(out.get("layout"), dict):
-        _override_section_glazing(out["layout"], glazing)
-    return out
+    """Every change of an option, unchecked (see apply_tier_checked)."""
+    out = spec
+    for change in _requested_changes(overrides):
+        try:
+            out = _apply_change(out, change, overrides)
+        except CatalogError:
+            continue
+    return out if out is not spec else copy.deepcopy(spec)
+
+
+class _LineChecker:
+    """Single-line price-book checks, memoized across the options of one pricing run."""
+
+    def __init__(self) -> None:
+        self._cfg: dict[str, Any] | None = None
+        self._cache: dict[str, tuple[str | None, frozenset[str]]] = {}
+
+    def __call__(self, spec: dict[str, Any]) -> tuple[str | None, frozenset[str]]:
+        key = json.dumps(spec, sort_keys=True, default=str)
+        if key not in self._cache:
+            if self._cfg is None:
+                self._cfg = load_window_config()
+            self._cache[key] = check_line(spec, self._cfg)
+        return self._cache[key]
 
 
 def _override_section_glazing(node: dict[str, Any], glazing: dict[str, Any]) -> None:
@@ -197,12 +332,129 @@ def _override_section_glazing(node: dict[str, Any], glazing: dict[str, Any]) -> 
             _override_section_glazing(child, glazing)
 
 
+_COLOUR_ERROR = re.compile(r"colour '([^']+)' \(interior_too=\w+\) not offered for ([\w-]+)")
+_SIZE_ERROR = re.compile(r"no tier for ([\d.]+) sqft in ([\w-]+)")
+
+
+def _style_label(code: str) -> str:
+    try:
+        row = window_catalog.style(code)
+    except CatalogError:
+        return code
+    return f"{row['code']} {row['name'].title()}"
+
+
+def friendly_reason(reason: str) -> str:
+    """Salesperson wording for a price-book rejection (no page refs or raw rows)."""
+    if match := _COLOUR_ERROR.search(reason):
+        colour, code = match.groups()
+        try:
+            offered = [name for cu in window_catalog.style(code)["colour_upcharges"]
+                       if not cu.get("interior_and_exterior") for name in cu["colours"]]
+        except CatalogError:
+            offered = []
+        also = f" (made in white, {', '.join(offered)})" if offered else " (made in white only)"
+        return f"{colour.capitalize()} isn't made on the {_style_label(code)}{also}"
+    if match := _SIZE_ERROR.search(reason):
+        sqft, code = match.groups()
+        return f"The {_style_label(code)} isn't made this large ({float(sqft):.1f} sq ft)"
+    return reason.split("; page ")[0]
+
+
+def nothing_applied_reason(report: dict[str, Any]) -> str:
+    """Why an option changes no window at all."""
+    if report.get("already_lines"):
+        rest = " (the rest aren't made that way)" if report.get("kept") else ""
+        return f"Nothing changes: the windows are already like this{rest}."
+    if not report.get("kept"):
+        return "This variation changes nothing."
+    return f"No window can take this option: {report['kept'][0]['reason']}"
+
+
+_KEPT_PHRASES = {
+    "collection": ("stays in the original collection", "stay in the original collection"),
+    "colour": ("keeps its original colour", "keep their original colour"),
+    "glazing": ("keeps its original glass", "keep their original glass"),
+}
+
+
+def kept_note(kept: list[dict[str, Any]]) -> str:
+    """Customer wording for the windows an option couldn't change."""
+    sentences = []
+    for change, (one, many) in _KEPT_PHRASES.items():
+        rows = [row for row in kept if row.get("change") == change]
+        if not rows:
+            continue
+        names = list(dict.fromkeys(str(row.get("location") or "").strip() for row in rows))
+        if "" in names or len(names) > 4:
+            subject = f"{len(rows)} window{'s' if len(rows) != 1 else ''}"
+        else:
+            subject = names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
+        plural = len(rows) != 1
+        sentences.append(f"{subject} {many if plural else one} (not available in this option).")
+    return " ".join(sentences)
+
+
 def apply_tier(windows: list[dict[str, Any]], tier: dict[str, Any] | None) -> list[dict[str, Any]]:
-    """Window lines with a Good/Better/Best tier's product upgrades applied."""
+    """Window lines with an option's product changes applied, line by line where they fit."""
+    return apply_tier_checked(windows, tier)[0]
+
+
+def apply_tier_checked(
+    windows: list[dict[str, Any]],
+    tier: dict[str, Any] | None,
+    checker: _LineChecker | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Apply an option (collection, colour, glass) to every window it fits.
+
+    Each change is tried on each line in turn. One the price book rejects for
+    that line -- a slider in a casement-only collection, a colour the style
+    isn't made in, triple glass past its size range -- is left off that line
+    and reported, instead of failing the whole option. A line that can't be
+    priced as quoted either (an incomplete draft) takes the changes unchecked.
+    """
+    report: dict[str, Any] = {"applied_lines": 0, "already_lines": 0, "kept": []}
     if not tier:
-        return windows
+        return windows, report
     overrides = tier.get("window_overrides") or {}
-    return [{**line, "spec": _apply_overrides(line.get("spec") or {}, overrides)} for line in windows]
+    changes = _requested_changes(overrides)
+    if not changes:
+        return windows, report
+    check = checker or _LineChecker()
+    out: list[dict[str, Any]] = []
+    for line in windows:
+        spec = line.get("spec") or {}
+        base_error, base_review = check(spec)
+        current = spec
+        changed = False
+        kept_before = len(report["kept"])
+        for change in changes:
+            try:
+                candidate = _apply_change(current, change, overrides)
+            except CatalogError as exc:
+                reason = str(exc)
+            else:
+                if candidate == current:
+                    continue
+                if base_error:
+                    current, changed = candidate, True
+                    continue
+                error, review = check(candidate)
+                new_review = sorted(review - base_review)
+                if not error and not new_review:
+                    current, changed = candidate, True
+                    continue
+                reason = error or new_review[0]
+            report["kept"].append({
+                "line_id": line.get("id"),
+                "location": line.get("location") or "",
+                "change": change,
+                "reason": friendly_reason(reason),
+            })
+        report["applied_lines"] += int(changed)
+        report["already_lines"] += int(not changed and len(report["kept"]) == kept_before)
+        out.append({**line, "spec": current} if changed else line)
+    return out, report
 
 
 def _find_tier(tiers: list[dict[str, Any]], tier_id: str | None) -> dict[str, Any] | None:
@@ -454,8 +706,9 @@ def price_customer_estimate(
     adders = adders or []
     tiers = tiers or []
     selected = _find_tier(tiers, selected_tier)
+    checker = _LineChecker()
     scope = _price_scope(
-        windows=apply_tier(windows, selected),
+        windows=apply_tier_checked(windows, selected, checker)[0],
         doors=doors,
         commercial=commercial,
         adders=adders,
@@ -474,9 +727,18 @@ def price_customer_estimate(
             "description": tier.get("description") or "",
             "selected": bool(selected and selected.get("id") == tier.get("id")),
         }
+        tier_windows, report = apply_tier_checked(windows, tier, checker)
+        # Windows that stay as quoted for part of this option, and why.
+        summary["kept_as_quoted"] = report["kept"]
+        summary["applied_lines"] = report["applied_lines"]
+        summary["customer_note"] = kept_note(report["kept"])
+        if not report["applied_lines"] and (report["kept"] or report["already_lines"]):
+            summary["error"] = nothing_applied_reason(report)
+            tier_summaries.append(summary)
+            continue
         try:
             priced = _price_scope(
-                windows=apply_tier(windows, tier),
+                windows=tier_windows,
                 doors=doors,
                 commercial=tier_commercial,
                 adders=adders,

@@ -324,6 +324,19 @@ def _wood_jamb_payload(accessories: dict) -> dict[str, Any]:
     }
 
 
+def check_line(line: dict[str, Any], cfg: dict[str, Any] | None = None) -> tuple[str | None, frozenset[str]]:
+    """Price one line on its own: its hard error, if any, and its review warnings.
+
+    Used to test a product change line by line before it is applied, so one
+    window that can't take an upgrade doesn't fail the whole estimate option.
+    """
+    try:
+        result = _price_quote({"defaults": {}, "lines": [line]}, cfg or load_config())
+    except (CatalogError, KeyError, TypeError, ValueError) as exc:
+        return str(exc).strip("'\"") or type(exc).__name__, frozenset()
+    return None, frozenset(str(m) for m in result.get("warnings", []) if not isinstance(m, Advisory))
+
+
 def catalog_cost(spec: dict[str, Any]) -> float:
     """Dealer cost plus installation for a quote, before any sales pricing."""
     lines = spec.get("lines") or []

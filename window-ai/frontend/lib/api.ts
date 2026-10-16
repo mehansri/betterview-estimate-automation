@@ -644,6 +644,8 @@ export type EstimateAdder = {
 };
 
 export type TierOverrides = {
+  /** Collection (series): classic, classic_400, heritage, heritage_maximum. */
+  series?: string | null;
   glazing?: Record<string, unknown>;
   colour_ext?: string | null;
   colour_int?: string | null;
@@ -710,6 +712,12 @@ export type TierSummary = {
   financing?: FinancingOptions;
   deposit?: number;
   error?: string;
+  /** Windows that stay as quoted for part of this option, and why. */
+  kept_as_quoted?: Array<{ line_id: string; location: string; change: "collection" | "colour" | "glazing"; reason: string }>;
+  /** How many windows took at least one of the option's changes. */
+  applied_lines?: number;
+  /** Customer wording for the kept windows. */
+  customer_note?: string;
 };
 
 export type WindowSectionLine = {
@@ -908,7 +916,7 @@ export type PublicEstimate = {
   terms: string;
   sections: EstimateSections;
   totals: Pick<EstimateTotals, "subtotal" | "hst" | "tax_label" | "tax_lines" | "total" | "base_subtotal" | "discount" | "currency">;
-  tiers: Array<Pick<TierSummary, "id" | "name" | "description" | "subtotal" | "hst" | "total" | "financing" | "deposit" | "selected">>;
+  tiers: Array<Pick<TierSummary, "id" | "name" | "description" | "customer_note" | "subtotal" | "hst" | "total" | "financing" | "deposit" | "selected">>;
   selected_tier?: string | null;
   financing?: FinancingOptions;
   deposit: number;
@@ -1263,6 +1271,23 @@ export async function priceCustomerEstimate(id: string, pricingAdminToken?: stri
   const res = await apiFetch(`/api/customer-estimates/${id}/price`, {
     method: "POST",
     ...(headers ? { headers } : {}),
+  });
+  if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
+  return res.json();
+}
+
+export type ApplyVariationResult = {
+  estimate: CustomerEstimate;
+  applied_lines: number;
+  kept_as_quoted: NonNullable<TierSummary["kept_as_quoted"]>;
+};
+
+/** Write a variation into the estimate's window lines (where each window can take it). */
+export async function applyEstimateVariation(id: string, tierId: string): Promise<ApplyVariationResult> {
+  const res = await apiFetch(`/api/customer-estimates/${id}/apply-variation`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tier_id: tierId }),
   });
   if (!res.ok) throw new Error(formatApiError(res.status, await res.text()));
   return res.json();

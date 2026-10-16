@@ -14,6 +14,8 @@ from sqlalchemy.exc import IntegrityError
 from api.security import manager_authorized, manager_token_configured
 from api.schemas.customer_estimates import (
     LOCKED_STATUSES,
+    ApplyVariationRequest,
+    ApplyVariationResponse,
     CrmLinkRequest,
     CustomerEstimateDraft,
     CustomerEstimateLineAppend,
@@ -28,6 +30,8 @@ from db.session import get_session
 from services import business_settings, mailer
 from services.customer_estimates import (
     CustomerEstimatePricingError,
+    apply_tier_checked,
+    nothing_applied_reason,
     canonical_pricing_payload,
     price_customer_estimate,
     pricing_hash,
@@ -545,6 +549,42 @@ def _copy_fields(source: CustomerEstimate) -> dict:
         is_preliminary=bool(source.is_preliminary),
         home_model_id=source.home_model_id,
     )
+
+
+@router.post("/{estimate_id}/apply-variation", response_model=ApplyVariationResponse)
+def apply_variation(estimate_id: str, body: ApplyVariationRequest) -> ApplyVariationResponse:
+    """Make a variation the quoted product: rewrite every window line it fits.
+
+    Uses the same line-by-line rules as variation pricing, so a window that
+    isn't made in the variation's collection, colour or glass keeps its
+    product and is listed in the response. The variation itself is removed;
+    the others stay, now relative to the new quoted windows.
+    """
+    with get_session() as session:
+        row = _get_row(session, estimate_id)
+        _require_editable(row)
+        tiers = row.tiers or []
+        tier = next((item for item in tiers if str(item.get("id")) == body.tier_id), None)
+        if tier is None:
+            raise HTTPException(status_code=404, detail="That variation no longer exists")
+        windows, report = apply_tier_checked(row.windows or [], tier)
+        if not report["applied_lines"]:
+            raise HTTPException(status_code=422, detail=nothing_applied_reason(report))
+        row.windows = windows
+        row.tiers = [item for item in tiers if item is not tier]
+        row.selected_tier = None
+        row.status = "draft"
+        row.pricing_snapshot = None
+        row.pricing_hash = None
+        row.updated_at = _now()
+        _log(session, row, "variation_applied", name=tier.get("name"),
+             applied_lines=report["applied_lines"], kept=len(report["kept"]))
+        session.flush()
+        return ApplyVariationResponse(
+            estimate=_row_response(row),
+            applied_lines=report["applied_lines"],
+            kept_as_quoted=report["kept"],
+        )
 
 
 @router.post("/{estimate_id}/duplicate", response_model=CustomerEstimateResponse)

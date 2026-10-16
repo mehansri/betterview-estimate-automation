@@ -118,6 +118,23 @@ export const SERIES_LABELS: Record<string, string> = {
   heritage_maximum: "Heritage Maximum (HC-400 series)",
 };
 
+/** Short collection names for buttons and option names. */
+export const SERIES_SHORT_LABELS: Record<string, string> = {
+  classic: "Classic",
+  classic_400: "Classic 400",
+  heritage: "Heritage",
+  heritage_maximum: "Heritage Maximum",
+};
+
+/** The collection (series) a catalog style code belongs to. */
+export function seriesOfStyle(code: unknown): string {
+  const style = String(code || "").toUpperCase();
+  if (/^HC-4/.test(style)) return "heritage_maximum";
+  if (/^HC-1/.test(style)) return "heritage";
+  if (/^WC-4/.test(style)) return "classic_400";
+  return "classic";
+}
+
 /** Catalog style code → operation, for drawing legacy window / combination lines. */
 export const STYLE_OPERATIONS: Record<string, WindowOperation> = {
   "WC-100": "casement", "WC-400": "casement", "HC-101": "casement", "HC-401": "casement",

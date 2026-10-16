@@ -987,12 +987,16 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     ].filter(Boolean).join(", ");
     const accessorySummary = [draft.brickmould ? "brickmould" : "", draft.wood_jamb ? jambLabel(draft, catalog, isPatio(draft.type) ? "patio" : "window") : ""].filter(Boolean).join(" + ") || "no brickmould / wood jamb";
     const confirmed = window.confirm(
-      `Apply the current options to all ${lines.length} line${lines.length === 1 ? "" : "s"}?\n\n` +
+      `Apply ${editMode ? "this window's" : "the current"} options to all ${lines.length} line${lines.length === 1 ? "" : "s"}?\n\n` +
         `Colour: ${draft.colour_ext}${draft.colour_int === "black" ? " in / black out" : ""}\nGlazing: ${glazingSummary}\nTrim: ${accessorySummary}\n\n` +
         "Each line keeps its type, style, size, quantity and location. Patio doors take the colour and the glazing they support; bays take the wood jamb."
     );
     if (!confirmed) return;
     setLines((current) => current.map((line) => {
+      // The window open in the editor already carries the form, unsaved size edits included.
+      if (editMode && line.id === selectedEditLineId && draftIsValid) {
+        return { ...line, spec: currentLine, details: currentDetails, description: descriptionForUpdatedSpec(line, currentLine, currentDetails, catalog) };
+      }
       const nextSpec = applyDraftOptions(line.spec, draft, catalog);
       return { ...line, spec: nextSpec, description: descriptionForUpdatedSpec(line, nextSpec, line.details, catalog) };
     }));
@@ -1536,10 +1540,14 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
         {lines.length ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
              <div className="flex items-center justify-between"><h2 className="text-base font-semibold text-slate-900">{editMode ? "Project windows & patio doors" : "Quote lines"}</h2><span className="text-sm text-slate-500">{lines.length} line{lines.length === 1 ? "" : "s"}</span></div>
-            {!editMode ? (
+            {!editMode || lines.length > 1 ? (
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button type="button" className="min-h-[2.75rem] rounded-lg border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50" onClick={applyOptionsToAllLines}>Apply current options to all lines</button>
-                <span className="text-xs text-slate-500">Colours, glazing and brickmould / wood jamb from the form above; sizes and locations stay.</span>
+                <button type="button" className="min-h-[2.75rem] rounded-lg border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50" onClick={applyOptionsToAllLines}>{editMode ? "Apply this window's options to all windows" : "Apply current options to all lines"}</button>
+                <span className="text-xs text-slate-500">
+                  {editMode
+                    ? "Colours, glazing and brickmould / wood jamb of the window open above; sizes, types and locations stay. Save the changes to keep them."
+                    : "Colours, glazing and brickmould / wood jamb from the form above; sizes and locations stay."}
+                </span>
               </div>
             ) : null}
             <div className="mt-4 space-y-2">

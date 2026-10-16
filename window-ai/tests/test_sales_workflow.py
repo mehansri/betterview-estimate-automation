@@ -126,6 +126,46 @@ def test_good_better_best_tiers(client):
     assert selected["pricing"]["selected_tier"] == "best"
 
 
+def test_apply_variation_rewrites_windows_it_fits(client):
+    draft = _draft(mixed=False)
+    slider = copy.deepcopy(draft["windows"][0])
+    slider.update(id="w2", location="Kitchen")
+    slider["spec"].update(style="WC-200", width=48, height=36)
+    draft["windows"].append(slider)
+    draft["tiers"] = [
+        {"id": "heritage", "name": "Heritage", "window_overrides": {"series": "heritage", "colour_ext": "black"}},
+        {"id": "triple", "name": "Triple", "window_overrides": {"glazing": {"triple": True}}},
+    ]
+    draft["selected_tier"] = "heritage"
+    estimate = _create(client, draft)
+    _price(client, estimate["id"])
+
+    applied = client.post(f"/api/customer-estimates/{estimate['id']}/apply-variation", json={"tier_id": "heritage"})
+    assert applied.status_code == 200, applied.text
+    body = applied.json()
+    windows = {line["id"]: line["spec"] for line in body["estimate"]["windows"]}
+    assert windows[draft["windows"][0]["id"]]["style"] == "HC-101"
+    assert windows["w2"]["style"] == "WC-200"  # sliders aren't made in Heritage
+    assert all(spec["colour_ext"] == "black" for spec in windows.values())
+    assert body["applied_lines"] == 2
+    assert [(row["line_id"], row["change"]) for row in body["kept_as_quoted"]] == [("w2", "collection")]
+    assert [tier["id"] for tier in body["estimate"]["tiers"]] == ["triple"]
+    assert body["estimate"]["selected_tier"] is None
+    assert body["estimate"]["status"] == "draft" and body["estimate"]["pricing"] is None
+
+    missing = client.post(f"/api/customer-estimates/{estimate['id']}/apply-variation", json={"tier_id": "heritage"})
+    assert missing.status_code == 404
+
+    # A variation the windows already match changes nothing, and says so.
+    draft = body["estimate"]
+    draft["tiers"] = [{"id": "again", "name": "Heritage again", "window_overrides": {"series": "heritage"}}]
+    assert client.put(f"/api/customer-estimates/{estimate['id']}", json=draft).status_code == 200
+    tier = _price(client, estimate["id"])["pricing"]["tiers"][0]
+    assert tier["error"].startswith("Nothing changes: the windows are already like this")
+    again = client.post(f"/api/customer-estimates/{estimate['id']}/apply-variation", json={"tier_id": "again"})
+    assert again.status_code == 422 and "already like this" in again.json()["detail"]
+
+
 def test_customer_portal_send_view_accept(client):
     draft = _draft()
     draft["tiers"] = [

@@ -327,3 +327,59 @@ def test_wide_triple_casements_warn_to_36_then_need_review(width, severity) -> N
     for result, sections in ((single, 1), (mulled, 2)):
         assert [w["severity"] for w in result["warnings"]] == ([severity] * sections if severity else [])
         assert result["review_required"] is (severity == "review")
+
+
+def _line(line_id, location, spec):
+    return {"id": line_id, "location": location, "spec": spec}
+
+
+def test_option_moves_collection_and_keeps_windows_the_collection_does_not_make() -> None:
+    from services.customer_estimates import apply_tier_checked, kept_note
+
+    windows = [
+        _line("u1", "Living room", unit(72, 60, {"split": "cols", "sizes": ["*", "*", "*"], "children": [
+            leaf("casement", "left"), leaf("fixed"), leaf("casement", "right")]})),
+        _line("u2", "Kitchen", unit(48, 36, leaf("single_slider", "left"))),
+        _line("w1", "Bath", {"type": "window", "style": "WC-100", "width": 24, "height": 36, "qty": 1,
+                              "colour_ext": "white", "glazing": DOUBLE, "accessories": ACCESSORIES}),
+    ]
+    tier = {"window_overrides": {"series": "heritage", "colour_ext": "black", "glazing": {"triple": True}}}
+    out, report = apply_tier_checked(windows, tier)
+
+    assert out[0]["spec"]["series"] == "heritage"
+    assert out[0]["spec"]["colour_ext"] == "black" and out[0]["spec"]["glazing"]["triple"] is True
+    assert out[2]["spec"]["style"] == "HC-101"
+    # Sliders aren't made in Heritage: the kitchen stays Classic but still takes the colour and glass.
+    assert out[1]["spec"]["series"] == "classic"
+    assert out[1]["spec"]["colour_ext"] == "black" and out[1]["spec"]["glazing"]["triple"] is True
+    assert report["applied_lines"] == 3
+    assert [(row["line_id"], row["change"]) for row in report["kept"]] == [("u2", "collection")]
+    assert "not offered in the Heritage" in report["kept"][0]["reason"]
+    assert kept_note(report["kept"]).startswith("Kitchen stays in the original collection")
+    assert windows[0]["spec"]["series"] == "classic"  # the quoted lines are untouched
+
+
+def test_option_colour_a_style_is_not_made_in_stays_as_quoted() -> None:
+    from services.customer_estimates import apply_tier_checked
+
+    windows = [
+        _line("s1", "Basement", unit(48, 36, leaf("double_slider"))),
+        _line("c1", "Den", unit(30, 48, leaf("casement", "left"))),
+    ]
+    out, report = apply_tier_checked(windows, {"window_overrides": {"colour_ext": "dark bronze"}})
+    assert out[0]["spec"]["colour_ext"] == "white"
+    assert out[1]["spec"]["colour_ext"] == "dark bronze"
+    assert [(row["line_id"], row["change"]) for row in report["kept"]] == [("s1", "colour")]
+
+
+def test_option_black_interior_forces_matching_exterior() -> None:
+    from services.customer_estimates import apply_tier_checked
+
+    windows = [_line("c1", "Den", unit(30, 48, leaf("casement", "left")))]
+    out, report = apply_tier_checked(windows, {"window_overrides": {"colour_int": "black"}})
+    assert out[0]["spec"]["colour_ext"] == "black" and out[0]["spec"]["colour_int"] == "black"
+    assert not report["kept"]
+
+    black = [_line("c1", "Den", {**unit(30, 48, leaf("casement", "left")), "colour_ext": "black", "colour_int": "black"})]
+    out, _ = apply_tier_checked(black, {"window_overrides": {"colour_ext": "sandstone"}})
+    assert out[0]["spec"]["colour_ext"] == "sandstone" and out[0]["spec"]["colour_int"] == "white"

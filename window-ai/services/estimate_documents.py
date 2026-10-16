@@ -47,7 +47,7 @@ def customer_view(row) -> dict[str, Any]:
     pricing = row.pricing_snapshot or {}
     sections = pricing.get("sections") or {}
     tiers = [
-        {key: tier.get(key) for key in ("id", "name", "description", "subtotal", "hst", "total", "financing", "deposit", "selected")}
+        {key: tier.get(key) for key in ("id", "name", "description", "customer_note", "subtotal", "hst", "total", "financing", "deposit", "selected")}
         for tier in pricing.get("tiers") or []
         if not tier.get("error")
     ]
@@ -534,7 +534,7 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         rows = [heads("Option", "What changes", "Total")]
         for tier in tiers:
             name = tier.get("name") + (" (quoted above)" if tier.get("selected") else "")
-            rows.append([p(name, cell_strong), p(tier.get("description") or "—", cell), p(_money(tier.get("total")), cell_strong_right)])
+            rows.append([p(name, cell_strong), p(" ".join(filter(None, [tier.get("description"), tier.get("customer_note")])) or "—", cell), p(_money(tier.get("total")), cell_strong_right)])
         story.extend(padded(KeepTogether([*section_heading("Choose your package", "Options"),
                                           product_table(rows, [1.6 * inch, inner - 2.8 * inch, 1.2 * inch])]), top=18))
 
