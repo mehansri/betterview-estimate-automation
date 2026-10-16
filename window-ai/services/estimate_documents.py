@@ -269,14 +269,11 @@ PDF_BRAND = {
 
 
 def _document_title(view: dict[str, Any]) -> str:
-    """Same title as the site preview: draft until finalized, accepted once signed."""
-    status = view.get("status")
-    if status == "accepted":
+    """Same title as the site preview: "Estimate", or "Accepted Estimate" once signed."""
+    if view.get("status") == "accepted":
         return "Accepted Estimate"
     if view.get("preliminary"):
         return "Preliminary Estimate"
-    if status in ("draft", "priced"):
-        return "Draft Estimate"
     return "Estimate"
 
 
@@ -351,11 +348,13 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
                  if LOGO_PATH.exists() else p(company.get("name"), h2))
     if isinstance(logo, Image):
         logo.hAlign = "LEFT"
-    number = view.get("estimate_number") or "Draft estimate"
-    if (view.get("revision_number") or 1) > 1:
+    number = view.get("estimate_number") or ""
+    if number and (view.get("revision_number") or 1) > 1:
         number += f" · Rev {view['revision_number']}"
     brand_block = [logo, Spacer(1, 4), p(company.get("name"), company_style)]
-    title_block = [label("Customer document", kicker_right), Spacer(1, 2), p(_document_title(view), title_style), p(number, number_style)]
+    title_block = [label("Customer document", kicker_right), Spacer(1, 2), p(_document_title(view), title_style)]
+    if number:  # drafts have no number yet; the title alone is enough
+        title_block.append(p(number, number_style))
     title_width = 2.35 * inch
     header = Table([[brand_block, title_block]], colWidths=[width - title_width, title_width])
     header.setStyle(TableStyle([

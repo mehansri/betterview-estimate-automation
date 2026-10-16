@@ -117,8 +117,8 @@ export default function EstimateDocument({
         </div>
         <div className="estimate-title-block">
           <p className="estimate-kicker">Customer document</p>
-          <h1>{estimate.status === "accepted" ? "Accepted Estimate" : estimate.status === "draft" || estimate.status === "priced" ? "Draft Estimate" : "Estimate"}</h1>
-          <p className="estimate-number">{estimate.estimate_number || "Draft estimate"}</p>
+          <h1>{estimate.status === "accepted" ? "Accepted Estimate" : "Estimate"}</h1>
+          {estimate.estimate_number ? <p className="estimate-number">{estimate.estimate_number}</p> : null}
         </div>
       </header>
 
