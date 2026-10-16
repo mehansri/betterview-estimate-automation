@@ -147,12 +147,14 @@ export default function DealPanel({
     : `preset cap ${configuredCap.toFixed(1)}%`;
 
   const status = overLimit
-    ? override?.applied && !stale ? "Manager approved" : override?.reason.trim() ? "Awaiting manager" : "Over limit"
+    ? override?.tokenRequired === false ? override.applied && !stale ? "Override applied" : "Over limit"
+      : override?.applied && !stale ? "Manager approved" : override?.reason.trim() ? "Awaiting manager" : "Over limit"
     : sp?.floor_status === "manager_override" ? "Manager approved" : "Within floor";
-  const statusTone = status === "Within floor" ? "bg-emerald-100 text-emerald-800" : status === "Manager approved" ? "bg-brand-100 text-brand-800" : "bg-rose-100 text-rose-800";
+  const statusTone = status === "Within floor" ? "bg-emerald-100 text-emerald-800" : status === "Manager approved" || status === "Override applied" ? "bg-brand-100 text-brand-800" : "bg-rose-100 text-rose-800";
 
+  // Over-limit discounts are allowed here; the override box below asks for approval when it is needed.
   function cap(value: number) {
-    return Math.max(0, Math.min(allowedMax, value));
+    return Math.max(0, Math.min(99, value));
   }
   function commit() {
     const value = parseFloat(text) || 0;
@@ -265,7 +267,15 @@ export default function DealPanel({
           </div>
         ) : null}
 
-        {overLimit ? (
+        {overLimit && override?.tokenRequired === false ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs font-semibold text-amber-900">{internal ? `Over the ${allowedMax.toFixed(1)}% limit — allowed while the manager token is off.` : "Special pricing applied."}</p>
+            {internal ? <>
+              <input type="text" className={`${FIELD} mt-2 w-full`} placeholder="Reason (optional)" value={override.reason} onChange={(event) => override.onReason(event.target.value)} />
+              <p className="mt-1 text-[11px] text-amber-800">The discount and reason are recorded in the audit log.</p>
+            </> : null}
+          </div>
+        ) : overLimit ? (
           <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
             <p className="text-xs font-semibold text-rose-800">{internal ? `Over the ${allowedMax.toFixed(1)}% limit — this` : "This"} discount needs manager approval.</p>
             {override ? (

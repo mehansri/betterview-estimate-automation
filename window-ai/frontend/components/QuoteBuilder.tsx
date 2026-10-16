@@ -39,7 +39,7 @@ import PatioDoorConfigurator, { PatioDoorValue } from "@/components/PatioDoorCon
 import BayConfigurator, { BayValue } from "@/components/BayConfigurator";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import { LayoutNode, layoutFromLegacySpec, STYLE_OPERATIONS, tryResolveLayout, WindowOperation } from "@/lib/windowLayout";
-import { useViewMode } from "@/lib/viewMode";
+import { overrideReasonFor, useViewMode } from "@/lib/viewMode";
 import DealPanel from "@/components/estimate/DealPanel";
 import FavouritesBar from "@/components/estimate/FavouritesBar";
 import QuoteProjectBar from "@/components/estimate/QuoteProjectBar";
@@ -1084,7 +1084,8 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     const requested = Math.max(0, negotiatedDiscount);
     // Avoid surfacing a hard server error for an over-limit discount with no reason.
     const needsOverride = requested > allowedMax + 1e-9;
-    if (needsOverride && (!overrideReason.trim() || (managerTokenRequired && !managerToken.trim()))) {
+    const reason = overrideReasonFor(overrideReason, managerTokenRequired);
+    if (needsOverride && (!reason || (managerTokenRequired && !managerToken.trim()))) {
       setError(
         `This discount (${requested.toFixed(1)}%) exceeds your authorized limit (${allowedMax.toFixed(1)}%). ` +
           `Enter a manager approval reason${managerTokenRequired ? " and authorization token" : ""} to proceed, or reduce the discount.`
@@ -1099,7 +1100,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
         commercial: {
           preset_id: selectedPreset?.id || selectedPresetId,
           negotiated_discount_percent: requested,
-          manager_override_reason: needsOverride ? overrideReason.trim() : undefined,
+          manager_override_reason: needsOverride ? reason : undefined,
           // Keep the complete calculation available to the salesperson so
           // switching between internal and customer display never loses data.
           // The API still supports presentation_mode="customer" for external
@@ -1159,7 +1160,8 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
 
     const requested = Math.max(0, negotiatedDiscount);
     const needsOverride = requested > autoPricingDiscountLimit + 1e-9;
-    if (needsOverride && (!overrideReason.trim() || (managerTokenRequired && !managerToken.trim()))) {
+    const reason = overrideReasonFor(overrideReason, managerTokenRequired);
+    if (needsOverride && (!reason || (managerTokenRequired && !managerToken.trim()))) {
       setPricing(false);
       return;
     }
@@ -1171,7 +1173,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
         commercial: {
           preset_id: selectedPreset?.id || selectedPresetId,
           negotiated_discount_percent: requested,
-          manager_override_reason: needsOverride ? overrideReason.trim() : undefined,
+          manager_override_reason: needsOverride ? reason : undefined,
           presentation_mode: "internal",
         },
         cost_context: projectId ? { project_id: projectId, scope: editMode ? "replace_windows" : "append" } : undefined,

@@ -21,6 +21,14 @@ import { fetchManagerTokenConfigured, verifyManagerToken } from "@/lib/api";
  * pages skip their token prompts (managerTokenRequired).
  */
 export type ViewMode = "internal" | "customer";
+
+/** Logged as the override reason when the manager token is off and the rep left the reason blank. */
+export const OPEN_OVERRIDE_REASON = "Over the discount limit (manager token off)";
+
+/** The override reason to send: the rep's, else the default while no manager token is set up. */
+export function overrideReasonFor(reason: string, managerTokenRequired: boolean): string {
+  return reason.trim() || (managerTokenRequired ? "" : OPEN_OVERRIDE_REASON);
+}
 export type ViewRole = "admin" | "rep";
 
 type ViewModeState = {

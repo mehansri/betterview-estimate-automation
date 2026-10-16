@@ -32,7 +32,7 @@ import PhotosCard from "@/components/estimate/PhotosCard";
 import SameModelCard from "@/components/estimate/SameModelCard";
 import ProfitPanel from "@/components/estimate/ProfitPanel";
 import { estimateToDraft, newEstimateLineId } from "@/lib/quoteHandoff";
-import { useViewMode } from "@/lib/viewMode";
+import { overrideReasonFor, useViewMode } from "@/lib/viewMode";
 
 /** Better View CRM origin; "Send to CRM" is hidden when unset. */
 const CRM_URL = (process.env.NEXT_PUBLIC_CRM_URL || "").trim().replace(/\/+$/, "");
@@ -450,7 +450,8 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       setError(`This total is below the protected installation, door, and job-item amount of ${money(agreedOffer.minimumNonDiscountableTotal)}. Increase the customer total or change the scope.`);
       return;
     }
-    if (agreedOffer.underAuthorizedFloor && (!managerReason.trim() || (managerTokenRequired && !managerToken.trim()))) {
+    const reason = overrideReasonFor(managerReason, managerTokenRequired);
+    if (agreedOffer.underAuthorizedFloor && (!reason || (managerTokenRequired && !managerToken.trim()))) {
       // Nothing is saved until a manager approves; saving the offer now would
       // leave the estimate with settings the server refuses to price.
       setMessage(null);
@@ -461,7 +462,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       ...estimate.commercial,
       agreed_customer_total: agreedOffer.target,
       negotiated_discount_percent: agreedOffer.discountPercent,
-      manager_override_reason: agreedOffer.underAuthorizedFloor ? managerReason.trim() : null,
+      manager_override_reason: agreedOffer.underAuthorizedFloor ? reason : null,
       presentation_mode: "internal",
     };
     await priceProjectWithCommercial(commercial, "Estimate priced at the agreed customer total.");
