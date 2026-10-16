@@ -441,3 +441,11 @@ def test_manager_override_needs_no_token_while_none_is_set(tmp_path, monkeypatch
     approved = client.post(f"/api/customer-estimates/{estimate_id}/price")
     assert approved.status_code == 200, approved.text
     assert approved.json()["pricing"]["window_quote"]["sales_pricing"]["floor_status"] == "manager_override"
+
+
+def test_pdf_logo_ships_with_the_backend():
+    # The Vercel API bundle has no frontend/ folder; the logo must live under services/.
+    from services.estimate_documents import LOGO_PATH
+
+    assert LOGO_PATH.exists()
+    assert "frontend" not in LOGO_PATH.parts

@@ -16,7 +16,9 @@ from services import business_settings
 from services.doors.pipeline import door_lites
 from services.windowcity.layout import exterior_colour
 
-LOGO_PATH = Path(__file__).resolve().parents[1] / "frontend" / "public" / "branding" / "better-view-solutions.png"
+# A copy of frontend/public/branding/better-view-solutions.png: the API's Vercel
+# bundle does not include frontend/, so the PDF printed the name instead of the logo.
+LOGO_PATH = Path(__file__).resolve().parent / "assets" / "better-view-solutions.png"
 
 
 def _iso(value: Any) -> str | None:
