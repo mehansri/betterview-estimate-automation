@@ -316,3 +316,14 @@ def test_customer_view_colours_drawings_priced_before_they_carried_one() -> None
     assert [line["drawing"]["exterior_colour"] for line in lines[:2]] == ["black", "black"]
     current = {"lines": [{"id": "a", "drawing": drawing(unit(72, 72, AW5))}]}
     assert _with_window_colours(current, row, {}) is current
+
+
+@pytest.mark.parametrize("width,severity", [(32, None), (36, "warning"), (37, "review")])
+def test_wide_triple_casements_warn_to_36_then_need_review(width, severity) -> None:
+    """Triple casements past the printed 32" are built to 36" with warranty (user rule 2026-10-16)."""
+    single = price_quote({"lines": [unit(width, 42, leaf("casement", "left"), TRIPLE)]})
+    mulled = price_quote({"lines": [unit(width * 2, 42, {"split": "cols", "children": [
+        leaf("casement", "left"), leaf("casement", "right")]}, TRIPLE)]})
+    for result, sections in ((single, 1), (mulled, 2)):
+        assert [w["severity"] for w in result["warnings"]] == ([severity] * sections if severity else [])
+        assert result["review_required"] is (severity == "review")

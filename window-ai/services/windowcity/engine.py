@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from . import catalog, layout
-from .quote import BAY_ANGLES, SLIDING_OPERATIONS, CatalogError, load_config, price_quote as _price_quote
+from .quote import BAY_ANGLES, SLIDING_OPERATIONS, Advisory, CatalogError, load_config, price_quote as _price_quote
 from .sales import apply_sales_pricing, list_presets, sales_config_version
 
 BOOK_VERSION = "Window City v18 (2023)"
@@ -168,7 +168,8 @@ def _walk_unsupported(value: Any, path: str = "line") -> list[str]:
 
 
 def _warning(message: str, code: str = "catalog_warning") -> dict[str, Any]:
-    return {"code": code, "severity": "review", "message": message}
+    severity = "warning" if isinstance(message, Advisory) else "review"
+    return {"code": code, "severity": severity, "message": str(message)}
 
 
 def _source_refs(pages: list[int]) -> list[str]:
@@ -376,8 +377,10 @@ def price_quote(
     warning_items = [_warning(message) for message in result.get("warnings", [])]
     warning_items.extend(_warning(reason, "unsupported_or_incomplete") for reason in reasons)
     result["warnings"] = warning_items
-    result["review_required"] = bool(warning_items)
-    result["status"] = "review_required" if warning_items else "priced"
+    # Advisory warnings are shown but don't hold up finalization.
+    review = any(item["severity"] == "review" for item in warning_items)
+    result["review_required"] = review
+    result["status"] = "review_required" if review else "priced"
     result["price_book_version"] = BOOK_VERSION
     result["config_version"] = _config_version()
     result["currency"] = "CAD"

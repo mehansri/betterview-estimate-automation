@@ -626,7 +626,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <div className="project-actions"><button type="button" className="button secondary" onClick={saveAsPackage} disabled={busy}>Save products as a reusable package</button></div>
           ) : null}
 
-          {estimate.pricing?.review_required ? <div className="review-box"><strong>Review required before finalization</strong>{estimate.pricing.warnings.map((warning, index) => <p key={`${warning.code}-${index}`}>{warning.message}</p>)}</div> : null}
+          {estimate.pricing?.review_required ? <div className="review-box"><strong>Review required before finalization</strong>{estimate.pricing.warnings.map((warning, index) => <p key={`${warning.code}-${index}`}>{warning.message}</p>)}</div> : estimate.pricing?.warnings.length ? <div className="review-box"><strong>Warnings (finalizing is allowed)</strong>{estimate.pricing.warnings.map((warning, index) => <p key={`${warning.code}-${index}`}>{warning.message}</p>)}</div> : null}
           {missingLocationLabels.length ? <div className="review-box"><strong>Locations required before finalization</strong><p>Add a location to every window and door. Missing: {missingLocationLabels.join(", ")}.</p></div> : null}
         </section>
         <section className="project-preview"><EstimateDocument estimate={estimate} editable={editable} onChange={updateMetadata} onConfigureDoor={editable ? (doorId) => openDoorWorkspace("edit", doorId) : undefined} /></section>

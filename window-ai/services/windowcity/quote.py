@@ -63,6 +63,15 @@ def load_config(overrides: dict | None = None) -> dict:
     return cfg
 
 
+class Advisory(str):
+    """A warning that is shown on the quote but doesn't hold up finalization."""
+
+
+def _prefixed(prefix: str, message: str) -> str:
+    """Prefix a warning, keeping it an Advisory if it was one."""
+    return type(message)(prefix + message) if isinstance(message, Advisory) else prefix + message
+
+
 class Component:
     """One priced piece of a line: (label, list_amount, discount_key)."""
 
@@ -315,6 +324,20 @@ def _check_limits(s: dict, w: float, h: float, gl: dict, warnings: list[str],
         w_ok = any(r["min"] <= w <= r["max"] for r in rngs[0::2])
         h_ok = any(r["min"] <= h <= r["max"] for r in rngs[1::2])
         if not (w_ok and h_ok):
+            # Window City builds triple-pane casements past the printed 32"
+            # width up to 36" with warranty; past that there is none
+            # (user rule 2026-10-16). That band is a warning, not a review.
+            warn_w = ((cfg or {}).get("engine") or {}).get("triple_casement_warn_width_in")
+            max_w = max(r["max"] for r in rngs[0::2])
+            if (triple and warn_w and h_ok and s["name"].strip().upper() == "CASEMENT"
+                    and max_w < w <= float(warn_w) + layout.EPS
+                    and any(r["min"] <= max_w <= r["max"] and rh["min"] <= h <= rh["max"]
+                            for r, rh in zip(rngs[0::2], rngs[1::2]))):
+                warnings.append(Advisory(
+                    f"{s['code']} {w:g}x{h:g}: triple-pane casement wider than the printed "
+                    f"{max_w:g}\" (book p.{s['source_page_book']}). Window City builds it up to "
+                    f"{float(warn_w):g}\" with warranty; wider has no warranty"))
+                return
             warnings.append(
                 f"{s['code']} {w:g}x{h:g} outside printed {wanted} range "
                 f"{row['raw']!r} (book p.{s['source_page_book']}) — Cantor "
@@ -457,7 +480,7 @@ def price_unit(line: dict, cfg: dict, warnings: list[str]) -> list[Component]:
         for c in sub:
             c.label = f"S{section.index} {name}: {c.label}"
         comps += sub
-        warnings.extend(f"Section {section.index} ({name}): {m}" for m in sec_warnings)
+        warnings.extend(_prefixed(f"Section {section.index} ({name}): ", m) for m in sec_warnings)
     comps += _mullion_components(resolved.lines, resolved.width, resolved.height,
                                  resolved.max_side_by_side, cfg, warnings)
     comps += _assembly_accessories(line, "", resolved.width, resolved.height, cfg)
