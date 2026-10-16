@@ -1314,7 +1314,8 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       }))
     : [];
   // A discount that no longer matches the generated quote → quote is stale, needs regenerating.
-  const stale = isPriced && Math.abs(requestedPct - (sp?.negotiated_discount_percent ?? -1)) > 1e-9;
+  // The API echoes the discount rounded to 4 decimals (sales._percent); a $-entered one never matches exactly.
+  const stale = isPriced && Math.abs(requestedPct - (sp?.negotiated_discount_percent ?? -1)) > 5e-4;
   // --------------------------------------------------------------------------------
 
   if (!projectId) return <ProjectAccessGate product="window" />;

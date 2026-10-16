@@ -152,9 +152,10 @@ export default function DealPanel({
     : sp?.floor_status === "manager_override" ? "Manager approved" : "Within floor";
   const statusTone = status === "Within floor" ? "bg-emerald-100 text-emerald-800" : status === "Manager approved" || status === "Override applied" ? "bg-brand-100 text-brand-800" : "bg-rose-100 text-rose-800";
 
-  // Over-limit discounts are allowed here; the override box below asks for approval when it is needed.
+  // With an override flow (window quotes) an over-limit discount is allowed and the box below
+  // handles approval; without one (doors) $ and total entries stop at the limit.
   function cap(value: number) {
-    return Math.max(0, Math.min(99, value));
+    return Math.max(0, Math.min(override ? 99 : allowedMax, value));
   }
   function commit() {
     const value = parseFloat(text) || 0;

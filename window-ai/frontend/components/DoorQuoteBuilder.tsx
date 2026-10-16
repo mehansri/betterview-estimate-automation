@@ -929,7 +929,8 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
     />
   );
   // A discount that no longer matches the last price: the panel previews it until the reprice lands.
-  const stale = Boolean(result) && Math.abs(Math.max(0, negotiatedDiscount) - (result?.sales_pricing.negotiated_discount_percent ?? -1)) > 1e-9;
+  // The API echoes the discount rounded to 4 decimals; a $-entered one never matches exactly.
+  const stale = Boolean(result) && Math.abs(Math.max(0, negotiatedDiscount) - (result?.sales_pricing.negotiated_discount_percent ?? -1)) > 5e-4;
 
   return (
     <div className="space-y-6">
