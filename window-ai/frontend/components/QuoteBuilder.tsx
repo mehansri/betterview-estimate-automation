@@ -745,7 +745,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
   const [favouritesBusy, setFavouritesBusy] = useState(false);
   const [favouritesError, setFavouritesError] = useState<string | null>(null);
   const [favouritesNotice, setFavouritesNotice] = useState<string | null>(null);
-  const { mode: presentationMode } = useViewMode();
+  const { mode: presentationMode, managerTokenRequired } = useViewMode();
   const internal = presentationMode === "internal";
   const [loading, setLoading] = useState(true);
   const [pricing, setPricing] = useState(false);
@@ -1084,10 +1084,10 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     const requested = Math.max(0, negotiatedDiscount);
     // Avoid surfacing a hard server error for an over-limit discount with no reason.
     const needsOverride = requested > allowedMax + 1e-9;
-    if (needsOverride && (!overrideReason.trim() || !managerToken.trim())) {
+    if (needsOverride && (!overrideReason.trim() || (managerTokenRequired && !managerToken.trim()))) {
       setError(
         `This discount (${requested.toFixed(1)}%) exceeds your authorized limit (${allowedMax.toFixed(1)}%). ` +
-          "Enter a manager approval reason and authorization token to proceed, or reduce the discount."
+          `Enter a manager approval reason${managerTokenRequired ? " and authorization token" : ""} to proceed, or reduce the discount.`
       );
       return;
     }
@@ -1159,7 +1159,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
 
     const requested = Math.max(0, negotiatedDiscount);
     const needsOverride = requested > autoPricingDiscountLimit + 1e-9;
-    if (needsOverride && (!overrideReason.trim() || !managerToken.trim())) {
+    if (needsOverride && (!overrideReason.trim() || (managerTokenRequired && !managerToken.trim()))) {
       setPricing(false);
       return;
     }
@@ -1195,7 +1195,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     }, 600);
 
     return () => window.clearTimeout(timer);
-  }, [autoPricingDiscountLimit, catalog, currentLine, draftIsValid, editHydrationKey, editMode, editingLine, hydratedEditId, lines, managerToken, negotiatedDiscount, overrideReason, projectId, selectedEditLineId, selectedPreset, selectedPresetId]);
+  }, [autoPricingDiscountLimit, catalog, currentLine, draftIsValid, editHydrationKey, editMode, editingLine, hydratedEditId, lines, managerToken, managerTokenRequired, negotiatedDiscount, overrideReason, projectId, selectedEditLineId, selectedPreset, selectedPresetId]);
 
   function overrideToken() {
     return result?.sales_pricing?.manager_override_reason ? managerToken.trim() || undefined : undefined;
@@ -1570,7 +1570,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
             stale={stale}
             priceError={autoPriceError}
             emptyText={internal ? "Choose valid options to see the price, cost and margin." : "Choose valid options to see the price."}
-            override={{ reason: overrideReason, token: managerToken, onReason: setOverrideReason, onToken: setManagerToken, applied: Boolean(sp?.override_applied) }}
+            override={{ reason: overrideReason, token: managerToken, tokenRequired: managerTokenRequired, onReason: setOverrideReason, onToken: setManagerToken, applied: Boolean(sp?.override_applied) }}
             reviewRequired={Boolean(result?.review_required)}
             customerLines={customerLines.map((line) => ({
               key: String(line.line),

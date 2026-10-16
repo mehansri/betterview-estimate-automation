@@ -141,6 +141,7 @@ def test_customer_estimate_can_be_removed_after_finalization(tmp_path, monkeypat
 
 def test_customer_estimate_manager_override_requires_token(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
+    monkeypatch.setenv("PRICING_ADMIN_TOKEN", "manager-secret")
     draft = _draft(mixed=False)
     created = client.post("/api/customer-estimates", json=draft)
     assert created.status_code == 200, created.text
@@ -159,7 +160,6 @@ def test_customer_estimate_manager_override_requires_token(tmp_path, monkeypatch
     assert blocked.status_code == 403
     assert blocked.json()["detail"]["code"] == "manager_authorization_required"
 
-    monkeypatch.setenv("PRICING_ADMIN_TOKEN", "manager-secret")
     approved = client.post(
         f"/api/customer-estimates/{estimate_id}/price",
         headers={"X-Pricing-Admin-Token": "manager-secret"},
@@ -425,3 +425,19 @@ def test_window_details_reject_unknown_operation(tmp_path, monkeypatch):
     draft = _draft(mixed=False)
     draft["windows"][0]["details"] = {"sections": [{"operation": "pivot", "handing": None}]}
     assert client.post("/api/customer-estimates", json=draft).status_code == 422
+
+
+def test_manager_override_needs_no_token_while_none_is_set(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    monkeypatch.delenv("PRICING_ADMIN_TOKEN", raising=False)
+    draft = _draft(mixed=False)
+    estimate_id = client.post("/api/customer-estimates", json=draft).json()["id"]
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    maximum_discount = priced.json()["pricing"]["window_quote"]["sales_pricing"]["maximum_allowed_discount_percent"]
+
+    draft["commercial"]["negotiated_discount_percent"] = maximum_discount + 1
+    draft["commercial"]["manager_override_reason"] = "Approved customer offer"
+    assert client.put(f"/api/customer-estimates/{estimate_id}", json=draft).status_code == 200
+    approved = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["pricing"]["window_quote"]["sales_pricing"]["floor_status"] == "manager_override"

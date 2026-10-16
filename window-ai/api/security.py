@@ -8,7 +8,7 @@ Without API_ACCESS_TOKEN the API stays open only for local development; on a
 Vercel deployment it refuses every request rather than run unprotected.
 
 ``require_pricing_admin``: shared manager/admin authorization for
-configuration changes.
+configuration changes; off while PRICING_ADMIN_TOKEN is unset.
 """
 from __future__ import annotations
 
@@ -31,13 +31,25 @@ def require_api_token(authorization: str | None = Header(default=None)) -> None:
 
 
 def manager_token_configured() -> bool:
-    """True when PRICING_ADMIN_TOKEN is set; without it no manager token is accepted."""
+    """True when PRICING_ADMIN_TOKEN is set; without it the manager check is off."""
     return bool(os.getenv("PRICING_ADMIN_TOKEN", "").strip())
 
 
+def manager_authorized(token: str | None) -> bool:
+    """True when the manager check is off or ``token`` matches PRICING_ADMIN_TOKEN.
+
+    The manager token is off while PRICING_ADMIN_TOKEN is unset (owner's
+    decision 2026-10-15, app in testing): settings saves and discount overrides
+    go through without one. Setting the variable turns the check back on.
+    """
+    expected_token = os.getenv("PRICING_ADMIN_TOKEN", "").strip()
+    if not expected_token:
+        return True
+    return bool(token) and secrets.compare_digest(token.strip().encode(), expected_token.encode())
+
+
 def require_pricing_admin(token: str | None) -> None:
-    expected_token = os.getenv("PRICING_ADMIN_TOKEN")
-    if not expected_token or not token or not secrets.compare_digest(token, expected_token):
+    if not manager_authorized(token):
         raise HTTPException(
             status_code=403,
             detail={

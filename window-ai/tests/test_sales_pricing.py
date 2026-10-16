@@ -173,9 +173,11 @@ def test_manager_token_status_reports_whether_one_is_set(monkeypatch) -> None:
     client = TestClient(app)
     monkeypatch.delenv("PRICING_ADMIN_TOKEN", raising=False)
     assert client.get("/api/admin/manager-token").json() == {"configured": False}
-    assert client.post("/api/admin/verify-token", headers={"X-Pricing-Admin-Token": "anything"}).status_code == 403
+    # No token set: the manager check is off.
+    assert client.post("/api/admin/verify-token", headers={"X-Pricing-Admin-Token": "anything"}).status_code == 204
     monkeypatch.setenv("PRICING_ADMIN_TOKEN", "manager-secret")
     assert client.get("/api/admin/manager-token").json() == {"configured": True}
+    assert client.post("/api/admin/verify-token", headers={"X-Pricing-Admin-Token": "anything"}).status_code == 403
     assert client.post("/api/admin/verify-token", headers={"X-Pricing-Admin-Token": "manager-secret"}).status_code == 204
 
 

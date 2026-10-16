@@ -11,7 +11,7 @@ type NegotiationMode = "percent" | "dollars" | "price";
 export type DealTotals = { cost: number; profit: number; sell: number; hst: number; customerTotal: number; list?: number | null };
 export type DealCustomerLine = { key: string; label: string; detail?: string; total: number };
 /** Manager approval inputs for a discount over the limit (windows only today). */
-export type DealOverride = { reason: string; token: string; onReason: (value: string) => void; onToken: (value: string) => void; applied: boolean };
+export type DealOverride = { reason: string; token: string; tokenRequired?: boolean; onReason: (value: string) => void; onToken: (value: string) => void; applied: boolean };
 
 export function presetLabel(preset: SalesPreset) {
   if (preset.strategy === "sliding_margin" && preset.sliding) {
@@ -271,7 +271,7 @@ export default function DealPanel({
             {override ? (
               <>
                 <input type="text" className={`${FIELD} mt-2 w-full`} placeholder="Manager approval reason (required)" value={override.reason} onChange={(event) => override.onReason(event.target.value)} />
-                <input type="password" className={`${FIELD} mt-2 w-full`} placeholder="Manager authorization token (required)" value={override.token} onChange={(event) => override.onToken(event.target.value)} autoComplete="off" />
+                {override.tokenRequired !== false ? <input type="password" className={`${FIELD} mt-2 w-full`} placeholder="Manager authorization token (required)" value={override.token} onChange={(event) => override.onToken(event.target.value)} autoComplete="off" /> : null}
                 <p className="mt-1 text-[11px] text-rose-700">The override, reason and price are recorded in the audit log.</p>
               </>
             ) : <p className="mt-1 text-xs text-rose-700">Reduce the discount to price this quote.</p>}

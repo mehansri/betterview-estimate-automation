@@ -162,7 +162,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   const [taxRates, setTaxRates] = useState<Record<string, TaxRateEntry>>({});
   const [packages, setPackages] = useState<SavedTemplate<EstimatePackage>[]>([]);
   // Internal cost and margin follow the app-wide internal / customer view.
-  const { internal: showInternal } = useViewMode();
+  const { internal: showInternal, managerTokenRequired } = useViewMode();
   const pricingFingerprint = useMemo(
     () => JSON.stringify({
       windows: estimate.windows,
@@ -450,11 +450,11 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       setError(`This total is below the protected installation, door, and job-item amount of ${money(agreedOffer.minimumNonDiscountableTotal)}. Increase the customer total or change the scope.`);
       return;
     }
-    if (agreedOffer.underAuthorizedFloor && (!managerReason.trim() || !managerToken.trim())) {
+    if (agreedOffer.underAuthorizedFloor && (!managerReason.trim() || (managerTokenRequired && !managerToken.trim()))) {
       // Nothing is saved until a manager approves; saving the offer now would
       // leave the estimate with settings the server refuses to price.
       setMessage(null);
-      setError(`This offer is below the authorized minimum of ${money(agreedOffer.minimumAuthorizedTotal)}. Enter a manager reason and authorization token, then apply it again.`);
+      setError(`This offer is below the authorized minimum of ${money(agreedOffer.minimumAuthorizedTotal)}. Enter a manager reason${managerTokenRequired ? " and authorization token" : ""}, then apply it again.`);
       return;
     }
     const commercial: CommercialSettings = {
@@ -570,9 +570,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             </div> : null}
             {agreedOffer?.aboveBase ? <div className="review-box"><strong>The agreed total is above the undiscounted estimate.</strong><p>Use a sales preset or change the scope if the customer needs a higher total.</p></div> : null}
             {agreedOffer?.belowHardMinimum ? <div className="review-box"><strong>The agreed total is too low to price safely.</strong><p>It would reduce the merchandise below zero after protecting installation, doors, and job items.</p></div> : null}
-            {agreedOffer?.underAuthorizedFloor ? <div className="review-box"><strong>Manager approval required</strong><p>This offer is below the authorized minimum of {money(agreedOffer.minimumAuthorizedTotal)}. Add the reason and authorization token before applying it.</p><div className="editor-grid">
+            {agreedOffer?.underAuthorizedFloor ? <div className="review-box"><strong>Manager approval required</strong><p>This offer is below the authorized minimum of {money(agreedOffer.minimumAuthorizedTotal)}. Add the reason{managerTokenRequired ? " and authorization token" : ""} before applying it.</p><div className="editor-grid">
               <Field label="Manager reason"><input className="project-input" value={managerReason} onChange={(event) => setManagerReason(event.target.value)} disabled={!editable || busy} placeholder="Approved promotional offer" /></Field>
-              <Field label="Manager authorization token"><input className="project-input" type="password" value={managerToken} onChange={(event) => setManagerToken(event.target.value)} disabled={!editable || busy} placeholder="Required for override" /></Field>
+              {managerTokenRequired ? <Field label="Manager authorization token"><input className="project-input" type="password" value={managerToken} onChange={(event) => setManagerToken(event.target.value)} disabled={!editable || busy} placeholder="Required for override" /></Field> : null}
             </div></div> : null}
           </div>
 

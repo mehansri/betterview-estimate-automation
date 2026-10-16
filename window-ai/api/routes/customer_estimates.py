@@ -11,6 +11,7 @@ from fastapi import APIRouter, File, Form, Header, HTTPException, Query, UploadF
 from fastapi.responses import Response
 from sqlalchemy.exc import IntegrityError
 
+from api.security import manager_authorized
 from api.schemas.customer_estimates import (
     LOCKED_STATUSES,
     CrmLinkRequest,
@@ -168,8 +169,7 @@ def _require_manager_override(commercial: dict, token: str | None) -> bool:
     has_reason = bool(str(reason).strip()) if reason is not None else False
     if not has_reason:
         return False
-    expected = os.getenv("PRICING_ADMIN_TOKEN")
-    if not expected or token != expected:
+    if not manager_authorized(token):
         raise HTTPException(
             status_code=403,
             detail={

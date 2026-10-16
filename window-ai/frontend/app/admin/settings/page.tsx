@@ -16,6 +16,7 @@ import {
   saveJobAdders,
 } from "@/lib/api";
 import { breakpoints, DEFAULT_SLIDING, slidingPlan, slidingProblem } from "@/lib/slidingMargin";
+import { useViewMode } from "@/lib/viewMode";
 
 // ---------------------------------------------------------------- shared helpers
 
@@ -178,6 +179,7 @@ type SaveStatus = { kind: "ok" | "error"; text: string } | null;
 
 /** Validates, checks the shared manager token, runs the save and reports inline. */
 function useSaveAction(token: string) {
+  const { managerTokenRequired } = useViewMode();
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<SaveStatus>(null);
 
@@ -189,7 +191,7 @@ function useSaveAction(token: string) {
         return;
       }
       const trimmed = token.trim();
-      if (!trimmed) {
+      if (!trimmed && managerTokenRequired) {
         setStatus({ kind: "error", text: "Enter the manager token at the top of the page to save." });
         return;
       }
@@ -203,7 +205,7 @@ function useSaveAction(token: string) {
         setSaving(false);
       }
     },
-    [token]
+    [managerTokenRequired, token]
   );
 
   const clearStatus = useCallback(() => setStatus(null), []);
@@ -1128,6 +1130,7 @@ function JobAddersSection({ token }: { token: string }) {
 // ---------------------------------------------------------------- sales pricing (presets)
 
 function SalesPricingSection({ token }: { token: string }) {
+  const { managerTokenRequired } = useViewMode();
   const [currency, setCurrency] = useState("CAD");
   const [minimumMarkup, setMinimumMarkup] = useState(20);
   const [profitFloor, setProfitFloor] = useState(1800);
@@ -1186,7 +1189,7 @@ function SalesPricingSection({ token }: { token: string }) {
     setError(null);
     setMessage(null);
 
-    if (!token.trim()) {
+    if (!token.trim() && managerTokenRequired) {
       setError("Enter the pricing admin token to save sales controls.");
       return;
     }
@@ -1464,6 +1467,7 @@ const SECTIONS = [
 ];
 
 export default function SalesSettingsPage() {
+  const { managerTokenRequired } = useViewMode();
   const [token, setToken] = useState("");
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
@@ -1503,7 +1507,7 @@ export default function SalesSettingsPage() {
         </ul>
       </nav>
 
-      <section aria-labelledby="token-title" className="rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-6">
+      {managerTokenRequired ? <section aria-labelledby="token-title" className="rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-6">
         <h3 id="token-title" className="text-base font-semibold text-slate-900">Manager token</h3>
         <p className="mt-1 text-sm text-slate-600">
           Every Save button on this page needs the pricing admin token. It is kept only in this browser tab and never stored.
@@ -1520,7 +1524,7 @@ export default function SalesSettingsPage() {
             />
           </Field>
         </div>
-      </section>
+      </section> : null}
 
       <SalesPricingSection token={token} />
 

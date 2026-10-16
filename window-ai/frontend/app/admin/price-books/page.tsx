@@ -11,6 +11,7 @@ import {
   publishPriceBook,
   revertPriceBook,
 } from "@/lib/api";
+import { useViewMode } from "@/lib/viewMode";
 
 const INPUT =
   "input block w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm " +
@@ -169,6 +170,7 @@ function ChangeSummaryText({ summary }: { summary: PriceBookVersion["summary"] }
 }
 
 export default function PriceBooksPage() {
+  const { managerTokenRequired } = useViewMode();
   const [listing, setListing] = useState<PriceBookListing | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [token, setToken] = useState("");
@@ -208,7 +210,7 @@ export default function PriceBooksPage() {
   );
 
   function requireToken(setStatus: (status: Status) => void) {
-    if (!token.trim()) {
+    if (!token.trim() && managerTokenRequired) {
       setStatus({ kind: "error", text: "Enter the manager token first." });
       return null;
     }
@@ -221,7 +223,7 @@ export default function PriceBooksPage() {
     if (!dataset) return setImportStatus({ kind: "error", text: "Choose which dataset this file replaces." });
     if (!file) return setImportStatus({ kind: "error", text: "Choose a JSON file to import." });
     const adminToken = requireToken(setImportStatus);
-    if (!adminToken) return;
+    if (adminToken === null) return;
     setBusy("import");
     try {
       const version = await importPriceBook(dataset, label.trim(), file, adminToken);
@@ -240,7 +242,7 @@ export default function PriceBooksPage() {
 
   async function onPublish(version: PriceBookVersion, setStatus: (status: Status) => void) {
     const adminToken = requireToken(setStatus);
-    if (!adminToken) return;
+    if (adminToken === null) return;
     if (!window.confirm(`Publish “${version.label}” for ${version.dataset}?\n\n${PUBLISH_WARNING}`)) return;
     setBusy(`publish:${version.id}`);
     setStatus(null);
@@ -258,7 +260,7 @@ export default function PriceBooksPage() {
 
   async function onRevert(name: string) {
     const adminToken = requireToken(setDatasetStatus);
-    if (!adminToken) return;
+    if (adminToken === null) return;
     if (!window.confirm(`Revert ${name} to the bundled file?\n\nNew quotes will use the bundled prices again; already-priced drafts will need repricing.`)) return;
     setBusy(`revert:${name}`);
     setDatasetStatus(null);
@@ -288,14 +290,14 @@ export default function PriceBooksPage() {
         </p>
       </div>
 
-      <section aria-labelledby="token-title" className="rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-6">
+      {managerTokenRequired ? <section aria-labelledby="token-title" className="rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-6">
         <h3 id="token-title" className="text-base font-semibold text-slate-900">Manager token</h3>
         <p className="mt-1 text-sm text-slate-600">Needed to import, publish or revert. Downloading is open to everyone.</p>
         <label className="mt-4 block max-w-sm text-sm">
           <span className="mb-1 block font-medium text-slate-700">Pricing admin token</span>
           <input className={INPUT} type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder="Manager token" />
         </label>
-      </section>
+      </section> : null}
 
       {loadError ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800">{loadError}</p> : null}
       {!listing && !loadError ? <p className="text-sm text-slate-500">Loading price books…</p> : null}

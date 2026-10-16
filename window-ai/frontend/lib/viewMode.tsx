@@ -17,7 +17,8 @@ import { fetchManagerTokenConfigured, verifyManagerToken } from "@/lib/api";
  *
  * Without a manager token on the API (PRICING_ADMIN_TOKEN) nothing could ever
  * unlock the device, so the lock is not offered and a device locked earlier is
- * released to the customer view.
+ * released to the customer view. The manager check is then off as well, so
+ * pages skip their token prompts (managerTokenRequired).
  */
 export type ViewMode = "internal" | "customer";
 export type ViewRole = "admin" | "rep";
@@ -32,6 +33,8 @@ type ViewModeState = {
   unlock: (managerToken: string) => Promise<boolean>;
   /** False when the API has no manager token, so the rep lock could not be undone. */
   canLock: boolean;
+  /** False when the API has no manager token: saves and overrides need none. */
+  managerTokenRequired: boolean;
 };
 
 const STORAGE_KEY = "bv-view-mode";
@@ -144,6 +147,7 @@ export function ViewModeProvider({ children }: { children: ReactNode }) {
     lockAsRep,
     unlock,
     canLock: tokenConfigured !== false,
+    managerTokenRequired: tokenConfigured !== false,
   }), [lockAsRep, setMode, state, tokenConfigured, toggle, unlock]);
 
   return <ViewModeContext.Provider value={value}>{children}</ViewModeContext.Provider>;
@@ -159,6 +163,7 @@ const CUSTOMER_ONLY: ViewModeState = {
   lockAsRep: () => undefined,
   unlock: async () => false,
   canLock: false,
+  managerTokenRequired: true,
 };
 
 export function useViewMode(): ViewModeState {

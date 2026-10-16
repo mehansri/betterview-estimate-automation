@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import copy
-import os
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Header, HTTPException
 
+from api.security import manager_authorized
 from api.schemas.quote import (
     CostContext,
     DeterministicQuoteRequest,
@@ -202,8 +202,7 @@ def price_quote(
         raise HTTPException(status_code=422, detail="Manager override reason is required when supplied.")
     has_manager_override = bool(str(override_reason).strip()) if override_reason is not None else False
     if has_manager_override:
-        expected_token = os.getenv("PRICING_ADMIN_TOKEN")
-        if not expected_token or pricing_admin_token != expected_token:
+        if not manager_authorized(pricing_admin_token):
             raise HTTPException(
                 status_code=403,
                 detail={
