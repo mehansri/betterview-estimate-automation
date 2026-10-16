@@ -11,7 +11,7 @@ from fastapi import APIRouter, File, Form, Header, HTTPException, Query, UploadF
 from fastapi.responses import Response
 from sqlalchemy.exc import IntegrityError
 
-from api.security import manager_authorized
+from api.security import manager_authorized, manager_token_configured
 from api.schemas.customer_estimates import (
     LOCKED_STATUSES,
     CrmLinkRequest,
@@ -164,7 +164,14 @@ def _apply_body(row: CustomerEstimate, body: CustomerEstimateDraft) -> None:
             row.home_model_id = None
 
 
+OPEN_OVERRIDE_REASON = "Over the discount limit (manager token off)"
+
+
 def _require_manager_override(commercial: dict, token: str | None) -> bool:
+    # With the manager token off, an over-limit discount prices instead of
+    # failing; it is still logged (see price_customer_estimate_route).
+    if not manager_token_configured():
+        return True
     reason = commercial.get("manager_override_reason")
     has_reason = bool(str(reason).strip()) if reason is not None else False
     if not has_reason:
@@ -428,7 +435,7 @@ def price_customer_estimate_route(
         row.updated_at = _now()
         profit = snapshot.get("profitability") or {}
         if profit.get("override_applied"):
-            _log(session, row, "override", reason=(row.commercial or {}).get("manager_override_reason"),
+            _log(session, row, "override", reason=(row.commercial or {}).get("manager_override_reason") or OPEN_OVERRIDE_REASON,
                  total=snapshot["totals"]["total"], margin_percent=profit.get("margin_percent"))
         session.flush()
         return _row_response(row)

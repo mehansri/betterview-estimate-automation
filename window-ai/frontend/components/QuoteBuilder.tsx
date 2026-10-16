@@ -177,6 +177,16 @@ function emptyDraft(style = "WC-100", type: QuoteLineType = "unit"): Draft {
   };
 }
 
+/**
+ * The window discount the project is priced at. An agreed customer total (set on
+ * the project page) is saved as a total, so its percent comes from the last price.
+ */
+function projectDiscount(project: CustomerEstimate): number {
+  const priced = project.pricing?.window_quote?.sales_pricing?.negotiated_discount_percent;
+  if (project.commercial.agreed_customer_total != null && typeof priced === "number") return priced;
+  return project.commercial.negotiated_discount_percent || 0;
+}
+
 function emptyOrderDetails(): OrderDetails {
   return { tag: "", elevation: "", screen: null, screen_frame: "white", screen_mesh: "black", hardware: null, spacer: "Black", notes: "" };
 }
@@ -809,7 +819,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     const saved = salesPresets.find((preset) => preset.id === project.commercial.preset_id);
     if (saved) {
       setSelectedPresetId(saved.id);
-      setNegotiatedDiscount(project.commercial.negotiated_discount_percent || 0);
+      setNegotiatedDiscount(projectDiscount(project));
     }
   }, [editMode, project, salesPresets]);
 
@@ -851,7 +861,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
     setOrderDetails(orderDetailsFrom(selectedLine.details));
     setSavedDetails(selectedLine.details ?? null);
     setSelectedPresetId(project.commercial.preset_id || "standard");
-    setNegotiatedDiscount(project.commercial.negotiated_discount_percent || 0);
+    setNegotiatedDiscount(projectDiscount(project));
     setResult(null);
     setHydratedEditId(editHydrationKey);
   }, [catalog, editMode, editHydrationKey, editWindowId, hydratedEditId, project]);
@@ -1230,6 +1240,8 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
         preset_id: result.sales_pricing.preset_id || project.commercial.preset_id,
         negotiated_discount_percent: result.sales_pricing.negotiated_discount_percent,
         manager_override_reason: result.sales_pricing.manager_override_reason || undefined,
+        // The Deal panel's discount replaces an agreed total set on the project page.
+        agreed_customer_total: null,
         presentation_mode: "internal",
       } : project.commercial,
     });

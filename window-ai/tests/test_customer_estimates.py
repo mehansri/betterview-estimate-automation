@@ -449,3 +449,19 @@ def test_pdf_logo_ships_with_the_backend():
 
     assert LOGO_PATH.exists()
     assert "frontend" not in LOGO_PATH.parts
+
+
+def test_agreed_total_over_the_limit_prices_while_the_manager_token_is_off(tmp_path, monkeypatch):
+    # The Abbey case: an agreed total far below list, no override reason, no token set up.
+    client = _client(tmp_path, monkeypatch)
+    monkeypatch.delenv("PRICING_ADMIN_TOKEN", raising=False)
+    draft = _draft(mixed=False)
+    estimate_id = client.post("/api/customer-estimates", json=draft).json()["id"]
+    listed = client.post(f"/api/customer-estimates/{estimate_id}/price").json()["pricing"]["totals"]["total"]
+
+    draft["commercial"]["agreed_customer_total"] = round(listed * 0.8, 2)
+    draft["commercial"]["manager_override_reason"] = None
+    assert client.put(f"/api/customer-estimates/{estimate_id}", json=draft).status_code == 200
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+    assert priced.json()["pricing"]["totals"]["total"] == pytest.approx(listed * 0.8, abs=0.05)
