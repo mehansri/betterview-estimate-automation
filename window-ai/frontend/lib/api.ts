@@ -728,6 +728,10 @@ export type TierSummary = {
   customer_note?: string;
   /** Windows changed with an adjustment so they could take the option (white interior). */
   adjusted?: NonNullable<TierSummary["kept_as_quoted"]>;
+  /** Window lines this option actually changes. */
+  changed_line_ids?: string[];
+  /** The windows, doors and totals the customer buys with this option, priced. */
+  scope?: { sections: EstimateSections };
 };
 
 export type WindowSectionLine = {

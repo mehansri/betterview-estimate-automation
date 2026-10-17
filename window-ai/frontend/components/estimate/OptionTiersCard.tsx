@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ApplyVariationResult, CustomerEstimate, CustomerWindowLine, EstimateTier, TierLineGroup, TierOverrides, TierSummary } from "@/lib/api";
 import { EXTERIOR_COLOURS, WINDOW_GASES, WINDOW_GLASS, activeGlass } from "@/lib/productOptions";
 import { newEstimateLineId } from "@/lib/quoteHandoff";
+import VariationWindows from "@/components/estimate/VariationWindows";
 import { SERIES_SHORT_LABELS, seriesOfStyle } from "@/lib/windowLayout";
 
 const COLLECTIONS = ["classic", "classic_400", "heritage", "heritage_maximum"];
@@ -386,6 +387,9 @@ export default function OptionTiersCard({
 
   const asQuotedTier = tiers.find(tierIsAsQuoted);
   const baseTotal = asQuotedTier ? summaries.get(asQuotedTier.id)?.total : !selected ? estimate.pricing?.totals?.total : undefined;
+  // The windows as quoted, for "was" descriptions and per-window price differences.
+  const baseLines = asQuotedTier ? summaries.get(asQuotedTier.id)?.scope?.sections.windows.lines
+    : !selected ? estimate.pricing?.sections?.windows.lines : undefined;
 
   function update(id: string, patch: Partial<EstimateTier>) {
     onChange(tiers.map((tier) => (tier.id === id ? { ...tier, ...patch } : tier)), selected);
@@ -610,6 +614,17 @@ export default function OptionTiersCard({
               ) : null}
 
               {summary && !updating ? <ResultList summary={summary} windows={windows} targeted={targeted} asQuoted={asQuoted} /> : null}
+              {summary && !summary.error && !updating && !asQuoted ? (
+                <VariationWindows
+                  summary={summary}
+                  windows={windows}
+                  baseLines={baseLines}
+                  targeted={(lineId) => {
+                    const group = groups.find((item) => item.line_ids.includes(lineId));
+                    return !isAsQuoted(group ? group.overrides : tier.window_overrides);
+                  }}
+                />
+              ) : null}
 
               <details className="mt-2 text-xs">
                 <summary className="cursor-pointer font-semibold text-slate-600">Customer description &amp; fine-tune glass</summary>

@@ -457,7 +457,7 @@ def apply_tier_checked(
     interior, and that adjustment is reported. A line that can't be priced as
     quoted either (an incomplete draft) takes the changes unchecked.
     """
-    report: dict[str, Any] = {"applied_lines": 0, "already_lines": 0, "kept": [], "adjusted": []}
+    report: dict[str, Any] = {"applied_lines": 0, "already_lines": 0, "kept": [], "adjusted": [], "changed": []}
     if not tier:
         return windows, report
     default = tier.get("window_overrides") or {}
@@ -520,6 +520,8 @@ def apply_tier_checked(
                 "reason": friendly_reason(reason),
             })
         report["applied_lines"] += int(changed)
+        if changed:
+            report["changed"].append(line.get("id"))
         report["already_lines"] += int(not changed and len(report["kept"]) == kept_before)
         out.append({**line, "spec": current} if changed else line)
     return out, report
@@ -801,6 +803,7 @@ def price_customer_estimate(
         summary["applied_lines"] = report["applied_lines"]
         # Windows changed with an adjustment so they could take the option.
         summary["adjusted"] = report["adjusted"]
+        summary["changed_line_ids"] = report["changed"]
         summary["customer_note"] = kept_note(report["kept"], report["adjusted"])
         if not report["applied_lines"] and (report["kept"] or report["already_lines"]):
             summary["error"] = nothing_applied_reason(report)
