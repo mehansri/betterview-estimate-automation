@@ -105,6 +105,12 @@ class TierOverrides(BaseModel):
     colour_int: Optional[str] = None
 
 
+class TierLineGroup(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    line_ids: list[str] = Field(default_factory=list)
+    overrides: TierOverrides = Field(default_factory=TierOverrides)
+
+
 class EstimateTier(BaseModel):
     """A Good / Better / Best option: the same scope with product upgrades."""
 
@@ -112,6 +118,9 @@ class EstimateTier(BaseModel):
     name: str = "Option"
     description: str = ""
     window_overrides: TierOverrides = Field(default_factory=TierOverrides)
+    # Windows picked out of the option: each group's lines take its overrides
+    # instead of window_overrides (e.g. Heritage at the front, Classic elsewhere).
+    line_groups: list[TierLineGroup] = Field(default_factory=list)
 
 
 class CustomerEstimateDraft(BaseModel):
@@ -235,6 +244,8 @@ class ApplyVariationResponse(BaseModel):
     estimate: "CustomerEstimateResponse"
     applied_lines: int
     kept_as_quoted: list[KeptChange] = Field(default_factory=list)
+    # Changed with an adjustment so the window could take it (white interior).
+    adjusted: list[KeptChange] = Field(default_factory=list)
 
 
 class FollowUpRequest(BaseModel):

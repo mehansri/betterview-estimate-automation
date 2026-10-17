@@ -213,7 +213,7 @@ export default function EstimateDocument({
         <section className="estimate-product-section">
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Choose your package</p><h2>Options</h2></div></div>
           <table className="estimate-table"><thead><tr><th>Option</th><th>What changes</th><th className="text-right">Total</th></tr></thead><tbody>
-            {pricing.tiers.filter((tier) => !tier.error).map((tier) => <tr key={tier.id}><td data-label="Option" className="font-semibold">{tier.name}{tier.selected ? " (quoted above)" : ""}</td><td data-label="What changes">{tier.description || "—"}{tier.customer_note ? <span className="block text-xs text-slate-500">{tier.customer_note}</span> : null}</td><td data-label="Total" className="text-right font-semibold">{money(tier.total)}</td></tr>)}
+            {pricing.tiers.filter((tier) => !tier.error).map((tier) => <tr key={tier.id}><td data-label="Option" className="font-semibold">{tier.name}{tier.selected ? " (quoted above)" : ""}</td><td data-label="What changes">{tier.description || (tier.customer_note ? null : "—")}{tier.customer_note ? <span className="block text-xs text-slate-500">{tier.customer_note}</span> : null}</td><td data-label="Total" className="text-right font-semibold">{money(tier.total)}</td></tr>)}
           </tbody></table>
         </section>
       ) : null}

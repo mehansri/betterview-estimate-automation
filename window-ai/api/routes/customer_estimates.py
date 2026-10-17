@@ -584,6 +584,7 @@ def apply_variation(estimate_id: str, body: ApplyVariationRequest) -> ApplyVaria
             estimate=_row_response(row),
             applied_lines=report["applied_lines"],
             kept_as_quoted=report["kept"],
+            adjusted=report["adjusted"],
         )
 
 

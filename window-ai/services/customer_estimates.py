@@ -236,7 +236,8 @@ def _apply_collection(spec: dict[str, Any], target: str) -> dict[str, Any]:
     if isinstance(out.get("layout"), dict) and out.get("type") in ("unit", "bay_bow"):
         _restyle_layout(out["layout"], target)
         out["series"] = target
-    if out.get("style"):
+    # On a bay/bow, ``style`` is the shape ("bay" / "bow"), not a catalog code.
+    if out.get("style") and out.get("type", "window") == "window":
         out["style"] = _restyle(out["style"], target)
     if isinstance(out.get("defaults"), dict) and out["defaults"].get("style"):
         out["defaults"]["style"] = _restyle(out["defaults"]["style"], target)
@@ -262,6 +263,20 @@ def _apply_colour(spec: dict[str, Any], overrides: dict[str, Any]) -> dict[str, 
         out["colour_int"] = "white"
     if isinstance(out.get("lites"), list):
         out["lites"] = [_apply_colour(lite, overrides) if isinstance(lite, dict) else lite for lite in out["lites"]]
+    return out
+
+
+def _has_coloured_interior(spec: dict[str, Any]) -> bool:
+    specs = [spec, *[lite for lite in spec.get("lites") or [] if isinstance(lite, dict)]]
+    return any(str(item.get("colour_int") or "white").lower() not in ("", "white") for item in specs)
+
+
+def _white_interior(spec: dict[str, Any]) -> dict[str, Any]:
+    out = copy.deepcopy(spec)
+    if "colour_int" in out:
+        out["colour_int"] = "white"
+    if isinstance(out.get("lites"), list):
+        out["lites"] = [_white_interior(lite) if isinstance(lite, dict) else lite for lite in out["lites"]]
     return out
 
 
@@ -333,6 +348,8 @@ def _override_section_glazing(node: dict[str, Any], glazing: dict[str, Any]) -> 
 
 
 _COLOUR_ERROR = re.compile(r"colour '([^']+)' \(interior_too=\w+\) not offered for ([\w-]+)")
+_INTERIOR_ERROR = re.compile(r"(\w[\w ]*?) interior is not offered on ([\w-]+)")
+_RANGE_WARNING = re.compile(r"([\w-]+) ([\d.]+)x([\d.]+) outside printed (double|triple) range")
 _SIZE_ERROR = re.compile(r"no tier for ([\d.]+) sqft in ([\w-]+)")
 
 
@@ -355,6 +372,13 @@ def friendly_reason(reason: str) -> str:
             offered = []
         also = f" (made in white, {', '.join(offered)})" if offered else " (made in white only)"
         return f"{colour.capitalize()} isn't made on the {_style_label(code)}{also}"
+    if match := _INTERIOR_ERROR.search(reason):
+        colour, code = match.groups()
+        return f"{colour.capitalize()} interior isn't made on the {_style_label(code)}"
+    if match := _RANGE_WARNING.search(reason):
+        code, width, height, panes = match.groups()
+        glass = " in triple pane" if panes == "triple" else ""
+        return f"The {_style_label(code)} isn't made {width}\" × {height}\"{glass}"
     if match := _SIZE_ERROR.search(reason):
         sqft, code = match.groups()
         return f"The {_style_label(code)} isn't made this large ({float(sqft):.1f} sq ft)"
@@ -378,26 +402,40 @@ _KEPT_PHRASES = {
 }
 
 
-def kept_note(kept: list[dict[str, Any]]) -> str:
-    """Customer wording for the windows an option couldn't change."""
+def _subject(rows: list[dict[str, Any]]) -> str:
+    names = list(dict.fromkeys(str(row.get("location") or "").strip() for row in rows))
+    if "" in names or len(names) > 4:
+        return f"{len(rows)} window{'s' if len(rows) != 1 else ''}"
+    joined = names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
+    # Several windows share a location: "8 windows at South side".
+    return f"{len(rows)} windows at {joined}" if len(rows) > len(names) else joined
+
+
+def kept_note(kept: list[dict[str, Any]], adjusted: list[dict[str, Any]] | None = None) -> str:
+    """Customer wording for the windows an option couldn't change, or changed with an adjustment."""
     sentences = []
     for change, (one, many) in _KEPT_PHRASES.items():
         rows = [row for row in kept if row.get("change") == change]
-        if not rows:
-            continue
-        names = list(dict.fromkeys(str(row.get("location") or "").strip() for row in rows))
-        if "" in names or len(names) > 4:
-            subject = f"{len(rows)} window{'s' if len(rows) != 1 else ''}"
-        else:
-            subject = names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
-        plural = len(rows) != 1
-        sentences.append(f"{subject} {many if plural else one} (not available in this option).")
+        if rows:
+            sentences.append(f"{_subject(rows)} {many if len(rows) != 1 else one} (not available in this option).")
+    if adjusted:
+        verb = "have" if len(adjusted) != 1 else "has"
+        sentences.append(f"{_subject(adjusted)} {verb} a white interior (black inside isn't made in this collection).")
     return " ".join(sentences)
 
 
 def apply_tier(windows: list[dict[str, Any]], tier: dict[str, Any] | None) -> list[dict[str, Any]]:
     """Window lines with an option's product changes applied, line by line where they fit."""
     return apply_tier_checked(windows, tier)[0]
+
+
+def tier_line_overrides(tier: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    """Line id -> the overrides of the window group it was picked into."""
+    picked: dict[str, dict[str, Any]] = {}
+    for group in (tier or {}).get("line_groups") or []:
+        for line_id in group.get("line_ids") or []:
+            picked.setdefault(str(line_id), group.get("overrides") or {})
+    return picked
 
 
 def apply_tier_checked(
@@ -407,27 +445,47 @@ def apply_tier_checked(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Apply an option (collection, colour, glass) to every window it fits.
 
+    ``window_overrides`` go to every window except those picked into one of
+    the option's ``line_groups``, which take their group's overrides instead
+    (say Heritage for the front of the house, Classic for the rest).
+
     Each change is tried on each line in turn. One the price book rejects for
     that line -- a slider in a casement-only collection, a colour the style
     isn't made in, triple glass past its size range -- is left off that line
-    and reported, instead of failing the whole option. A line that can't be
-    priced as quoted either (an incomplete draft) takes the changes unchecked.
+    and reported, instead of failing the whole option. A black in / black out
+    window moving to a collection without that interior moves with a white
+    interior, and that adjustment is reported. A line that can't be priced as
+    quoted either (an incomplete draft) takes the changes unchecked.
     """
-    report: dict[str, Any] = {"applied_lines": 0, "already_lines": 0, "kept": []}
+    report: dict[str, Any] = {"applied_lines": 0, "already_lines": 0, "kept": [], "adjusted": []}
     if not tier:
         return windows, report
-    overrides = tier.get("window_overrides") or {}
-    changes = _requested_changes(overrides)
-    if not changes:
+    default = tier.get("window_overrides") or {}
+    picked = tier_line_overrides(tier)
+    if not _requested_changes(default) and not any(_requested_changes(o) for o in picked.values()):
         return windows, report
     check = checker or _LineChecker()
     out: list[dict[str, Any]] = []
     for line in windows:
+        overrides = picked.get(str(line.get("id")), default)
+        changes = _requested_changes(overrides)
+        if not changes:
+            out.append(line)
+            continue
         spec = line.get("spec") or {}
         base_error, base_review = check(spec)
         current = spec
         changed = False
         kept_before = len(report["kept"])
+
+        def fits(candidate: dict[str, Any]) -> str | None:
+            """None when the price book takes the candidate, else why not."""
+            if base_error:
+                return None
+            error, review = check(candidate)
+            new_review = sorted(review - base_review)
+            return error or (new_review[0] if new_review else None)
+
         for change in changes:
             try:
                 candidate = _apply_change(current, change, overrides)
@@ -436,15 +494,25 @@ def apply_tier_checked(
             else:
                 if candidate == current:
                     continue
-                if base_error:
+                reason = fits(candidate)
+                if reason and change == "collection" and _has_coloured_interior(candidate):
+                    whitened = _white_interior(candidate)
+                    whitened_reason = fits(whitened)
+                    if whitened_reason:
+                        # Not even with a white interior (say, the exterior colour isn't made either).
+                        reason = whitened_reason
+                    else:
+                        label = SERIES[str(overrides["series"])]["label"]
+                        report["adjusted"].append({
+                            "line_id": line.get("id"),
+                            "location": line.get("location") or "",
+                            "change": change,
+                            "reason": f"White interior: black in / black out isn't made in the {label}",
+                        })
+                        candidate, reason = whitened, None
+                if not reason:
                     current, changed = candidate, True
                     continue
-                error, review = check(candidate)
-                new_review = sorted(review - base_review)
-                if not error and not new_review:
-                    current, changed = candidate, True
-                    continue
-                reason = error or new_review[0]
             report["kept"].append({
                 "line_id": line.get("id"),
                 "location": line.get("location") or "",
@@ -731,7 +799,9 @@ def price_customer_estimate(
         # Windows that stay as quoted for part of this option, and why.
         summary["kept_as_quoted"] = report["kept"]
         summary["applied_lines"] = report["applied_lines"]
-        summary["customer_note"] = kept_note(report["kept"])
+        # Windows changed with an adjustment so they could take the option.
+        summary["adjusted"] = report["adjusted"]
+        summary["customer_note"] = kept_note(report["kept"], report["adjusted"])
         if not report["applied_lines"] and (report["kept"] or report["already_lines"]):
             summary["error"] = nothing_applied_reason(report)
             tier_summaries.append(summary)

@@ -383,3 +383,83 @@ def test_option_black_interior_forces_matching_exterior() -> None:
     black = [_line("c1", "Den", {**unit(30, 48, leaf("casement", "left")), "colour_ext": "black", "colour_int": "black"})]
     out, _ = apply_tier_checked(black, {"window_overrides": {"colour_ext": "sandstone"}})
     assert out[0]["spec"]["colour_ext"] == "sandstone" and out[0]["spec"]["colour_int"] == "white"
+
+
+def test_option_moves_a_layout_bow_without_touching_its_shape() -> None:
+    from services.customer_estimates import apply_tier_checked
+
+    bow = {**unit(120, 60, {"split": "cols", "sizes": ["*"] * 5, "children": [
+        leaf("casement", "left"), leaf("fixed"), leaf("fixed"), leaf("fixed"), leaf("casement", "right")]}),
+        "type": "bay_bow", "style": "bow", "head_seat": "8ft to 10ft wide", "accessories": []}
+    out, report = apply_tier_checked([_line("b1", "Family room", bow)], {"window_overrides": {"series": "heritage"}})
+    assert out[0]["spec"]["series"] == "heritage" and out[0]["spec"]["style"] == "bow"
+    assert not report["kept"]
+
+
+def test_black_in_out_moves_collection_with_a_white_interior() -> None:
+    from services.customer_estimates import apply_tier_checked, kept_note
+
+    black = {**unit(30, 48, leaf("casement", "left")), "colour_ext": "black", "colour_int": "black"}
+    out, report = apply_tier_checked([_line("c1", "Den", black)], {"window_overrides": {"series": "heritage"}})
+    assert out[0]["spec"]["series"] == "heritage"
+    assert out[0]["spec"]["colour_ext"] == "black" and out[0]["spec"]["colour_int"] == "white"
+    assert [row["line_id"] for row in report["adjusted"]] == ["c1"] and not report["kept"]
+    assert "Den has a white interior" in kept_note(report["kept"], report["adjusted"])
+
+    # Classic 400 isn't made in black at all: the window stays, and the reason says so.
+    out, report = apply_tier_checked([_line("c1", "Den", black)], {"window_overrides": {"series": "classic_400"}})
+    assert out[0]["spec"]["series"] == "classic"
+    assert report["kept"][0]["reason"].startswith("Black isn't made on the WC-400 Casement")
+
+
+def test_option_groups_send_picked_windows_one_way_and_the_rest_another() -> None:
+    from services.customer_estimates import apply_tier_checked
+
+    windows = [
+        _line("f1", "Front", unit(30, 48, leaf("casement", "left"))),
+        _line("f2", "Front", unit(36, 24, leaf("awning", "top"))),
+        _line("r1", "Rear", unit(30, 48, leaf("casement", "left"))),
+    ]
+    tier = {
+        "window_overrides": {"glazing": {"triple": True}},
+        "line_groups": [{"line_ids": ["f1", "f2"], "overrides": {"series": "heritage", "colour_ext": "black"}}],
+    }
+    out, report = apply_tier_checked(windows, tier)
+    front, rear = out[0]["spec"], out[2]["spec"]
+    assert front["series"] == "heritage" and front["colour_ext"] == "black" and not front["glazing"].get("triple")
+    assert out[1]["spec"]["series"] == "heritage"
+    assert rear["series"] == "classic" and rear["colour_ext"] == "white" and rear["glazing"]["triple"] is True
+    assert report["applied_lines"] == 3
+
+    # Only picked windows change when the rest are left as quoted.
+    only = {"window_overrides": {}, "line_groups": [{"line_ids": ["r1"], "overrides": {"colour_ext": "sandstone"}}]}
+    out, report = apply_tier_checked(windows, only)
+    assert [line["spec"]["colour_ext"] for line in out] == ["white", "white", "sandstone"]
+    assert report["applied_lines"] == 1
+
+    # Heritage awnings stop at 40" high: that window stays Classic, with a readable reason.
+    tall = [_line("a1", "Stair", unit(30, 48, leaf("awning", "top")))]
+    _, report = apply_tier_checked(tall, {"window_overrides": {"series": "heritage"}})
+    assert report["kept"][0]["reason"] == "The HC-126 Awning isn't made 30\" × 48\""
+
+
+def test_option_window_groups_save_price_and_bake_through_the_api(tmp_path, monkeypatch) -> None:
+    from tests.test_customer_estimates import _client, _draft, _window_line
+
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=False)
+    draft["windows"] = [_window_line("w1"), {**_window_line("w2"), "location": "Kitchen"}]
+    draft["tiers"] = [{
+        "id": "split", "name": "Front in Heritage",
+        "window_overrides": {"colour_ext": "black"},
+        "line_groups": [{"id": "g1", "line_ids": ["w2"], "overrides": {"series": "heritage"}}],
+    }]
+    created = client.post("/api/customer-estimates", json=draft).json()
+    assert created["tiers"][0]["line_groups"][0]["line_ids"] == ["w2"]
+    priced = client.post(f"/api/customer-estimates/{created['id']}/price").json()["pricing"]
+    assert priced["tiers"][0]["applied_lines"] == 2 and not priced["tiers"][0].get("error")
+
+    body = client.post(f"/api/customer-estimates/{created['id']}/apply-variation", json={"tier_id": "split"}).json()
+    specs = {line["id"]: line["spec"] for line in body["estimate"]["windows"]}
+    assert specs["w1"]["style"] == "WC-100" and specs["w1"]["colour_ext"] == "black"
+    assert specs["w2"]["style"] == "HC-101" and specs["w2"]["colour_ext"] == "white"

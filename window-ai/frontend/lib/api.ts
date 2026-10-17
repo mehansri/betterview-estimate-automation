@@ -656,6 +656,14 @@ export type EstimateTier = {
   name: string;
   description?: string;
   window_overrides: TierOverrides;
+  /** Picked windows that take their group's choices instead of window_overrides. */
+  line_groups?: TierLineGroup[];
+};
+
+export type TierLineGroup = {
+  id: string;
+  line_ids: string[];
+  overrides: TierOverrides;
 };
 
 export type CustomerEstimateDraft = {
@@ -718,6 +726,8 @@ export type TierSummary = {
   applied_lines?: number;
   /** Customer wording for the kept windows. */
   customer_note?: string;
+  /** Windows changed with an adjustment so they could take the option (white interior). */
+  adjusted?: NonNullable<TierSummary["kept_as_quoted"]>;
 };
 
 export type WindowSectionLine = {
@@ -1280,6 +1290,7 @@ export type ApplyVariationResult = {
   estimate: CustomerEstimate;
   applied_lines: number;
   kept_as_quoted: NonNullable<TierSummary["kept_as_quoted"]>;
+  adjusted: NonNullable<TierSummary["kept_as_quoted"]>;
 };
 
 /** Write a variation into the estimate's window lines (where each window can take it). */
