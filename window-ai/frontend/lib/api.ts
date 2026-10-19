@@ -776,6 +776,8 @@ export type DoorSectionOpening = {
   drawing?: DoorDrawingGeometry | null;
   items: Array<{ description: string; qty: number; unit_price: number; line_total: number }>;
   subtotal: number;
+  /** What the items add up to, before the offer discount (absent before 2026-10-19). */
+  base_subtotal?: number;
   hst: number;
   total: number;
 };
@@ -790,8 +792,9 @@ export type AdderSectionLine = {
 };
 
 export type EstimateSections = {
-  windows: { lines: WindowSectionLine[]; subtotal: number; hst: number; total: number };
-  doors: { openings: DoorSectionOpening[]; subtotal: number; hst: number; total: number };
+  /** base_subtotal: what the lines add up to, before the offer discount (absent before 2026-10-19). */
+  windows: { lines: WindowSectionLine[]; subtotal: number; base_subtotal?: number; hst: number; total: number };
+  doors: { openings: DoorSectionOpening[]; subtotal: number; base_subtotal?: number; hst: number; total: number };
   adders?: { lines: AdderSectionLine[]; subtotal: number; hst: number; total: number };
 };
 

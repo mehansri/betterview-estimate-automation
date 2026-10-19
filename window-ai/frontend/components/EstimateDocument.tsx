@@ -184,7 +184,7 @@ export default function EstimateDocument({
 
       {sections?.windows?.lines?.length ? (
         <section className="estimate-product-section">
-          <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Windows</h2></div><span>{money(sections.windows.subtotal)}</span></div>
+          <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Windows</h2></div><span>{money(sections.windows.base_subtotal ?? sections.windows.subtotal)}</span></div>
           <table className="estimate-table"><thead><tr><th>#</th><th>Description</th><th>Location</th><th className="text-right">Qty</th><th className="text-right">Unit</th><th className="text-right">Amount</th></tr></thead><tbody>
             {sections.windows.lines.map((line, index) => <tr key={line.id}><td data-label="#">{index + 1}</td><td data-label="Description"><WindowLineSketch line={line} estimate={estimate} />{line.description}{line.energy ? <span className="block text-xs text-slate-500">{line.energy}</span> : null}</td><td data-label="Location">{line.location || "—"}</td><td data-label="Qty" className="text-right">{line.qty}</td><td data-label="Unit" className="text-right">{money(line.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(line.line_total)}</td></tr>)}
           </tbody></table>
@@ -193,7 +193,7 @@ export default function EstimateDocument({
 
       {sections?.doors?.openings?.length ? (
         <section className="estimate-product-section">
-          <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Doors</h2></div><span>{money(sections.doors.subtotal)}</span></div>
+          <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Doors</h2></div><span>{money(sections.doors.base_subtotal ?? sections.doors.subtotal)}</span></div>
           {sections.doors.openings.map((opening, openingIndex) => (
             <div className="estimate-door-opening" key={opening.id}>
               <div className="estimate-door-heading">{opening.drawing ? (onConfigureDoor && estimate.doors.some((door) => door.id === opening.id) ? (
@@ -201,7 +201,7 @@ export default function EstimateDocument({
                   <DoorGeometryDrawing geometry={opening.drawing} size={96} />
                   <span>Configure</span>
                 </button>
-              ) : <span className="estimate-door-sketch"><DoorGeometryDrawing geometry={opening.drawing} size={96} /></span>) : null}<div className="estimate-door-title"><h3>{`Item ${openingIndex + 1} · ${opening.label}`}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p></div><strong>{money(opening.subtotal)}</strong></div>
+              ) : <span className="estimate-door-sketch"><DoorGeometryDrawing geometry={opening.drawing} size={96} /></span>) : null}<div className="estimate-door-title"><h3>{`Item ${openingIndex + 1} · ${opening.label}`}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p></div><strong>{money(opening.base_subtotal ?? opening.subtotal)}</strong></div>
               <table className="estimate-table estimate-table-compact"><tbody>{opening.items.map((item, index) => <tr key={`${opening.id}-${index}`}><td data-label="Description">{item.description}</td><td data-label="Qty" className="text-right">{item.qty}</td><td data-label="Unit" className="text-right">{money(item.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(item.line_total)}</td></tr>)}</tbody></table>
             </div>
           ))}

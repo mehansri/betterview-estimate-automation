@@ -165,3 +165,31 @@ def test_combination_brickmould_wraps_the_assembly_once() -> None:
     assert any(c["label"].startswith("assembly:") for c in assembly_line["components"])
     # Outer loop of the 72 x 60 assembly, not two 36 x 60 perimeters.
     assert bare_cost < assembly_line["list_each"] < per_lite_cost
+
+
+def test_customer_lines_add_up_to_the_original_subtotal(tmp_path, monkeypatch) -> None:
+    """Lines show the price before the offer discount; installation keeps its own price."""
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft()
+    draft["windows"][0]["spec"]["qty"] = 3
+    undiscounted = _priced(client, draft)["pricing"]
+    draft["commercial"]["negotiated_discount_percent"] = 4
+    pricing = _priced(client, draft)["pricing"]
+    sections, totals = pricing["sections"], pricing["totals"]
+
+    windows = sections["windows"]
+    assert round(sum(line["line_total"] for line in windows["lines"]), 2) == windows["base_subtotal"]
+    assert [line["line_total"] for line in windows["lines"]] == [line["line_total"] for line in undiscounted["sections"]["windows"]["lines"]]
+    assert windows["base_subtotal"] > windows["subtotal"]
+
+    door_quote = pricing["door_quote"]
+    for opening, quoted in zip(sections["doors"]["openings"], door_quote["openings"]):
+        assert round(sum(item["line_total"] for item in opening["items"]), 2) == opening["base_subtotal"]
+        assert opening["items"][-1]["description"] == "Professional installation"
+        assert opening["items"][-1]["line_total"] == quoted["install_sell"]
+        assert opening["base_subtotal"] > opening["subtotal"]
+    assert round(sum(o["base_subtotal"] for o in sections["doors"]["openings"]), 2) == sections["doors"]["base_subtotal"]
+
+    assert totals["base_subtotal"] == round(windows["base_subtotal"] + sections["doors"]["base_subtotal"] + sections["adders"]["subtotal"], 2)
+    assert totals["base_subtotal"] == undiscounted["totals"]["subtotal"]
+    assert round(totals["base_subtotal"] - totals["discount"], 2) == totals["subtotal"]

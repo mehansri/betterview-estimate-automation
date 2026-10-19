@@ -130,9 +130,15 @@ def _customer_window_lines(
     project_lines: list[dict[str, Any]],
     quote_lines: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
+    """Window lines at their price before the offer discount, so they add up to
+    the original subtotal; the discount is shown once, under the lines. A price
+    increase stays in the price (the customer only sees the higher price)."""
     lines: list[dict[str, Any]] = []
     for project_line, quote_line in zip(project_lines, quote_lines):
         description = window_description(project_line)
+        qty = int(quote_line.get("qty") or 1)
+        discounted = float(quote_line.get("merchandise_discount_each") or 0) > 0
+        unit_price = _money(quote_line.get("base_sell_each" if discounted else "sell_each"))
         lines.append(
             {
                 "id": project_line.get("id"),
@@ -140,9 +146,9 @@ def _customer_window_lines(
                 "description": description,
                 "energy": line_energy(project_line.get("spec") or {}),
                 "drawing": window_drawing(project_line.get("spec") or {}),
-                "qty": int(quote_line.get("qty") or 1),
-                "unit_price": _money(quote_line.get("unit_price")),
-                "line_total": _money(quote_line.get("line_total")),
+                "qty": qty,
+                "unit_price": unit_price,
+                "line_total": _money(unit_price * qty),
             }
         )
     return lines
@@ -669,7 +675,7 @@ def _price_scope(
             }
         window_quote = price_windows(effective_commercial)
         warnings.extend(window_quote.get("warnings") or [])
-        window_lines = _customer_window_lines(windows, window_quote.get("customer_presentation", {}).get("lines", []))
+        window_lines = _customer_window_lines(windows, window_quote.get("lines") or [])
 
     window_totals = (window_quote or {}).get("customer_presentation", {})
     windows_subtotal = _money(window_totals.get("subtotal"))
@@ -685,10 +691,14 @@ def _price_scope(
 
     window_sales_pricing = (window_quote or {}).get("sales_pricing", {})
     door_sales_pricing = (door_quote or {}).get("sales_pricing", {})
-    # Undiscounted amounts: what was sold plus whatever discount was given.
+    # Undiscounted amounts. The section lines are priced before the discount,
+    # so their sum is the original subtotal and the offer discount is the
+    # difference (to the cent, whatever the per-line rounding).
     window_discount = _discount_given(window_sales_pricing)
     door_discount = _discount_given(door_sales_pricing)
-    base_subtotal = _money(combined_subtotal + window_discount + door_discount)
+    windows_base = _money(sum(line["line_total"] for line in window_lines)) if window_discount else windows_subtotal
+    doors_base = _money(sum(opening["base_subtotal"] for opening in door_openings)) if door_discount else doors_subtotal
+    base_subtotal = _money(max(combined_subtotal, windows_base + doors_base + adders_subtotal))
     base_tax = _money(sum(line["amount"] for line in business_settings.tax_lines(province_code, base_subtotal)))
     base_total = _money(base_subtotal + base_tax)
     window_floor_subtotal = _money(
@@ -760,8 +770,9 @@ def _price_scope(
         "province": province_code,
         "tax_rate": tax_rate,
         "sections": {
-            "windows": {"lines": window_lines, **section(windows_subtotal)},
-            "doors": {"openings": door_openings, **section(doors_subtotal)},
+            # base_subtotal: the section's lines before the offer discount (what they add up to).
+            "windows": {"lines": window_lines, **section(windows_subtotal), "base_subtotal": windows_base},
+            "doors": {"openings": door_openings, **section(doors_subtotal), "base_subtotal": doors_base},
             "adders": {"lines": adder_lines, **section(adders_subtotal)},
         },
         "totals": {

@@ -564,7 +564,7 @@ export default function CustomerPortal({ token }: { token: string }) {
         {/* Scope: windows */}
         {windowLines.length > 0 ? (
           <Card labelledBy={`${uid}-windows`}>
-            <SectionHeading id={`${uid}-windows`} kicker="Scope of work" title="Windows" amount={sections.windows.subtotal} />
+            <SectionHeading id={`${uid}-windows`} kicker="Scope of work" title="Windows" amount={sections.windows.base_subtotal ?? sections.windows.subtotal} />
             <LineTable
               caption="Windows"
               showIndex
@@ -586,7 +586,7 @@ export default function CustomerPortal({ token }: { token: string }) {
         {/* Scope: doors */}
         {doorOpenings.length > 0 ? (
           <Card labelledBy={`${uid}-doors`}>
-            <SectionHeading id={`${uid}-doors`} kicker="Scope of work" title="Doors" amount={sections.doors.subtotal} />
+            <SectionHeading id={`${uid}-doors`} kicker="Scope of work" title="Doors" amount={sections.doors.base_subtotal ?? sections.doors.subtotal} />
             <div className="space-y-6">
               {doorOpenings.map((opening, openingIndex) => {
                 const details = [opening.location, opening.material, opening.finish_label].filter(Boolean).join(" · ");
@@ -600,7 +600,7 @@ export default function CustomerPortal({ token }: { token: string }) {
                         </h3>
                         {details ? <p className="mt-0.5 text-xs text-slate-600">{details}</p> : null}
                       </div>
-                      <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(opening.subtotal)}</p>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(opening.base_subtotal ?? opening.subtotal)}</p>
                     </div>
                     <div className="mt-1 px-1">
                       <LineTable

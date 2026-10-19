@@ -105,6 +105,12 @@ def _white_inside(specs: list[dict[str, Any]]) -> bool:
     return all(str(spec.get("colour_int") or "white").strip().lower() == "white" for spec in specs)
 
 
+def _before_discount(block: dict[str, Any]) -> Any:
+    """A section's or door's amount as its lines add up: before the offer discount
+    (older snapshots priced their lines after it and have no base_subtotal)."""
+    return block.get("base_subtotal", block.get("subtotal"))
+
+
 def _for_interior(lines: list[str], specs: list[dict[str, Any]]) -> list[str]:
     """Lines promising casing/jambs "primed in white" only apply when every interior is white."""
     if _white_inside(specs):
@@ -639,17 +645,17 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
                          p(line.get("qty"), cell_right), p(_money(line.get("unit_price")), cell_right),
                          p(_money(line.get("line_total")), cell_strong_right)])
         widths = [0.3 * inch, inner - 3.4 * inch, 1.0 * inch, 0.4 * inch, 0.85 * inch, 0.85 * inch]
-        story.extend(padded([*section_heading("Scope of work", "Windows", sections["windows"].get("subtotal")),
+        story.extend(padded([*section_heading("Scope of work", "Windows", _before_discount(sections["windows"])),
                              product_table(rows, widths)], top=14))
 
     openings = (sections.get("doors") or {}).get("openings") or []
     if openings:
-        story.extend(padded(section_heading("Scope of work", "Doors", sections["doors"].get("subtotal")), top=14))
+        story.extend(padded(section_heading("Scope of work", "Doors", _before_discount(sections["doors"])), top=14))
         for index, opening in enumerate(openings, start=1):
             detail = " · ".join(filter(None, [opening.get("location"), opening.get("material"), opening.get("finish_label")]))
             title_cell = [p(f"Item {index} · {opening.get('label')}", h3), Spacer(1, 2), p(detail, small)]
             sketch = door_drawing_flowable(opening.get("drawing"), 1.3 * inch, 1.1 * inch)
-            cells = ([sketch] if sketch is not None else []) + [title_cell, p(_money(opening.get("subtotal")), h3_right)]
+            cells = ([sketch] if sketch is not None else []) + [title_cell, p(_money(_before_discount(opening)), h3_right)]
             widths = ([1.45 * inch] if sketch is not None else []) + [0, 1.2 * inch]
             widths[-2] = inner - sum(widths)
             heading = Table([cells], colWidths=widths)

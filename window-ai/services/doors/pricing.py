@@ -490,6 +490,9 @@ def quote_project(
         opening["markup"] = float(sales_input["sales_pricing"]["markup_percent"]) / 100.0
         opening["markup_amount"] = line["markup_each"]
         opening["sell"] = line["sell_each"]
+        # Before the offer discount, and the installation's own price (never discounted).
+        opening["base_sell"] = line["base_sell_each"] if line["merchandise_discount_each"] > 0 else line["sell_each"]
+        opening["install_sell"] = line["protected_install_sell_each"]
         opening["hst"] = line["hst_each"]
         opening["customer_total"] = line["customer_total"]
     result["totals"].update({
