@@ -102,6 +102,7 @@ def _row_response(row: CustomerEstimate) -> CustomerEstimateResponse:
         valid_until=row.valid_until,
         description=row.description or "",
         notes=row.notes or "",
+        internal_memo=row.internal_memo or "",
         terms=row.terms or "",
         payment_terms=row.payment_terms or "",
         payment_schedule=row.payment_schedule or None,
@@ -149,6 +150,8 @@ def _apply_body(row: CustomerEstimate, body: CustomerEstimateDraft) -> None:
     row.valid_until = body.valid_until
     row.description = body.description.strip()
     row.notes = body.notes.strip()
+    if "internal_memo" in body.model_fields_set:
+        row.internal_memo = body.internal_memo.strip() or None
     row.terms = body.terms.strip()
     if "payment_terms" in body.model_fields_set:
         row.payment_terms = body.payment_terms.strip() or None
@@ -548,6 +551,7 @@ def _copy_fields(source: CustomerEstimate) -> dict:
         valid_until=date.today() + timedelta(days=valid_days),
         description=source.description,
         notes=source.notes,
+        internal_memo=source.internal_memo,
         terms=source.terms,
         payment_terms=source.payment_terms,
         payment_schedule=source.payment_schedule,

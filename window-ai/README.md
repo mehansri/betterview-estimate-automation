@@ -186,6 +186,53 @@ dealer cost to catch drift.
 Database changes are applied automatically at API startup (new tables and
 columns are added in place); no manual migration step is needed.
 
+### Reading permit drawings and typed notes
+
+On a project, **Same-model homes → Read permit drawings (PDF)** and **Type the
+openings** turn a drawing set or notes such as
+`living room: 3 casements 29x65, kitchen 28x51 right hinge` into draft rows on
+the measure sheet. Every row carries the reader's confidence and notes, and the
+salesperson checks it there before anything is saved or priced
+(`services/drawing_extraction.py`). `GET /api/drawings/status` reports which
+reader and model are configured.
+
+By default the reader is Claude (`ANTHROPIC_API_KEY`), which is also what the
+Vercel deployment uses. To use a free local model with Ollama instead:
+
+```bash
+ollama pull qwen2.5vl:7b     # reads drawing pages (vision)
+ollama pull qwen2.5:7b       # reads typed notes
+pip install pypdfium2        # renders PDF pages to images; no poppler needed
+DRAWINGS_PROVIDER=ollama DATABASE_URL=sqlite:///data/local.db uvicorn api.main:app --port 8000
+```
+
+| Variable | Default | |
+| --- | --- | --- |
+| `DRAWINGS_PROVIDER` | `claude` | `ollama` selects the local reader |
+| `OLLAMA_URL` | `http://localhost:11434` | |
+| `OLLAMA_VISION_MODEL` | `qwen2.5vl:7b` | drawing pages |
+| `OLLAMA_TEXT_MODEL` | `qwen2.5:7b` | typed notes |
+| `OLLAMA_TIMEOUT` | `900` | seconds per model call |
+| `OLLAMA_MAX_PAGES` | `12` | larger sets are refused; upload elevations and schedule only |
+| `OLLAMA_PAGE_PX` | `1568` | long side of each rendered page |
+
+**This only works when the API runs on the same PC as Ollama.** The Vercel
+deployment cannot reach `localhost:11434` on anyone's computer, so production
+keeps using Claude; run the API and frontend locally (Quick start) to read
+drawings with Ollama.
+
+What to expect from the local reader:
+
+- Pages are rendered to PNG and read one at a time, then merged. Without an
+  NVIDIA GPU a 7B vision model takes about a minute or more per page on the
+  CPU, so the frontend runs the job in the background
+  (`POST /api/drawings/jobs`, polled at `GET /api/drawings/jobs/{id}`) and
+  shows which page it is on.
+- It misreads dimension strings more often than Claude, so check sizes against
+  the drawings. Rows carry the page number (`p.3`). A window mark read on two
+  pages (a schedule and an elevation, say) is flagged as a possible duplicate.
+  A page the model could not read becomes a warning, not an error.
+
 ## Project layout
 
 ```

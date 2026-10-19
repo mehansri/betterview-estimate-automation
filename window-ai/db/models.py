@@ -228,6 +228,9 @@ class CustomerEstimate(Base):
     valid_until: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Staff-only (collection notes etc.): never on the customer document or
+    # portal; the CRM copies it into its estimate's internal memo on import.
+    internal_memo: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     terms: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # Terms of payment for this estimate only (e.g. 50/50); empty uses the
     # company default from Settings -> Estimate document.

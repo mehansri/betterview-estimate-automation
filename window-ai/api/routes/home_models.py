@@ -163,7 +163,8 @@ def delete_home_model(model_id: str) -> None:
 
 @router.get("/drawings/status")
 def drawing_reader_status() -> dict:
-    return {"available": drawing_extraction.available()}
+    """Configured reader (claude or a local ollama model) and whether it is ready."""
+    return drawing_extraction.status()
 
 
 @router.post("/drawings/extract")
@@ -174,3 +175,30 @@ async def extract_drawing(file: UploadFile = File(...), address: str = Form(""))
         return drawing_extraction.extract_openings(content, address=address.strip())
     except drawing_extraction.DrawingExtractionError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/drawings/extract-text")
+def extract_typed_openings(text: str = Form(...)) -> dict:
+    """Draft measure-sheet rows from a typed description of the openings."""
+    try:
+        return drawing_extraction.extract_from_text(text)
+    except drawing_extraction.DrawingExtractionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/drawings/jobs", status_code=202)
+async def start_drawing_job(file: Optional[UploadFile] = File(None), text: str = Form(""), address: str = Form("")) -> dict:
+    """Read a PDF or typed description in the background (a local model takes minutes)."""
+    content = await file.read() if file is not None else None
+    try:
+        return {"job_id": drawing_extraction.start_job(pdf=content, text=text, address=address.strip())}
+    except drawing_extraction.DrawingExtractionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/drawings/jobs/{job_id}")
+def drawing_job(job_id: str) -> dict:
+    job = drawing_extraction.job_status(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="That drawing job has expired or the API restarted; start it again.")
+    return job

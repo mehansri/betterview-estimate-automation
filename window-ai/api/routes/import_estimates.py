@@ -8,8 +8,12 @@ from typing import Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from api.schemas.customer_estimates import CustomerWindowLine
 from api.schemas.quote import ImportResult
+from services.windowcity import order_checklist
 from utils.paths import UPLOADS_DIR, ensure_dirs
+
+MAX_CHECKLIST_BYTES = 15 * 1024 * 1024
 
 router = APIRouter(prefix="/api", tags=["import"])
 
@@ -70,3 +74,20 @@ def reprocess(estimate_id: str) -> ImportResult:
     if result.get("status") == "failed" and "not found" in " ".join(result.get("errors") or []).lower():
         raise HTTPException(status_code=404, detail=result.get("errors"))
     return ImportResult(**{k: result.get(k) for k in ImportResult.model_fields.keys()})
+
+
+@router.post("/order-checklist/import")
+async def import_order_checklist(file: UploadFile = File(...)) -> dict:
+    """Estimate window lines from a Window City order checklist PDF (no LLM).
+
+    Nothing is saved: the project page shows the lines for review first.
+    """
+    content = await file.read()
+    if len(content) > MAX_CHECKLIST_BYTES:
+        raise HTTPException(status_code=413, detail="That PDF is too large for an order checklist.")
+    try:
+        parsed = order_checklist.lines_from_pdf(content)
+    except order_checklist.OrderChecklistError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    windows = [CustomerWindowLine.model_validate(line).model_dump(mode="json") for line in parsed["windows"]]
+    return {**parsed, "windows": windows}

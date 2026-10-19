@@ -1,0 +1,795 @@
+VNr. 981130
+125401043
+Ordertype: R3
+Order Checklist
+Client information: Lee Bovsqwet
+Int. order #: 
+Entered by: Better View
+on: 10/09/2025
+Page: 1
+printed on: 10/11/2025
+Delivery Date: 10/23/2025
+Delivery Method: Pickup
+ 
+CLIENT: Custno: 1254BETTER VIEW SOLUTIONS
+66 TRAVIS CRES
+BRAMPTON ONT L7A 3J4
+Telephone Number 647-409-4656
+125401043 Date: 10/11/2025 Page: 1 Lee Bovsqwet
+PLEASE EXAMINE YOUR ORDER FOR ITEM ACCURACY. ALL DISCREPANCY MUST BE REPORTED IMMEDIATELY 
+ALL DRAWINGS ARE VIEWED FROM OUTSIDE
+Qty DescriptionItem#
+1 1 Laundry
+C1- Casement (left) SINGLE FRAME cl
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 21.0000 x H: 40.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 11.00 ft. _wjamb
+-brickmould 
+installed color - w, 11.00 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+left hinge cml
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 2 Lee Bovsqwet
+Qty DescriptionItem#
+3 1 Living
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 29.0000 x H: 65.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 16.67 ft. _wjamb
+-brickmould 
+installed color - w, 16.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+fixed fixed
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+2 1 Living
+C1- Casement (left) SINGLE FRAME cl
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 29.0000 x H: 65.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 16.67 ft. _wjamb
+-brickmould 
+installed color - w, 16.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+left hinge cml
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 3 Lee Bovsqwet
+Qty DescriptionItem#
+5 1 Living
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 29.0000 x H: 65.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 16.67 ft. _wjamb
+-brickmould 
+installed color - w, 16.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+fixed fixed
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+4 1 Living
+C1-Casement (right) SINGLE FRAME cr
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 29.0000 x H: 65.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 16.67 ft. _wjamb
+-brickmould 
+installed color - w, 16.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+right hinge cmr
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 4 Lee Bovsqwet
+Qty DescriptionItem#
+7 1 Dining
+C1- Casement (left) SINGLE FRAME cl
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 26.0000 x H: 65.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 16.00 ft. _wjamb
+-brickmould 
+installed color - w, 16.00 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+left hinge cml
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+6 1 Living
+C1-Casement (right) SINGLE FRAME cr
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 29.0000 x H: 65.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 16.67 ft. _wjamb
+-brickmould 
+installed color - w, 16.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+right hinge cmr
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 5 Lee Bovsqwet
+Qty DescriptionItem#
+9 1 Dining
+C1-Casement (right) SINGLE FRAME cr
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 26.0000 x H: 65.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 16.00 ft. _wjamb
+-brickmould 
+installed color - w, 16.00 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+right hinge cmr
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+8 1 Dining
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 58.0000 x H: 65.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 21.33 ft. _wjamb
+-brickmould 
+installed color - w, 21.33 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+fixed fixed
+1 3/16" Low E180 4 mm / Low E 180 4 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 6 Lee Bovsqwet
+Qty DescriptionItem#
+11 1 Patio
+Patio Door 5 ft XO5
+5.75" Frame - Sliding Collection WC-500
+Frame Size W: 59.6250 x H: 79.5000 inch
+Division 29.8125:29.8125 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Qualified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  36                            
+  U-Factor: 1.28 W/m2.K / 0.23 Btu/hft.F , 
+Class : R-PG45 - Size Tested : 72" x 96"
+kysmsg
+-Clear glass -, Tempered middle pane 3 mm CLR
+-Low E 180 glass -, Tempered interior pane LOE
+-Low E 180 glass -, Tempered exterior pane, 
+-Glazing Option : Triple pane
+LOE
+- GAS Option -  92% Argon Gas filled GAS
+-glass constr. Tempered/Tempered/Tempered glass
+-Clear glass -, Tempered middle pane 3 mm CLR
+-Low E 180 glass -, Tempered interior pane LOE
+-Low E 180 glass -, Tempered exterior pane, 
+-Glazing Option : Triple pane
+LOE
+- GAS Option -  92% Argon Gas filled GAS
+-glass constr. Tempered/Tempered/Tempered glass
+-assembled --0 ac
+-kick lock - white klock
+-patio hardware upcharge 
+Twin Point CLASSIC-10"  with No Key Lock white
+(WNCTY-2893-0101)
+phardware
+-brickmould 
+installed, color w, 18.83 ft., no fin  EP326
+brickmould
+- Full Screen Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 4.5000'' wjamb4
+-wood jamb 4.50'' , color: PrimedWood, 18.83 ft. _wjamb
+Field 2: Padio fix pfix
+Field 1: Slide right side pl1
+1" Low E 180 3 mm / Low E 180 3 mm
+10 1 Kitchen
+C1-Casement (right) SINGLE FRAME cr
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 28.0000 x H: 51.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 14.00 ft. _wjamb
+-brickmould 
+installed color - w, 14.00 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+right hinge cmr
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 7 Lee Bovsqwet
+Qty DescriptionItem#
+14 1 L.UP
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 29.0000 x H: 57.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 15.33 ft. _wjamb
+-brickmould 
+installed color - w, 15.33 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+fixed fixed
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+13 3 L.UP
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 29.0000 x H: 54.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 14.67 ft. _wjamb
+-brickmould 
+installed color - w, 14.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+fixed fixed
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+12 2 Family
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 23.0000 x H: 66.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 15.67 ft. _wjamb
+-brickmould 
+installed color - w, 15.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+fixed fixed
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 8 Lee Bovsqwet
+Qty DescriptionItem#
+17 1 Kid.Bed
+C1-Casement (right) SINGLE FRAME cr
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 30.0000 x H: 54.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 14.67 ft. _wjamb
+-brickmould 
+installed color - w, 14.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+right hinge cmr
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+16 1 L.UP
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 24.0000 x H: 36.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 10.67 ft. _wjamb
+-brickmould 
+installed color - w, 10.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+fixed fixed
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+15 1 L.UP
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 29.0000 x H: 44.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 13.00 ft. _wjamb
+-brickmould 
+installed color - w, 13.00 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+fixed fixed
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 9 Lee Bovsqwet
+Qty DescriptionItem#
+18.2 1 Master
+C1-Casement (right) SINGLE FRAME cr
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 35.9750 x H: 42.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+right hinge cmr
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+18.1 1 Master
+C1- Casement (left) SINGLE FRAME cl
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 35.9750 x H: 42.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+left hinge cml
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+18 1 Master
+C2 - Casement (left)+Casement (right) clcr
+mulled units 3 1/4" frame
+Frame Size W: 72.0000 x H: 42.0000 inch
+Division 36.0000:36.0000 inch
+Color: outside: White / inside: White ww
+-mulled elements assembled assembled
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 19.67 ft. _wjamb
+-brickmould 
+installed color - w, 19.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 10 Lee Bovsqwet
+Qty DescriptionItem#
+21 1 Kids.2
+C4 - Casement (left)+Fixed clp
+mulled units 3 1/4" frame
+Frame Size W: 48.0000 x H: 54.0000 inch
+Division 24.0000:24.0000 inch
+Color: outside: White / inside: White ww
+-mulled elements assembled assembled
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 17.67 ft. _wjamb
+-brickmould 
+installed color - w, 17.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+20 1 M.Bath
+C1-Casement (right) SINGLE FRAME cr
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 28.0000 x H: 39.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 12.00 ft. _wjamb
+-brickmould 
+installed color - w, 12.00 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+right hinge cmr
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+19 1 M.Bath
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 38.0000 x H: 38.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 13.33 ft. _wjamb
+-brickmould 
+installed color - w, 13.33 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+fixed fixed
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 11 Lee Bovsqwet
+Qty DescriptionItem#
+22 1 Daughter
+C1- Casement (left) SINGLE FRAME cl
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 31.0000 x H: 45.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 13.67 ft. _wjamb
+-brickmould 
+installed color - w, 13.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+left hinge cml
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+21.2 1 Kids.2
+F1 - Fixed SINGLE FRAME p
+3.25" Frame - Classic Collection WC-175
+Frame Size W: 23.9750 x H: 54.0000 inch
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  44                            
+  U-Factor: 0.96 W/m2.K / 0.17 Btu/hft.F , 
+Class : CW-PG70 - Size Tested : 84" x 90"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+fixed fixed
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+21.1 1 Kids.2
+C1- Casement (left) SINGLE FRAME cl
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 23.9750 x H: 54.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+left hinge cml
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 12 Lee Bovsqwet
+Qty DescriptionItem#
+24 1 Bath.2
+C1- Casement (left) SINGLE FRAME cl
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 23.0000 x H: 43.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 12.00 ft. _wjamb
+-brickmould 
+installed color - w, 12.00 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+left hinge cml
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+23 1 Daughter
+C1-Casement (right) SINGLE FRAME cr
+3.25" Frame - Classic Collection WC-100
+Frame Size W: 31.0000 x H: 45.0000 inch
+Type: Casement 100
+Color: outside: White / inside: White ww
+Info*  ENERGY STAR® Most Efficient Certified Window kysmsg
+Info* 
+Fld# 1 Keystone Certified           ER  38                            
+  U-Factor: 1.02 W/m2.K / 0.18 Btu/hft.F , 
+Class : R-PG65 - Size Tested : 30" x 72"
+kysmsg
+-Gas Option -   90% Argon / 5% Krypton Gas filled GAS3
+-4SG Black Spacer spacer
+-Low E 180 Glass  interior pane LOE
+-Low E 180 Glass  exterior pane, 
+-Glazing Option : Triple pane
+LOE
+-fold away handle , white fhe
+- Full Screen , Color: white,  Mesh Color : black scrinfo
+   > wood jamb extension , 6.2500'' wjamb4
+-wood jamb 6.25'' , color: PrimedWood, 13.67 ft. _wjamb
+-brickmould 
+installed color - w, 13.67 ft. Classic BM - 1 inch, EP326,
+no fin
+brickmould
+right hinge cmr
+1 3/16" Low E180 3 mm / Low E 180 3 mm
+ 
+27Total Qty (items):
+Total Qty (units): 29
+THANK YOU FOR YOUR BUSINESS 
+ALL DRAWINGS ARE VIEWED FROM OUTSIDE
+CONDITIONS: (1) It is the customer's responsibility to ensure all sizes and specifications are correct. (2) All Drawings are viewed from outside. (3) Verbal agreements
+made by Window City Staff will not be accepted. (4) No changes or cancellation is allowed, once order has been signed and process for production.(5) Delivery date
+indicated are estimates only, new delivery date will be calculated based on the approval date (minimum 4 weeks required). Window City will not be responsible for any
+delay in delivery date beyond its control. (6) Window City reserves the right to change the product subject to availability.     
+By signing below, customer agrees with the above conditions and confirms the order for production subject to our normal credit approval. 
+APPROVED FOR PRODUCTION BY : _______________________      DATE : _______________________
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976
+125401043 Date: 10/11/2025 Page: 13 Lee Bovsqwet
+ 
+NOTICE : All windows with or without brickmould or jamb extension must be installed thru the frame. Windows not installed thru the frame are excluded from
+coverage under Window City warranty.
+5690 Steeles Ave West, Woodbridge, Ontario L4L 9T4  Tel. (905) 265 9975 Fax. (905) 265 9976

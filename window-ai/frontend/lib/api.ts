@@ -686,7 +686,10 @@ export type CustomerEstimateDraft = {
   estimate_date: string;
   valid_until: string;
   description: string;
+  /** Printed on the customer estimate. */
   notes: string;
+  /** Staff only: never on the customer document or portal; the CRM copies it on import. */
+  internal_memo?: string;
   terms: string;
   /** Terms typed before payment schedules existed; payment_schedule replaces them. */
   payment_terms?: string;
@@ -1463,7 +1466,22 @@ export type DrawingExtraction = {
   rows: DrawingRow[];
   doors: Array<{ elevation: string; location: string; kind: string; description: string; width_in: number | null; height_in: number | null; confidence: string; note: string }>;
   warnings: string[];
+  provider: "claude" | "ollama";
+  model: string;
 };
+
+/** Window City order checklist PDF read into estimate lines (no LLM). */
+export type OrderChecklistImport = {
+  order: { order_number?: string; client?: string; lines: number; units: number };
+  windows: CustomerWindowLine[];
+  warnings: string[];
+};
+
+export async function importOrderChecklist(file: File): Promise<OrderChecklistImport> {
+  const form = new FormData();
+  form.append("file", file);
+  return jsonOrThrow(await apiFetch("/api/order-checklist/import", { method: "POST", body: form }));
+}
 
 export async function fetchModelMatch(address: string, estimateId?: string): Promise<ModelMatch> {
   const params = new URLSearchParams({ address });
@@ -1479,7 +1497,30 @@ export async function saveHomeModelFromEstimate(estimateId: string, replaceModel
   return jsonOrThrow(await apiFetch(`/api/home-models/from-estimate/${estimateId}`, jsonInit("POST", { replace_model_id: replaceModelId || null })));
 }
 
-export async function fetchDrawingReaderStatus(): Promise<{ available: boolean }> {
+/** services/drawing_extraction.py:status — Claude, or a local Ollama model on the API's PC. */
+export type DrawingReaderStatus = {
+  provider: "claude" | "ollama";
+  model: string;
+  text_model: string;
+  available: boolean;
+  text_available: boolean;
+  local: boolean;
+  /** Local models take minutes: read through a background job and poll it. */
+  background: boolean;
+  message: string;
+};
+
+export type DrawingJob = {
+  id: string;
+  kind: "drawings" | "text";
+  status: "queued" | "running" | "done" | "error";
+  page: number;
+  pages: number;
+  result: DrawingExtraction | null;
+  error: string | null;
+};
+
+export async function fetchDrawingReaderStatus(): Promise<DrawingReaderStatus> {
   return jsonOrThrow(await apiFetch("/api/drawings/status"));
 }
 
@@ -1488,6 +1529,34 @@ export async function extractDrawingOpenings(file: File, address = ""): Promise<
   form.append("file", file);
   form.append("address", address);
   return jsonOrThrow(await apiFetch("/api/drawings/extract", { method: "POST", body: form }));
+}
+
+export async function extractTypedOpenings(text: string): Promise<DrawingExtraction> {
+  const form = new FormData();
+  form.append("text", text);
+  return jsonOrThrow(await apiFetch("/api/drawings/extract-text", { method: "POST", body: form }));
+}
+
+/** Read a PDF or typed description as a background job, polling until it finishes. */
+export async function runDrawingJob(
+  input: { file: File; address?: string } | { text: string },
+  onProgress?: (job: DrawingJob) => void,
+): Promise<DrawingExtraction> {
+  const form = new FormData();
+  if ("file" in input) {
+    form.append("file", input.file);
+    form.append("address", input.address || "");
+  } else {
+    form.append("text", input.text);
+  }
+  const { job_id } = await jsonOrThrow<{ job_id: string }>(await apiFetch("/api/drawings/jobs", { method: "POST", body: form }));
+  for (;;) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const job: DrawingJob = await jsonOrThrow(await apiFetch(`/api/drawings/jobs/${job_id}`));
+    onProgress?.(job);
+    if (job.status === "done" && job.result) return job.result;
+    if (job.status === "error") throw new Error(job.error || "The drawings could not be read.");
+  }
 }
 
 export async function duplicateCustomerEstimate(id: string): Promise<CustomerEstimate> {

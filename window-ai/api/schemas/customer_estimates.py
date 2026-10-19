@@ -142,7 +142,11 @@ class CustomerEstimateDraft(BaseModel):
     estimate_date: date = Field(default_factory=_today)
     valid_until: date = Field(default_factory=_valid_until)
     description: str = ""
+    # Printed on the customer estimate.
     notes: str = ""
+    # Staff only: never on the customer document or portal. An update that
+    # leaves it out keeps the existing memo.
+    internal_memo: str = Field(default="", max_length=5000)
     terms: str = (
         "This estimate is based on the information available at the time of quoting. "
         "Final measurements, site conditions, product availability, and installation details "

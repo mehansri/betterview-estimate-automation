@@ -65,6 +65,7 @@ export function estimateToDraft(estimate: CustomerEstimate, patch: Partial<Custo
     valid_until: estimate.valid_until,
     description: estimate.description,
     notes: estimate.notes,
+    internal_memo: estimate.internal_memo ?? "",
     terms: estimate.terms,
     payment_terms: estimate.payment_terms ?? "",
     payment_schedule: estimate.payment_schedule ?? null,

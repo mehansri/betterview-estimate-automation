@@ -42,6 +42,24 @@
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai\\frontend && set API_PROXY_URL=http://127.0.0.1:8011&& npx next dev -p 3016"],
       "port": 3016
+    },
+    {
+      "name": "api-8021-variations",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai && set PYTHONUTF8=1&& set DATABASE_URL=sqlite:///C:/Users/offic/AppData/Local/Temp/claude/C--Users-offic--claude-spares-spare-cOirnr/ff15d0c6-046f-4eaf-a345-79bbbd2fdbc0/scratchpad/variations.db&& .venv\\Scripts\\python.exe -m uvicorn api.main:app --host 127.0.0.1 --port 8021"],
+      "port": 8021
+    },
+    {
+      "name": "web-3021-variations",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai\\frontend && set API_PROXY_URL=http://127.0.0.1:8021&& npx next dev -p 3021"],
+      "port": 3021
+    },
+    {
+      "name": "api-8000-live-copy",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\offic\\Documents\\betterview-estimate-automation\\window-ai && set DATABASE_URL=sqlite:///C:/Users/offic/AppData/Local/Temp/claude/C--Users-offic-Documents-betterview-estimate-automation/6be6ccd0-37bd-49b9-9249-cf525b301826/scratchpad/live/live.db&& set PYTHONUTF8=1&& .venv\\Scripts\\python.exe -m uvicorn api.main:app --host 127.0.0.1 --port 8000"],
+      "port": 8000
     }
   ]
 }

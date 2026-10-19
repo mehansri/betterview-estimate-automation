@@ -438,3 +438,29 @@ def test_follow_up_draft_uses_template_without_ai(client, monkeypatch):
         assert secret not in body["body"].lower()
     draft_only = _create(client, _draft(mixed=False))
     assert client.post(f"/api/customer-estimates/{draft_only['id']}/follow-up-draft").status_code == 409
+
+
+def test_internal_memo_is_staff_only_and_carries_to_revisions(client):
+    memo = "Collect balance by cheque on install day"
+    draft = _draft(mixed=False)
+    draft["internal_memo"] = f"  {memo}  "
+    created = _create(client, draft)
+    assert created["internal_memo"] == memo
+
+    # An update that leaves the memo out (an older client) keeps it.
+    kept = client.put(f"/api/customer-estimates/{created['id']}", json=_draft(mixed=False))
+    assert kept.status_code == 200, kept.text
+    assert kept.json()["internal_memo"] == memo
+
+    _price(client, created["id"])
+    finalized = client.post(f"/api/customer-estimates/{created['id']}/finalize").json()
+    public = client.get(f"/api/public/estimates/{finalized['public_token']}")
+    assert public.status_code == 200
+    raw = json.dumps(public.json())
+    assert memo not in raw and "internal_memo" not in raw
+
+    revised = client.post(f"/api/customer-estimates/{created['id']}/revise").json()
+    assert revised["internal_memo"] == memo
+
+    cleared = dict(_draft(mixed=False), internal_memo="   ")
+    assert client.put(f"/api/customer-estimates/{revised['id']}", json=cleared).json()["internal_memo"] == ""

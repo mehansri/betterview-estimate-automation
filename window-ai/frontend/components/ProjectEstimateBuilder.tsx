@@ -34,6 +34,7 @@ import PhotosCard from "@/components/estimate/PhotosCard";
 import SameModelCard from "@/components/estimate/SameModelCard";
 import PaymentSchedulePicker from "@/components/estimate/PaymentSchedulePicker";
 import { PAYMENT_SCHEDULE_PRESETS, scheduleProblem } from "@/lib/paymentSchedule";
+import OrderChecklistImport from "@/components/estimate/OrderChecklistImport";
 import ProfitPanel from "@/components/estimate/ProfitPanel";
 import { estimateToDraft, newEstimateLineId } from "@/lib/quoteHandoff";
 import { overrideReasonFor, useViewMode } from "@/lib/viewMode";
@@ -71,6 +72,7 @@ function blankEstimate(): CustomerEstimate {
     valid_until: plusDays(30),
     description: "",
     notes: "",
+    internal_memo: "",
     payment_terms: "",
     terms: "This estimate is based on the information available at the time of quoting. Final measurements, site conditions, product availability, and installation details will be confirmed before ordering.",
     windows: [],
@@ -576,6 +578,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <Field label="Project address" className="field-span-2"><AddressAutocomplete className="project-input" multiline rows={2} value={estimate.project_address} onChange={(value) => updateMetadata({ project_address: value })} disabled={!editable} placeholder="Start typing a Canadian address" /></Field>
             <Field label="Description" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.description} onChange={(event) => updateMetadata({ description: event.target.value })} disabled={!editable} placeholder="Describe the work included in the estimate." /></Field>
             <Field label="Notes" className="field-span-2"><textarea className="project-input" rows={2} value={estimate.notes} onChange={(event) => updateMetadata({ notes: event.target.value })} disabled={!editable} /></Field>
+            <Field label="Internal memo (staff only: goes to the CRM, never on the estimate)" className="field-span-2"><textarea className="project-input" rows={2} maxLength={5000} value={estimate.internal_memo ?? ""} onChange={(event) => updateMetadata({ internal_memo: event.target.value })} disabled={!editable} placeholder="e.g. Collect balance by cheque on install day" /></Field>
             <Field label="Terms" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.terms} onChange={(event) => updateMetadata({ terms: event.target.value })} disabled={!editable} /></Field>
             <Field label="Terms of payment (printed on the estimate; the CRM bills against it)" className="field-span-2">
               <PaymentSchedulePicker
@@ -640,6 +643,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
                   {estimate.id && editable ? <Link className="button secondary" href={`/projects/${estimate.id}/measure`}>Measure sheet</Link> : null}
                   {estimate.windows.length ? <button type="button" className="button secondary" onClick={() => openWindowWorkspace("edit")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : "Edit existing"}</button> : null}
                   <button type="button" className="button primary" onClick={() => estimate.id ? openWindowWorkspace("add") : startQuote("/")} disabled={busy || autoPricing || !editable}>{busy ? "Saving project…" : estimate.windows.length ? "Add more windows" : "Save & add windows"}</button>
+                  {editable ? <OrderChecklistImport editable={editable} busy={busy || autoPricing} existingCount={estimate.windows.length} onApply={(windows, mode) => productChanged((current) => ({ ...current, windows: mode === "append" ? [...current.windows, ...windows] : windows }))} /> : null}
                 </div>
               </div>
             </article>

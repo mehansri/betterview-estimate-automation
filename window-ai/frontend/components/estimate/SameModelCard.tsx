@@ -6,13 +6,17 @@ import {
   CustomerDoorOpening,
   CustomerEstimate,
   CustomerWindowLine,
+  DrawingExtraction,
+  DrawingReaderStatus,
   DrawingRow,
   HomeModelSummary,
   ModelMatch,
   extractDrawingOpenings,
+  extractTypedOpenings,
   fetchDrawingReaderStatus,
   fetchHomeModelOpenings,
   fetchModelMatch,
+  runDrawingJob,
   saveHomeModelFromEstimate,
 } from "@/lib/api";
 import { queueMeasureRows } from "@/components/MeasureSheet";
@@ -73,13 +77,16 @@ export default function SameModelCard({ estimate, editable, busy, ensureSaved, o
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [showNeighbours, setShowNeighbours] = useState(false);
-  const [readerAvailable, setReaderAvailable] = useState(false);
+  const [reader, setReader] = useState<DrawingReaderStatus | null>(null);
+  const [showTyped, setShowTyped] = useState(false);
+  const [typed, setTyped] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const address = estimate.project_address.trim();
   const stale = Boolean(match) && lookedUp !== address;
+  const readerAvailable = Boolean(reader?.available);
 
   useEffect(() => {
-    fetchDrawingReaderStatus().then((status) => setReaderAvailable(status.available)).catch(() => setReaderAvailable(false));
+    fetchDrawingReaderStatus().then(setReader).catch(() => setReader(null));
   }, []);
 
   async function lookUp() {
@@ -133,26 +140,70 @@ export default function SameModelCard({ estimate, editable, busy, ensureSaved, o
     } finally { setWorking(null); }
   }
 
+  /** Queue the draft rows for review on the measure sheet and open it. */
+  function reviewOnMeasureSheet(estimateId: string, extraction: DrawingExtraction, empty: string) {
+    if (!extraction.rows.length) {
+      setNotice(null);
+      setError(`${empty}${extraction.warnings.length ? ` ${extraction.warnings.join(" ")}` : ""}`);
+      return;
+    }
+    queueMeasureRows(estimateId, extraction.rows.map((row) => ({ ...row, location: reviewLocation(row) })));
+    const proceed = !extraction.warnings.length || window.confirm(
+      `Read ${extraction.rows.length} window row(s). Check these on the measure sheet:\n\n• ${extraction.warnings.join("\n• ")}\n\nOpen the measure sheet now?`,
+    );
+    if (proceed) window.location.href = `/projects/${estimateId}/measure`;
+    else setNotice(`${extraction.rows.length} window row(s) are waiting on the measure sheet for review.`);
+  }
+
+  function localProgress(what: string) {
+    const model = reader?.model || "the local model";
+    return (job: { status: string; page: number; pages: number }) => setNotice(
+      job.status === "queued"
+        ? `Waiting for the local reader to finish another job…`
+        : job.pages
+          ? `Reading page ${job.page} of ${job.pages} with ${model} on this PC (about a minute or more per page)…`
+          : `Reading ${what} with ${reader?.text_model || model} on this PC…`,
+    );
+  }
+
   async function readDrawings(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
-    setWorking("drawings"); setError(null); setNotice("Reading the drawings — this can take a few minutes for a full set…");
+    setWorking("drawings"); setError(null);
+    setNotice(reader?.local
+      ? `Reading the drawings with ${reader.model} on this PC — about a minute or more per page…`
+      : "Reading the drawings — this can take a few minutes for a full set…");
     try {
       const saved = await ensureSaved();
-      const extraction = await extractDrawingOpenings(file, address);
-      if (!extraction.rows.length) {
-        setNotice(null);
-        setError(`No windows were found on those drawings.${extraction.warnings.length ? ` ${extraction.warnings.join(" ")}` : ""}`);
-        return;
-      }
-      queueMeasureRows(saved.id, extraction.rows.map((row) => ({ ...row, location: reviewLocation(row) })));
-      window.location.href = `/projects/${saved.id}/measure`;
+      const extraction = reader?.background
+        ? await runDrawingJob({ file, address }, localProgress("the drawings"))
+        : await extractDrawingOpenings(file, address);
+      reviewOnMeasureSheet(saved.id, extraction, "No windows were found on those drawings.");
     } catch (reason) {
       setNotice(null);
       setError(reason instanceof Error ? reason.message : "The drawings could not be read.");
     } finally {
       setWorking(null);
       if (fileInput.current) fileInput.current.value = "";
+    }
+  }
+
+  async function readTyped() {
+    const text = typed.trim();
+    if (!text) return;
+    setWorking("typed"); setError(null);
+    setNotice(reader?.local ? `Reading your notes with ${reader.text_model} on this PC…` : "Reading your notes…");
+    try {
+      const saved = await ensureSaved();
+      const extraction = reader?.background
+        ? await runDrawingJob({ text }, localProgress("your notes"))
+        : await extractTypedOpenings(text);
+      reviewOnMeasureSheet(saved.id, extraction, "No windows were found in that description.");
+    } catch (reason) {
+      setNotice(null);
+      setError(reason instanceof Error ? reason.message : "That description could not be read.");
+    } finally {
+      setWorking(null);
     }
   }
 
@@ -184,7 +235,35 @@ export default function SameModelCard({ estimate, editable, busy, ensureSaved, o
         </button>
         {!address ? <span className="text-muted text-sm">Enter the project address first.</span> : null}
         {stale ? <span className="text-muted text-sm">The address changed — look it up again.</span> : null}
+        {editable && reader?.text_available ? (
+          <button type="button" className="button secondary" onClick={() => setShowTyped((value) => !value)} disabled={busy} aria-expanded={showTyped}>
+            {showTyped ? "Hide typed openings" : "Type the openings"}
+          </button>
+        ) : null}
       </div>
+
+      {showTyped && editable && reader?.text_available ? (
+        <div className="mt-3 space-y-2">
+          <label className="block text-sm">
+            <span className="font-semibold text-slate-800">Describe the windows</span>
+            <span className="text-muted"> — rooms, counts, sizes (width × height, inches) and anything to note. They open on the measure sheet for you to check.</span>
+            <textarea
+              className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm"
+              rows={4}
+              value={typed}
+              onChange={(event) => setTyped(event.target.value)}
+              placeholder="living room: 3 casements 29x65, kitchen 28x51 right hinge"
+              disabled={disabled}
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className="button primary" onClick={readTyped} disabled={disabled || !typed.trim()}>
+              {working === "typed" ? "Reading…" : "Add to measure sheet"}
+            </button>
+            <span className="text-muted text-xs">{reader.local ? `Read on this PC with ${reader.text_model}.` : `Read with ${reader.text_model}.`}</span>
+          </div>
+        </div>
+      ) : null}
 
       {notice ? <p className="project-message mt-3">{notice}</p> : null}
       {error ? <p className="project-error mt-3">{error}</p> : null}
@@ -296,10 +375,12 @@ export default function SameModelCard({ estimate, editable, busy, ensureSaved, o
               ) : null}
               {estimate.id ? <Link className="button secondary" href={`/projects/${estimate.id}/measure`}>Measure this home</Link> : null}
               {readerAvailable ? (
-                <label className={`button secondary ${disabled ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
-                  {working === "drawings" ? "Reading drawings…" : "Read permit drawings (PDF)"}
+                <label className={`button secondary ${disabled ? "pointer-events-none opacity-60" : "cursor-pointer"}`} title={reader?.local ? `Read on this PC with ${reader.model}` : undefined}>
+                  {working === "drawings" ? "Reading drawings…" : reader?.local ? "Read permit drawings (PDF, local)" : "Read permit drawings (PDF)"}
                   <input ref={fileInput} type="file" accept="application/pdf" className="sr-only" onChange={(event) => readDrawings(event.target.files)} disabled={disabled} />
                 </label>
+              ) : reader?.local && reader.message ? (
+                <span className="text-muted text-xs">Local drawing reader: {reader.message}</span>
               ) : null}
               {match.source ? (
                 <span className="text-xs">
