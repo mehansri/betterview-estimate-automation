@@ -1269,10 +1269,10 @@ export async function fetchDoorCatalog(): Promise<DoorCatalog> {
   return res.json();
 }
 
-export async function quoteDoors(openings: DoorOpeningSpec[], commercial?: CommercialSettings, costContext?: CostContext): Promise<DoorProjectResponse> {
+export async function quoteDoors(openings: DoorOpeningSpec[], commercial?: CommercialSettings, costContext?: CostContext, pricingAdminToken?: string): Promise<DoorProjectResponse> {
   const res = await apiFetch("/api/doors/quote", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(pricingAdminToken ? { "X-Pricing-Admin-Token": pricingAdminToken } : {}) },
     body: JSON.stringify({ openings, commercial, ...(costContext ? { cost_context: costContext } : {}) }),
   });
   if (!res.ok) {

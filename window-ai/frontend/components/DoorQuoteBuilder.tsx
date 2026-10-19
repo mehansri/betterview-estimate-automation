@@ -30,7 +30,7 @@ import {
 } from "@/lib/api";
 import { estimateToDraft, newEstimateLineId } from "@/lib/quoteHandoff";
 import { describeDoorLine } from "@/lib/productDescriptions";
-import { useViewMode } from "@/lib/viewMode";
+import { overrideReasonFor, useViewMode } from "@/lib/viewMode";
 import DealPanel from "@/components/estimate/DealPanel";
 import FavouritesBar from "@/components/estimate/FavouritesBar";
 import QuoteProjectBar from "@/components/estimate/QuoteProjectBar";
@@ -399,7 +399,9 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
   const [draft, setDraft] = useState<OpeningDraft | null>(null);
   const [openings, setOpenings] = useState<DoorQuoteOpening[]>([]);
   const [result, setResult] = useState<DoorProjectResponse | null>(null);
-  const { mode: presentationMode } = useViewMode();
+  const { mode: presentationMode, managerTokenRequired } = useViewMode();
+  const [overrideReason, setOverrideReason] = useState("");
+  const [managerToken, setManagerToken] = useState("");
   const [loading, setLoading] = useState(true);
   const [handoffBusy, setHandoffBusy] = useState(false);
   const [handoffEstimateId, setHandoffEstimateId] = useState<string | null>(null);
@@ -506,11 +508,20 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
     () => salesPresets.find((preset) => preset.id === selectedPresetId) || salesPresets[0],
     [salesPresets, selectedPresetId],
   );
+  // A discount over the limit needs a manager approval reason (automatic while
+  // the manager token is off), the same as window quotes.
+  const allowedMax = result?.sales_pricing.maximum_allowed_discount_percent ?? selectedPreset?.max_discount_percent ?? 0;
+  const needsOverride = Math.max(-MAX_PRICE_INCREASE_PERCENT, negotiatedDiscount) > allowedMax + 1e-9;
+  const approvalReason = needsOverride ? overrideReasonFor(overrideReason, managerTokenRequired) : "";
+  const approvalMissing = needsOverride && (!approvalReason || (managerTokenRequired && !managerToken.trim()));
+  const approvalToken = needsOverride ? managerToken.trim() || undefined : undefined;
   const commercial: CommercialSettings = {
     preset_id: selectedPreset?.id || selectedPresetId,
     negotiated_discount_percent: negotiatedDiscount,
+    ...(approvalReason ? { manager_override_reason: approvalReason } : {}),
     presentation_mode: "internal",
   };
+  const approvalMessage = `This discount (${negotiatedDiscount.toFixed(1)}%) is over your limit (${allowedMax.toFixed(1)}%). Enter a manager approval reason${managerTokenRequired ? " and authorization token" : ""}, or reduce the discount.`;
   // The sliding margin and profit floor are set on the whole project: price
   // these openings with the project's windows (and its other doors when adding).
   const costContext = projectId ? { project_id: projectId, scope: editDoors ? "replace_doors" as const : "append" as const } : undefined;
@@ -528,8 +539,12 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
     if (!catalog) return;
     const payload = buildPayload();
     if (!payload.length) return;
+    if (approvalMissing) {
+      setAutoPriceError(approvalMessage);
+      return;
+    }
     const timer = setTimeout(() => {
-      quoteDoors(payload, commercial, costContext)
+      quoteDoors(payload, commercial, costContext, approvalToken)
         .then((response) => {
           if (autoPriceRequestRef.current !== requestId) return;
           setResult(response);
@@ -543,7 +558,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
     }, 600);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, pipe, openingLabel, editorMode, openings, catalog, selectedPresetId, negotiatedDiscount]);
+  }, [draft, pipe, openingLabel, editorMode, openings, catalog, selectedPresetId, negotiatedDiscount, approvalReason, approvalToken]);
 
   async function saveFavourite() {
     if (!activeSpec) return;
@@ -673,10 +688,14 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
   async function generateQuote() {
     const payload = buildPayload();
     if (!payload.length) return;
+    if (approvalMissing) {
+      setError(approvalMessage);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const response = await quoteDoors(payload, commercial, costContext);
+      const response = await quoteDoors(payload, commercial, costContext, approvalToken);
       setOpenings((current) => payload.map((spec, index) => ({
         id: current[index]?.id || newEstimateLineId("door"),
         location: current[index]?.location || "",
@@ -723,7 +742,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
           window.location.href = `/projects/${saved.id}`;
           return;
         }
-        const priced = await priceCustomerEstimate(saved.id);
+        const priced = await priceCustomerEstimate(saved.id, approvalToken);
         window.location.href = `/projects/${priced.id}`;
         return;
       }
@@ -733,7 +752,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
         commercial: projectHasProducts ? { ...project.commercial, ...commercial } : commercial,
       });
       try {
-        const priced = await priceCustomerEstimate(assigned.id);
+        const priced = await priceCustomerEstimate(assigned.id, approvalToken);
         window.location.href = `/projects/${priced.id}`;
       } catch (pricingError) {
         setHandoffEstimateId(assigned.id);
@@ -1009,6 +1028,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
             }}
             discount={negotiatedDiscount}
             onDiscountChange={setNegotiatedDiscount}
+            override={{ reason: overrideReason, token: managerToken, tokenRequired: managerTokenRequired, onReason: setOverrideReason, onToken: setManagerToken, applied: Boolean(result?.sales_pricing.override_applied) }}
             pricing={loading}
             stale={stale}
             priceError={autoPriceError}

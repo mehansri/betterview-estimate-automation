@@ -219,3 +219,26 @@ def test_design_names_the_pattern_without_moving_the_price():
     )
     assert chosen["list_total"] == undecided["list_total"]
     assert "design: Allure" in chosen["line_items"][0]["description"]
+
+
+def test_door_quote_over_the_discount_limit_needs_manager_approval(monkeypatch):
+    """$ off past the preset cap: priced with an approval reason, like windows (not silently capped)."""
+    client = TestClient(app)
+    body = {"openings": [_live_opening()], "commercial": {"preset_id": "sliding", "negotiated_discount_percent": 7.5}}
+
+    monkeypatch.delenv("PRICING_ADMIN_TOKEN", raising=False)
+    refused = client.post("/api/doors/quote", json=body)
+    assert refused.status_code == 422, refused.text
+
+    approved = {**body, "commercial": {**body["commercial"], "manager_override_reason": "Over the discount limit (manager token off)"}}
+    priced = client.post("/api/doors/quote", json=approved)
+    assert priced.status_code == 200, priced.text
+    sales = priced.json()["sales_pricing"]
+    assert sales["negotiated_discount_percent"] == 7.5
+    assert sales["override_applied"] is True
+    assert sales["merchandise_discount_amount"] == pytest.approx(sales["base_merchandise_sell"] * 0.075, abs=0.01)
+
+    monkeypatch.setenv("PRICING_ADMIN_TOKEN", "manager-secret")
+    assert client.post("/api/doors/quote", json=approved).status_code == 403
+    with_token = client.post("/api/doors/quote", json=approved, headers={"X-Pricing-Admin-Token": "manager-secret"})
+    assert with_token.status_code == 200, with_token.text
