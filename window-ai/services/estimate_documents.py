@@ -111,19 +111,19 @@ def _before_discount(block: dict[str, Any]) -> Any:
     return block.get("base_subtotal", block.get("subtotal"))
 
 
-def _door_white_inside(spec: dict[str, Any]) -> bool:
-    """A door is white inside when its interior is factory white or painted white (not stained)."""
+def _door_casing_primed(spec: dict[str, Any]) -> bool:
+    """A door gets our white primed casing unless it orders Palma's finished casing trim
+    (QuickBooks estimate 1499: stained door, casing still primed in white)."""
     pipe = spec.get("pipeline")
     if isinstance(pipe, dict):
-        inside = (pipe.get("colours") or {}).get("interior") or {}
-        kind = str(inside.get("type") or "").lower()
-        return kind == "white" or (kind == "painted" and str(inside.get("colour") or "").strip().lower() == "white")
-    return "stain" not in str(spec.get("finish") or "").lower()
+        return not (pipe.get("extras") or {}).get("casing")
+    return not any(str((option or {}).get("category") or "").startswith("casing_trim") for option in spec.get("options") or [])
 
 
 def _for_interior(lines: list[str], specs: list[dict[str, Any]], doors: list[dict[str, Any]] = ()) -> list[str]:
-    """Lines promising casing/jambs "primed in white" only apply when every interior is white."""
-    if _white_inside(specs) and all(_door_white_inside(spec) for spec in doors):
+    """Lines promising casing/jambs "primed in white" only apply when every window interior is white
+    and no door orders Palma's own casing."""
+    if _white_inside(specs) and all(_door_casing_primed(spec) for spec in doors):
         return lines
     return [line for line in lines if "primed in white" not in line.lower()]
 

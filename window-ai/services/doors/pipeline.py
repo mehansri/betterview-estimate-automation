@@ -1875,14 +1875,26 @@ SCOPE_PHRASES = {
 }
 
 
+# Frame wording on the QuickBooks door estimates (textured = woodgrain fiberglass frame, smooth = steel's vinyl frame).
+FRAME_SYSTEMS = {
+    "textured": "Solid exterior composite woodgrain frame with internal reinforcement",
+    "smooth": "Solid exterior vinyl frame with internal reinforcement",
+}
+TRANSOM_SHAPES = {"rectangle": "Rectangular", "shapes": "Shaped"}
+
+
 def _colour_side(side: dict[str, Any]) -> str:
     kind = str(side.get("type") or "")
     colour = _clean(side.get("colour"))
     if kind == "white":
         return "Factory white"
     if kind in ("painted", "stained"):
-        return f"{kind.title()} {colour.title() if colour else '(colour to be chosen)'}"
+        return f"{kind.title()} {colour.title() if colour else 'TBD'}"
     return ""
+
+
+def _inches(value: Any) -> str:
+    return f'{float(value):g}"'
 
 
 def _glass_choice(part: dict[str, Any]) -> str:
@@ -1911,16 +1923,17 @@ def pipeline_spec_lines(pipe: dict[str, Any]) -> list[str]:
     glass = pipe.get("glass") or {}
     lines: list[str] = []
 
-    frame = FRAME_TYPES.get(pipe.get("frame_type") or DEFAULT_FRAME_TYPE.get(material, ""), "")
+    frame = FRAME_SYSTEMS.get(pipe.get("frame_type") or DEFAULT_FRAME_TYPE.get(material, ""), "")
     depth = FRAME_DEPTH_LABELS.get(str(pipe.get("frame_depth") or ""))
     if frame:
-        lines.append(f"Frame system: {frame}{f', {depth} jamb' if depth else ''}")
+        height = f"{pipe['height']} - " if pipe.get("height") else ""
+        lines.append(f"Frame system: {height}{frame}{f', {depth} jamb' if depth else ''}")
     sill = next((row for row in SILLS.get(material, []) if row["key"] == (standard.get("sill") or "black_anodized")), None)
     if sill:
         lines.append(f"Sill: {sill['label'] if 'outswing' in sill['key'] else sill['label'] + ' - Inswing'}")
     hinges = standard.get("hinges") or "black"
     if hinges in HINGES:
-        lines.append(f"Hinges: {'Standard' if hinges == 'standard' else 'Heavy-duty ' + HINGES[hinges].lower()}")
+        lines.append(f"Hinges: {'Standard' if hinges == 'standard' else 'HD ' + HINGES[hinges].lower()}")
     for label, side in (("Exterior door colour", "exterior"), ("Interior door colour", "interior")):
         text = _colour_side(colours_.get(side) or {})
         if text:
@@ -1928,7 +1941,8 @@ def pipeline_spec_lines(pipe: dict[str, Any]) -> list[str]:
 
     door_glass = glass.get("door") or {}
     model = pipe.get("model")
-    slab = [f'{pipe.get("width")}" x {pipe.get("height")} {material.title()}' if pipe.get("width") and pipe.get("height") else material.title()]
+    # The height is on the frame line, as QuickBooks estimate 1499 prints it.
+    slab = [f"{_inches(pipe['width'])} {material.title()}" if pipe.get("width") else material.title()]
     if model:
         slab.append((index["doors"].get(model) or {}).get("label") or str(model).replace("-", " ").title())
     if door_glass.get("glazed") is False:
@@ -1947,30 +1961,36 @@ def pipeline_spec_lines(pipe: dict[str, Any]) -> list[str]:
         pull = standard.get("pull_bar") or {}
         lines.append(f'Locking system: Pull bar - {str(pull.get("style") or "straight").title()} {pull.get("length_in") or 36}"')
     elif lock == "double_bore":
-        lines.append("Locking system: Double bore prep")
+        lines.append("Locking system: Double bore prep - Customer supplied hardware")
 
     sidelites = []
+    sidelite_width = _inches(pipe.get("sidelite_width_in") or SIDELITE_WIDTH_IN)
     for part in (glass.get("sidelites") or [])[: layout.get("sidelites", 0)]:
         name = (index["sidelites"].get(part.get("model") or "") or {}).get("label") or ""
-        if part.get("glazed"):
-            sidelites.append(" - ".join(item for item in (name, _glass_choice(part)) if item))
-        else:
-            sidelites.append(" - ".join(item for item in (name, str(part.get("panel") or "Solid panel")) if item))
+        choice = _glass_choice(part) if part.get("glazed") else str(part.get("panel") or "Solid panel")
+        sidelites.append(" - ".join(item for item in (sidelite_width, name, choice) if item))
     if sidelites and len(set(sidelites)) == 1:
         lines.append(f"Sidelite{'s' if len(sidelites) > 1 else ''}: {sidelites[0]}")
     else:
         lines.extend(f"Sidelite {number}: {text}" for number, text in enumerate(sidelites, start=1))
     if layout.get("transom"):
-        transom = dict(TRANSOM_GLASS).get((glass.get("transom") or {}).get("glass") or "")
-        if transom:
-            lines.append(f"Transom: {transom}")
+        transom = glass.get("transom") or {}
+        glass_name = dict(TRANSOM_GLASS).get(transom.get("glass") or "")
+        if glass_name:
+            parts = [TRANSOM_SHAPES.get(transom.get("shape") or "rectangle", ""),
+                     f"{'Tempered ' if transom.get('tempered') else ''}{glass_name}"]
+            lines.append(f"Transom: {' - '.join(item for item in parts if item)}")
     return lines
 
 
 def pipeline_scope(pipe: dict[str, Any]) -> str:
-    """'To supply and install: Single door with 2 sidelites'."""
+    """'To supply and install: Single door with 2 sidelites and shaped transom'."""
     phrase = SCOPE_PHRASES.get((pipe or {}).get("configuration") or "") if isinstance(pipe, dict) else None
-    return f"To supply and install: {phrase}" if phrase else ""
+    if not phrase:
+        return ""
+    if (((pipe.get("glass") or {}).get("transom") or {}).get("shape")) == "shapes":
+        phrase = phrase.replace("transom", "shaped transom")
+    return f"To supply and install: {phrase}"
 
 
 # --------------------------------------------------------------------------
