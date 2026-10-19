@@ -703,10 +703,22 @@ def _price_scope(
         window_sales_pricing.get("install_cost") or 0
     )
     door_cost = float(door_totals.get("material_cost") or 0) + float(door_totals.get("install") or 0)
+    # What the factories charge for the product, before installation and job items.
+    factory_cost = float(window_sales_pricing.get("dealer_cost") or 0) + float(door_totals.get("material_cost") or 0)
     total_cost = _money(window_cost + door_cost + adder_section["cost"])
     profit = _money(combined_subtotal - total_cost)
     profitability = {
         "cost": total_cost,
+        "factory_cost": _money(factory_cost),
+        # Window by window, to compare an option's cost with the windows as quoted.
+        "window_line_costs": [
+            {
+                "id": line.get("id"),
+                "factory": _money(quote_line.get("dealer_total")),
+                "install": _money(quote_line.get("install_total")),
+            }
+            for line, quote_line in zip(windows, (window_quote or {}).get("lines") or [])
+        ],
         "sell": combined_subtotal,
         "profit": profit,
         "margin_percent": round(profit / combined_subtotal * 100.0, 2) if combined_subtotal else 0.0,
@@ -840,6 +852,8 @@ def price_customer_estimate(
                 "subtotal": priced["totals"]["subtotal"],
                 "hst": priced["totals"]["hst"],
                 "total": tier_total,
+                "cost": priced["profitability"]["cost"],
+                "factory_cost": priced["profitability"]["factory_cost"],
                 "profit": priced["profitability"]["profit"],
                 "margin_percent": priced["profitability"]["margin_percent"],
                 "review_required": priced["review_required"],

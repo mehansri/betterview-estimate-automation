@@ -24,6 +24,12 @@ function money(value: number | undefined | null) {
   return new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(value || 0);
 }
 
+/** "+$120" / "−$85", for a change vs the windows as quoted; "" when nothing changed. */
+function signedMoney(value: number | null | undefined) {
+  if (value == null || Math.abs(value) < 0.5) return "";
+  return `${value > 0 ? "+" : "−"}${money(Math.abs(value))}`;
+}
+
 function capitalize(value: string) {
   return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
@@ -390,6 +396,9 @@ export default function OptionTiersCard({
   // The windows as quoted, for "was" descriptions and per-window price differences.
   const baseLines = asQuotedTier ? summaries.get(asQuotedTier.id)?.scope?.sections.windows.lines
     : !selected ? estimate.pricing?.sections?.windows.lines : undefined;
+  // Internal: cost and profit as quoted, for each option's cost difference.
+  const baseProfitability = asQuotedTier ? summaries.get(asQuotedTier.id)?.scope?.profitability
+    : !selected ? estimate.pricing?.profitability : undefined;
 
   function update(id: string, patch: Partial<EstimateTier>) {
     onChange(tiers.map((tier) => (tier.id === id ? { ...tier, ...patch } : tier)), selected);
@@ -513,7 +522,7 @@ export default function OptionTiersCard({
                   key={scope}
                   type="button"
                   aria-pressed={draftScope === scope}
-                  onClick={() => setDraftScope(scope)}
+                  onClick={() => { setDraftScope(scope); setNotice(null); }}
                   className={`rounded-md px-2.5 py-1 ${draftScope === scope ? "bg-brand-500 text-white" : "text-slate-600 hover:text-slate-900"}`}
                 >
                   {scope === "all" ? "All windows" : "Picked windows"}
@@ -528,12 +537,12 @@ export default function OptionTiersCard({
                 windows={windows}
                 picked={draftPicked}
                 disabled={false}
-                onToggle={(id) => setDraftPicked((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])}
-                onSetAll={setDraftPicked}
+                onToggle={(id) => { setNotice(null); setDraftPicked((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]); }}
+                onSetAll={(ids) => { setNotice(null); setDraftPicked(ids); }}
               />
             </div>
           ) : null}
-          <ChoiceFields value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} disabled={false} quotedSeries={baseline.series} />
+          <ChoiceFields value={draft} onChange={(patch) => { setNotice(null); setDraft((current) => ({ ...current, ...patch })); }} disabled={false} quotedSeries={baseline.series} />
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <button type="button" className="button primary" disabled={!draftReady} onClick={addFromComposer}>
               {draftReady ? `Add “${draftLabel}”` : draftScope === "picked" && !draftPicked.length ? "Pick windows and a change" : "Pick a change to add"}
@@ -556,6 +565,8 @@ export default function OptionTiersCard({
           const targeted = isAsQuoted(tier.window_overrides) ? pickedIds.size : windowCount;
           const asQuoted = tierIsAsQuoted(tier);
           const diff = summary?.total != null && baseTotal != null && !asQuoted ? summary.total - baseTotal : null;
+          const profitDiff = signedMoney(summary?.profit != null && baseProfitability && !asQuoted ? summary.profit - baseProfitability.profit : null);
+          const factoryDiff = signedMoney(summary?.factory_cost != null && baseProfitability?.factory_cost != null && !asQuoted ? summary.factory_cost - baseProfitability.factory_cost : null);
           return (
             <div key={tier.id} className={`rounded-lg border p-3 ${isSelected ? "border-brand-500 bg-brand-50" : "border-slate-200"}`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -567,7 +578,13 @@ export default function OptionTiersCard({
                     <>
                       <p className="text-lg font-bold text-slate-900">{money(summary.total)}</p>
                       {diff != null ? <p className={`text-xs font-semibold ${diff > 0 ? "text-slate-700" : "text-emerald-700"}`}>{diff >= 0 ? "+" : "−"}{money(Math.abs(diff))} vs as quoted</p> : null}
-                      {internal && summary.margin_percent != null ? <p className={`text-xs font-semibold ${Number(summary.margin_percent) < 20 ? "text-rose-700" : "text-emerald-700"}`}>{summary.margin_percent.toFixed(1)}% margin · {money(summary.profit)} profit</p> : null}
+                      {internal && summary.margin_percent != null ? <p className={`text-xs font-semibold ${Number(summary.margin_percent) < 20 ? "text-rose-700" : "text-emerald-700"}`}>{summary.margin_percent.toFixed(1)}% margin · {money(summary.profit)} profit{profitDiff ? ` (${profitDiff})` : ""}</p> : null}
+                      {internal && summary.factory_cost != null ? (
+                        <p className="text-xs text-slate-600">
+                          Factory cost {money(summary.factory_cost)}
+                          {factoryDiff ? <span className="font-semibold"> ({factoryDiff})</span> : null}
+                        </p>
+                      ) : null}
                       {summary.review_required ? <p className="text-xs text-amber-700">Needs review</p> : null}
                     </>
                   ) : !summary || updating ? <p className="text-xs text-slate-500">Pricing…</p> : null}
@@ -619,6 +636,8 @@ export default function OptionTiersCard({
                   summary={summary}
                   windows={windows}
                   baseLines={baseLines}
+                  costs={internal ? summary.scope?.profitability?.window_line_costs : undefined}
+                  baseCosts={internal ? baseProfitability?.window_line_costs : undefined}
                   targeted={(lineId) => {
                     const group = groups.find((item) => item.line_ids.includes(lineId));
                     return !isAsQuoted(group ? group.overrides : tier.window_overrides);

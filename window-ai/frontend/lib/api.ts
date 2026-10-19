@@ -730,6 +730,9 @@ export type TierSummary = {
   subtotal?: number;
   hst?: number;
   total?: number;
+  /** Internal: job cost and factory (dealer) cost of this option. */
+  cost?: number;
+  factory_cost?: number;
   profit?: number;
   margin_percent?: number;
   review_required?: boolean;
@@ -747,7 +750,7 @@ export type TierSummary = {
   /** Window lines this option actually changes. */
   changed_line_ids?: string[];
   /** The windows, doors and totals the customer buys with this option, priced. */
-  scope?: { sections: EstimateSections };
+  scope?: { sections: EstimateSections; profitability?: Profitability };
 };
 
 export type WindowSectionLine = {
@@ -809,6 +812,10 @@ export type EstimateTotals = {
 
 export type Profitability = {
   cost: number;
+  /** Factory (dealer) cost of the windows and doors, before installation (absent before 2026-10-19). */
+  factory_cost?: number;
+  /** Factory and installation cost of each window line (absent before 2026-10-19). */
+  window_line_costs?: Array<{ id: string; factory: number; install: number }>;
   sell: number;
   profit: number;
   margin_percent: number;

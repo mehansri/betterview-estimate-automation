@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { CustomerWindowLine, TierSummary, WindowSectionLine } from "@/lib/api";
+import type { CustomerWindowLine, Profitability, TierSummary, WindowSectionLine } from "@/lib/api";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 
+type WindowLineCost = NonNullable<Profitability["window_line_costs"]>[number];
 type Status = "built" | "adjusted" | "partly" | "blocked" | "same" | "untouched";
 type Filter = "all" | "built" | "partly" | "blocked";
 
@@ -26,11 +27,14 @@ function money(value: number) {
  * can't be built that way (and why). Uses the variation's priced snapshot,
  * so the drawing, description and price are exactly what the customer buys.
  */
-export default function VariationWindows({ summary, windows, baseLines, targeted }: {
+export default function VariationWindows({ summary, windows, baseLines, costs, baseCosts, targeted }: {
   summary: TierSummary;
   windows: CustomerWindowLine[];
   /** The same windows as quoted, to show what changed and the price difference. */
   baseLines?: WindowSectionLine[];
+  /** Internal: factory and install cost of each window in this variation, and as quoted. */
+  costs?: WindowLineCost[];
+  baseCosts?: WindowLineCost[];
   /** Whether the variation asks to change this window at all. */
   targeted: (lineId: string) => boolean;
 }) {
@@ -38,6 +42,8 @@ export default function VariationWindows({ summary, windows, baseLines, targeted
   const after = new Map((summary.scope?.sections.windows.lines || []).map((line) => [line.id, line]));
   const before = new Map((baseLines || []).map((line) => [line.id, line]));
   const changed = new Set(summary.changed_line_ids || []);
+  const costAfter = new Map((costs || []).map((row) => [row.id, row]));
+  const costBefore = new Map((baseCosts || []).map((row) => [row.id, row]));
 
   const rows = windows.map((window, index) => {
     const kept = (summary.kept_as_quoted || []).filter((row) => row.line_id === window.id);
@@ -84,6 +90,9 @@ export default function VariationWindows({ summary, windows, baseLines, targeted
           {shown.map(({ window, index, kept, adjusted, status, after: line, before: was }) => {
             const style = STATUS[status];
             const diff = line && was ? line.line_total - was.line_total : null;
+            const cost = costAfter.get(window.id);
+            const costWas = costBefore.get(window.id);
+            const factoryDiff = cost && costWas ? cost.factory - costWas.factory : null;
             return (
               <div key={window.id} className={`flex gap-2.5 rounded-lg border bg-white p-2 ${style.card}`}>
                 <div className="w-[72px] shrink-0">
@@ -113,6 +122,13 @@ export default function VariationWindows({ summary, windows, baseLines, targeted
                     <p className="mt-1 font-semibold text-slate-800">
                       {money(line.line_total)}
                       {diff ? <span className={`ml-1 font-normal ${diff > 0 ? "text-slate-500" : "text-emerald-700"}`}>({diff > 0 ? "+" : "−"}{money(Math.abs(diff))})</span> : null}
+                    </p>
+                  ) : null}
+                  {cost ? (
+                    <p className="text-[11px] text-slate-500">
+                      Factory {money(cost.factory)}
+                      {factoryDiff && Math.abs(factoryDiff) >= 0.5 ? <span className="font-semibold text-slate-700"> ({factoryDiff > 0 ? "+" : "−"}{money(Math.abs(factoryDiff))})</span> : null}
+                      {" · "}Install {money(cost.install)}
                     </p>
                   ) : null}
                 </div>

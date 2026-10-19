@@ -119,6 +119,15 @@ def test_good_better_best_tiers(client):
     assert tiers["good"]["total"] == pricing["totals"]["total"]
     assert tiers["best"]["total"] > tiers["good"]["total"]
     assert "error" in tiers["broken"]
+    # Internal: each option's factory cost, overall and window by window.
+    assert tiers["good"]["factory_cost"] == pricing["profitability"]["factory_cost"]
+    assert tiers["best"]["factory_cost"] > tiers["good"]["factory_cost"]
+    assert tiers["best"]["cost"] > tiers["good"]["cost"]
+    best_lines = tiers["best"]["scope"]["profitability"]["window_line_costs"]
+    assert [row["id"] for row in best_lines] == [line["id"] for line in draft["windows"]]
+    assert sum(row["factory"] for row in best_lines) == pytest.approx(
+        tiers["best"]["scope"]["profitability"]["factory_cost"]
+        - pricing["door_quote"]["totals"]["material_cost"], abs=0.05)
 
     draft["selected_tier"] = "best"
     selected = _price(client, client.put(f"/api/customer-estimates/{estimate['id']}", json=draft).json()["id"])
