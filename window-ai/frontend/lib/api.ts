@@ -559,6 +559,9 @@ export type DoorCustomerOpening = {
   id: string;
   location: string;
   label: string;
+  /** "To supply and install: ..." and labelled spec lines; absent on older snapshots and non-pipeline doors. */
+  scope?: string;
+  details?: string[];
   material: string;
   finish_label: string;
   /** Elevation geometry; absent on older snapshots and undrawable openings. */
@@ -770,6 +773,9 @@ export type DoorSectionOpening = {
   id: string;
   location: string;
   label: string;
+  /** "To supply and install: ..." and labelled spec lines; absent on older snapshots and non-pipeline doors. */
+  scope?: string;
+  details?: string[];
   material: string;
   finish_label: string;
   /** Elevation geometry; absent on older snapshots and undrawable openings. */
@@ -1000,6 +1006,8 @@ export type BusinessSettings = {
 /** Settings text is one item per line; collections are keyed by window series or patio door type. */
 export type EstimateDocumentSettings = {
   general_notes: string;
+  /** Printed instead of general_notes on door-only estimates; added after them when both are quoted. */
+  door_general_notes: string;
   /** Company default terms of payment; estimates can pick their own. */
   payment_schedule: PaymentMilestone[];
   collections: Record<string, { title: string; features: string }>;

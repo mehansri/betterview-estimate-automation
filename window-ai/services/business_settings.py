@@ -61,6 +61,18 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "peeling, flaking, corroding or fading in excess of generally accepted industry standards, for the "
             "lifetime of the product, transferable. Details: https://www.windowcity.com/warranty",
         ]),
+        # Printed instead on door-only estimates (QuickBooks door estimates);
+        # with windows too, the lines not already above are added after them.
+        "door_general_notes": "\n".join([
+            "Palma Door entrance door system.",
+            "Estimated delivery time for entrance doors at this moment: 5 to 8 weeks.",
+            "Full installation stud to stud.",
+            "Includes any repairs required to existing window/door frames.",
+            "Includes weatherproofing with BlueSkin membrane.",
+            "Includes interior casing primed in white.",
+            "Includes disposal of old windows/doors.",
+            "Labour warranty: 15 years.",
+        ]),
         # Company default; each estimate can choose its own (services/payment_schedule.py).
         "payment_schedule": copy.deepcopy(DEFAULT_PAYMENT_SCHEDULE),
         # Product features printed above the line items, by collection: a
@@ -181,8 +193,8 @@ def validate_group(group: str, value: dict[str, Any]) -> None:
         if int(value.get("follow_up_days", 3)) < 0:
             raise ValueError("follow-up days cannot be negative")
     if group == "estimate_document":
-        if not isinstance(value.get("general_notes", ""), str):
-            raise ValueError("general_notes must be text")
+        if not isinstance(value.get("general_notes", ""), str) or not isinstance(value.get("door_general_notes", ""), str):
+            raise ValueError("general notes must be text")
         if "payment_schedule" in value:
             value["payment_schedule"] = normalize_payment_schedule(value["payment_schedule"])
         collections = value.get("collections", {})

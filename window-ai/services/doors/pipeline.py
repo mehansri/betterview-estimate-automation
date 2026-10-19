@@ -1861,6 +1861,118 @@ def pipeline_summary(pipe: dict[str, Any]) -> list[str]:
     return [item for item in details if item]
 
 
+# "To supply and install: ..." wording per configuration (QuickBooks door estimates).
+SCOPE_PHRASES = {
+    "single": "Single door",
+    "single_1sl": "Single door with 1 sidelite",
+    "single_1sl_transom": "Single door with 1 sidelite and transom",
+    "single_2sl": "Single door with 2 sidelites",
+    "single_2sl_transom": "Single door with 2 sidelites and transom",
+    "double": "Double door",
+    "double_2sl": "Double door with 2 sidelites",
+    "double_transom": "Double door with transom",
+    "double_2sl_transom": "Double door with 2 sidelites and transom",
+}
+
+
+def _colour_side(side: dict[str, Any]) -> str:
+    kind = str(side.get("type") or "")
+    colour = _clean(side.get("colour"))
+    if kind == "white":
+        return "Factory white"
+    if kind in ("painted", "stained"):
+        return f"{kind.title()} {colour.title() if colour else '(colour to be chosen)'}"
+    return ""
+
+
+def _glass_choice(part: dict[str, Any]) -> str:
+    family = FAMILY_BY_KEY.get(part.get("family") or "", {})
+    series = part.get("series")
+    name = SERIES_LABEL.get(series) if series and not family.get("flat_max") else family.get("label")
+    text = " - ".join(str(item) for item in (part.get("size"), name or part.get("family")) if item)
+    return f"{text}, design: {part['design']}" if part.get("design") else text
+
+
+def pipeline_spec_lines(pipe: dict[str, Any]) -> list[str]:
+    """The labelled spec lines of a door, as on the QuickBooks door estimates
+    ("Frame system: ...", "Sill: ...", ...). Blank choices are left out."""
+    if not isinstance(pipe, dict) or not pipe.get("material"):
+        return []
+    if pipe.get("material") in LEGACY_MODELS:
+        pipe = upgrade_selection(pipe)
+    material = str(pipe["material"])
+    try:
+        index = build_index(material)
+    except (KeyError, catalog.DoorLookupError):
+        index = {"doors": {}, "sidelites": {}}
+    layout = CONFIG_BY_KEY.get(pipe.get("configuration") or "", {})
+    standard = pipe.get("standard") or {}
+    colours_ = pipe.get("colours") or {}
+    glass = pipe.get("glass") or {}
+    lines: list[str] = []
+
+    frame = FRAME_TYPES.get(pipe.get("frame_type") or DEFAULT_FRAME_TYPE.get(material, ""), "")
+    depth = FRAME_DEPTH_LABELS.get(str(pipe.get("frame_depth") or ""))
+    if frame:
+        lines.append(f"Frame system: {frame}{f', {depth} jamb' if depth else ''}")
+    sill = next((row for row in SILLS.get(material, []) if row["key"] == (standard.get("sill") or "black_anodized")), None)
+    if sill:
+        lines.append(f"Sill: {sill['label'] if 'outswing' in sill['key'] else sill['label'] + ' - Inswing'}")
+    hinges = standard.get("hinges") or "black"
+    if hinges in HINGES:
+        lines.append(f"Hinges: {'Standard' if hinges == 'standard' else 'Heavy-duty ' + HINGES[hinges].lower()}")
+    for label, side in (("Exterior door colour", "exterior"), ("Interior door colour", "interior")):
+        text = _colour_side(colours_.get(side) or {})
+        if text:
+            lines.append(f"{label}: {text}")
+
+    door_glass = glass.get("door") or {}
+    model = pipe.get("model")
+    slab = [f'{pipe.get("width")}" x {pipe.get("height")} {material.title()}' if pipe.get("width") and pipe.get("height") else material.title()]
+    if model:
+        slab.append((index["doors"].get(model) or {}).get("label") or str(model).replace("-", " ").title())
+    if door_glass.get("glazed") is False:
+        slab.append("Solid")
+    elif door_glass.get("glazed"):
+        slab.append("Glass insert")
+    lines.append(f"Door slab: {' - '.join(slab)}")
+    if door_glass.get("glazed") and door_glass.get("family"):
+        lines.append(f"Glass insert: {_glass_choice(door_glass)}")
+
+    lock = standard.get("lock")
+    if lock == "multipoint" and standard.get("handle"):
+        handle = re.sub(r"^\[NEW\]\s*", "", str(standard["handle"]))
+        lines.append(f"Locking system: Multipoint lock - {handle}")
+    elif lock == "pull_bar":
+        pull = standard.get("pull_bar") or {}
+        lines.append(f'Locking system: Pull bar - {str(pull.get("style") or "straight").title()} {pull.get("length_in") or 36}"')
+    elif lock == "double_bore":
+        lines.append("Locking system: Double bore prep")
+
+    sidelites = []
+    for part in (glass.get("sidelites") or [])[: layout.get("sidelites", 0)]:
+        name = (index["sidelites"].get(part.get("model") or "") or {}).get("label") or ""
+        if part.get("glazed"):
+            sidelites.append(" - ".join(item for item in (name, _glass_choice(part)) if item))
+        else:
+            sidelites.append(" - ".join(item for item in (name, str(part.get("panel") or "Solid panel")) if item))
+    if sidelites and len(set(sidelites)) == 1:
+        lines.append(f"Sidelite{'s' if len(sidelites) > 1 else ''}: {sidelites[0]}")
+    else:
+        lines.extend(f"Sidelite {number}: {text}" for number, text in enumerate(sidelites, start=1))
+    if layout.get("transom"):
+        transom = dict(TRANSOM_GLASS).get((glass.get("transom") or {}).get("glass") or "")
+        if transom:
+            lines.append(f"Transom: {transom}")
+    return lines
+
+
+def pipeline_scope(pipe: dict[str, Any]) -> str:
+    """'To supply and install: Single door with 2 sidelites'."""
+    phrase = SCOPE_PHRASES.get((pipe or {}).get("configuration") or "") if isinstance(pipe, dict) else None
+    return f"To supply and install: {phrase}" if phrase else ""
+
+
 # --------------------------------------------------------------------------
 # Elevation drawing (estimate screen, customer portal, PDF)
 # --------------------------------------------------------------------------

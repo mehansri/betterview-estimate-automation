@@ -272,6 +272,9 @@ class DoorCustomerOpening(BaseModel):
     id: str
     location: str = ""
     label: str
+    # "To supply and install: ..." and labelled spec lines (services/doors/pipeline.py:pipeline_spec_lines).
+    scope: str = ""
+    details: list[str] = Field(default_factory=list)
     material: str
     finish_label: str
     # Elevation geometry (services/doors/pipeline.py:door_drawing); None when not drawable.

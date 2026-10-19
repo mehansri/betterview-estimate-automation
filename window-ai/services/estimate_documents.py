@@ -111,19 +111,34 @@ def _before_discount(block: dict[str, Any]) -> Any:
     return block.get("base_subtotal", block.get("subtotal"))
 
 
-def _for_interior(lines: list[str], specs: list[dict[str, Any]]) -> list[str]:
+def _door_white_inside(spec: dict[str, Any]) -> bool:
+    """A door is white inside when its interior is factory white or painted white (not stained)."""
+    pipe = spec.get("pipeline")
+    if isinstance(pipe, dict):
+        inside = (pipe.get("colours") or {}).get("interior") or {}
+        kind = str(inside.get("type") or "").lower()
+        return kind == "white" or (kind == "painted" and str(inside.get("colour") or "").strip().lower() == "white")
+    return "stain" not in str(spec.get("finish") or "").lower()
+
+
+def _for_interior(lines: list[str], specs: list[dict[str, Any]], doors: list[dict[str, Any]] = ()) -> list[str]:
     """Lines promising casing/jambs "primed in white" only apply when every interior is white."""
-    if _white_inside(specs):
+    if _white_inside(specs) and all(_door_white_inside(spec) for spec in doors):
         return lines
     return [line for line in lines if "primed in white" not in line.lower()]
 
 
-def _for_window_city(lines: list[str], items: list[tuple[dict[str, Any], int]]) -> list[str]:
-    """Window City lines (manufacturer, warranty, white primed casing) only apply when the estimate
-    quotes Window City product; a door-only estimate drops them (its casing is priced with the door)."""
-    if items:
-        return lines
-    return [line for line in lines if "window city" not in line.lower() and "primed in white" not in line.lower()]
+def _general_notes(settings: dict[str, Any], has_windows: bool, has_doors: bool) -> list[str]:
+    """Window City notes for windows, the Palma door notes for door-only estimates;
+    both together print the window notes, then the door lines not already there."""
+    window_notes = _copy_lines(settings.get("general_notes"))
+    door_notes = _copy_lines(settings.get("door_general_notes"))
+    if has_doors and not has_windows:
+        return door_notes
+    if not has_doors:
+        return window_notes
+    seen = {line.lower() for line in window_notes}
+    return window_notes + [line for line in door_notes if line.lower() not in seen]
 
 
 def product_collections(items: list[tuple[dict[str, Any], int]]) -> list[dict[str, Any]]:
@@ -156,6 +171,7 @@ def document_copy(row) -> dict[str, Any]:
     tier = next((t for t in row.tiers or [] if str(t.get("id")) == str(pricing.get("selected_tier"))), None)
     window_lines = ((pricing.get("sections") or {}).get("windows") or {}).get("lines") or []
     items = _quoted_specs(row, window_lines, tier)
+    door_specs = [opening.get("spec") or {} for opening in row.doors or []]
     default_schedule = _company_schedule(settings)
     own_schedule = getattr(row, "payment_schedule", None) or None
     typed_terms = _copy_lines(getattr(row, "payment_terms", None))
@@ -163,8 +179,8 @@ def document_copy(row) -> dict[str, Any]:
     schedule = own_schedule or (None if typed_terms else default_schedule)
     return {
         "gst_number": str(business_settings.get_group("company").get("gst_number") or "").strip(),
-        "general_notes": _for_window_city(
-            _for_interior(_copy_lines(settings.get("general_notes")), [spec for spec, _ in items]), items),
+        "general_notes": _for_interior(
+            _general_notes(settings, bool(items), bool(door_specs)), [spec for spec, _ in items], door_specs),
         "payment_terms": payment_schedule.terms_lines(schedule) if schedule else typed_terms,
         "default_payment_terms": payment_schedule.terms_lines(default_schedule),
         # What the CRM bills against on import; None when only typed terms exist.
@@ -653,7 +669,9 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         story.extend(padded(section_heading("Scope of work", "Doors", _before_discount(sections["doors"])), top=14))
         for index, opening in enumerate(openings, start=1):
             detail = " · ".join(filter(None, [opening.get("location"), opening.get("material"), opening.get("finish_label")]))
-            title_cell = [p(f"Item {index} · {opening.get('label')}", h3), Spacer(1, 2), p(detail, small)]
+            title_cell = [p(f"Item {index} · {opening.get('scope') or opening.get('label')}", h3), Spacer(1, 2), p(detail, small)]
+            if opening.get("scope") and opening.get("details"):
+                title_cell += [Spacer(1, 3), *(p(f"• {line}", copy_text) for line in opening["details"])]
             sketch = door_drawing_flowable(opening.get("drawing"), 1.3 * inch, 1.1 * inch)
             cells = ([sketch] if sketch is not None else []) + [title_cell, p(_money(_before_discount(opening)), h3_right)]
             widths = ([1.45 * inch] if sketch is not None else []) + [0, 1.2 * inch]

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from services.descriptions import door_description
-from services.doors.pipeline import door_drawing
+from services.doors.pipeline import door_drawing, pipeline_scope, pipeline_spec_lines
 
 
 def _money(value: Any) -> float:
@@ -63,11 +63,19 @@ def customer_door_openings(
                 }
             )
 
+        pipe = (project_opening.get("spec") or {}).get("pipeline")
+        details = pipeline_spec_lines(pipe)
+        custom = str(project_opening.get("description") or "").strip()
+        if details and custom:
+            details.insert(0, custom)
         customer_openings.append(
             {
                 "id": str(project_opening.get("id") or index + 1),
                 "location": project_opening.get("location") or "",
                 "label": door_description(project_opening, opening) or "Door opening",
+                # "To supply and install: ..." and the labelled spec lines, as on the QuickBooks door estimates.
+                "scope": pipeline_scope(pipe),
+                "details": details,
                 "drawing": door_drawing(project_opening.get("spec")),
                 "material": opening.get("material"),
                 "finish_label": opening.get("finish_label"),

@@ -406,7 +406,7 @@ function EstimateDocumentSection({ initial, token }: { initial: EstimateDocument
       onSave={save}
     >
       <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-        <Field label="General notes" hint="Inclusions, delivery time and warranties, shown as a bulleted list after the totals.">
+        <Field label="General notes" hint="Inclusions, delivery time and warranties, shown as a bulleted list after the totals. Used whenever the estimate has windows.">
           <textarea className={`${INPUT} min-h-[14rem]`} rows={11} value={draft.general_notes} onChange={(e) => update("general_notes", e.target.value)} />
         </Field>
         <Field label="Default terms of payment" hint="Used by every estimate that doesn't pick its own; shown beside the general notes.">
@@ -416,6 +416,9 @@ function EstimateDocumentSection({ initial, token }: { initial: EstimateDocument
             allowDefault={false}
             onChange={(schedule) => update("payment_schedule", schedule ?? PAYMENT_SCHEDULE_PRESETS[0].schedule)}
           />
+        </Field>
+        <Field label="Door general notes" hint="Printed instead of the general notes on door-only estimates. With windows too, lines not already in the general notes are added after them.">
+          <textarea className={`${INPUT} min-h-[10rem]`} rows={8} value={draft.door_general_notes ?? ""} onChange={(e) => update("door_general_notes", e.target.value)} />
         </Field>
       </div>
       <fieldset className="mt-6">

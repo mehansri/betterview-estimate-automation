@@ -530,22 +530,47 @@ def test_primed_in_white_lines_are_left_off_dark_interior_jobs(tmp_path, monkeyp
     assert "Includes interior casing primed in white." in copy["general_notes"]
 
 
-def test_window_city_notes_are_left_off_door_only_estimates(tmp_path, monkeypatch):
+def _pipeline_door(interior: dict) -> dict:
+    selection = {
+        "material": "steel", "width": 36, "height": '6\'8"', "configuration": "single", "frame_depth": "4.625",
+        "model": "orleans", "colours": {"exterior": {"type": "painted", "colour": "Black"}, "interior": interior},
+        "glass": {"door": {"glazed": False}}, "standard": {"lock": "double_bore"},
+    }
+    return {"id": "d1", "location": "Front entry", "spec": {
+        "label": "Front entry", "material": "steel", "opening_type": "single_door", "pipeline": selection}}
+
+
+def test_door_only_estimates_print_the_palma_door_notes(tmp_path, monkeypatch):
+    # As QuickBooks door estimate 2143: Palma door system, 5 to 8 weeks, no Window City lines.
     client = _client(tmp_path, monkeypatch)
     draft = {**_draft(), "windows": []}
     estimate_id = client.post("/api/customer-estimates", json=draft).json()["id"]
     priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
     assert priced.status_code == 200, priced.text
     notes = priced.json()["document"]["general_notes"]
+    assert notes[0] == "Palma Door entrance door system."
+    assert "Estimated delivery time for entrance doors at this moment: 5 to 8 weeks." in notes
     assert not any("window city" in line.lower() for line in notes)
-    assert not any("primed in white" in line for line in notes)
+    assert not any("primed in white" in line for line in notes)  # stained door
     assert "Includes disposal of old windows/doors." in notes
 
-    # Windows and doors together keep the Window City lines.
+    # Painted white (or factory white) inside keeps the primed casing line, as on the QuickBooks estimate.
+    draft["doors"] = [_pipeline_door({"type": "white"})]
+    assert client.put(f"/api/customer-estimates/{estimate_id}", json=draft).status_code == 200
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+    assert "Includes interior casing primed in white." in priced.json()["document"]["general_notes"]
+    (opening,) = priced.json()["pricing"]["sections"]["doors"]["openings"]
+    assert opening["scope"] == "To supply and install: Single door"
+    assert "Interior door colour: Factory white" in opening["details"]
+
+    # Windows and doors together: the Window City notes, then the door lines not already there.
     estimate_id = client.post("/api/customer-estimates", json=_draft()).json()["id"]
     notes = client.post(f"/api/customer-estimates/{estimate_id}/price").json()["document"]["general_notes"]
-    assert "All windows are Window City Industries manufactured." in notes
+    assert notes[0] == "All windows are Window City Industries manufactured."
     assert any(line.startswith("Window City warranty") for line in notes)
+    assert "Palma Door entrance door system." in notes
+    assert notes.count("Labour warranty: 15 years.") == 1
 
 
 def test_payment_terms_can_be_set_per_estimate(tmp_path, monkeypatch):

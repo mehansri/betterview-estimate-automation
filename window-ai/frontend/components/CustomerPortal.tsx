@@ -596,15 +596,20 @@ export default function CustomerPortal({ token }: { token: string }) {
                       {opening.drawing ? <span className="shrink-0"><DoorGeometryDrawing geometry={opening.drawing} size={96} title={`Door ${openingIndex + 1}, viewed from outside`} /></span> : null}
                       <div className="min-w-0 flex-1">
                         <h3 className="text-sm font-semibold text-slate-900">
-                          Item {openingIndex + 1} · {opening.label}
+                          Item {openingIndex + 1} · {opening.scope || opening.label}
                         </h3>
                         {details ? <p className="mt-0.5 text-xs text-slate-600">{details}</p> : null}
+                        {opening.scope && opening.details?.length ? (
+                          <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-xs text-slate-700">
+                            {opening.details.map((line) => <li key={line}>{line}</li>)}
+                          </ul>
+                        ) : null}
                       </div>
                       <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(opening.base_subtotal ?? opening.subtotal)}</p>
                     </div>
                     <div className="mt-1 px-1">
                       <LineTable
-                        caption={`Door item ${openingIndex + 1}: ${opening.label}`}
+                        caption={`Door item ${openingIndex + 1}: ${opening.scope || opening.label}`}
                         rows={(opening.items ?? []).map((item, index) => ({
                           key: `${opening.id}-${index}`,
                           title: item.description,

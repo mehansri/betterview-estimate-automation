@@ -67,6 +67,30 @@ def _lines(result: dict, text: str) -> list[dict]:
     return [item for item in result["line_items"] if text in item["description"]]
 
 
+def test_spec_lines_read_like_the_quickbooks_door_estimates():
+    from services.doors.pipeline import pipeline_scope, pipeline_spec_lines
+
+    selection = _fiberglass_selection(configuration="single_2sl_transom")
+    selection["glass"]["sidelites"] *= 2
+    selection["glass"]["transom"] = {"glass": "clear_lowe_glass"}
+    assert pipeline_scope(selection) == "To supply and install: Single door with 2 sidelites and transom"
+    assert pipeline_spec_lines(selection) == [
+        'Frame system: Textured composite frame, 4-5/8" jamb',
+        "Sill: Black anodized - Inswing",
+        "Hinges: Heavy-duty matte black",
+        "Exterior door colour: Stained Walnut",
+        "Interior door colour: Stained Walnut",
+        "Door slab: 36\" x 6'8\" Fiberglass - Oak 6-Panel - Glass insert",
+        "Glass insert: 22x36 - Decorative glass",
+        "Locking system: Double bore prep",
+        "Sidelites: Oak 6-Panel - 8x36 - Decorative glass",
+        "Transom: Clear LowE",
+    ]
+    steel = _steel_selection(colours={"exterior": {"type": "painted"}, "interior": {"type": "white"}})
+    assert "Exterior door colour: Painted (colour to be chosen)" in pipeline_spec_lines(steel)
+    assert "Door slab: 36\" x 6'8\" Steel - Orleans - Solid" in pipeline_spec_lines(steel)
+
+
 def _spec(selection: dict) -> dict:
     return {"label": "Front entry", "material": selection.get("material") or "steel", "opening_type": "single_door", "pipeline": selection}
 
