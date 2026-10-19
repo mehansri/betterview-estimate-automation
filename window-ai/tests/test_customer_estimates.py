@@ -538,6 +538,7 @@ def test_window_city_notes_are_left_off_door_only_estimates(tmp_path, monkeypatc
     assert priced.status_code == 200, priced.text
     notes = priced.json()["document"]["general_notes"]
     assert not any("window city" in line.lower() for line in notes)
+    assert not any("primed in white" in line for line in notes)
     assert "Includes disposal of old windows/doors." in notes
 
     # Windows and doors together keep the Window City lines.

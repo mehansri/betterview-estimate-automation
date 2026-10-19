@@ -119,11 +119,11 @@ def _for_interior(lines: list[str], specs: list[dict[str, Any]]) -> list[str]:
 
 
 def _for_window_city(lines: list[str], items: list[tuple[dict[str, Any], int]]) -> list[str]:
-    """Window City lines (manufacturer, warranty) only apply when the estimate quotes Window City product;
-    a door-only estimate drops them."""
+    """Window City lines (manufacturer, warranty, white primed casing) only apply when the estimate
+    quotes Window City product; a door-only estimate drops them (its casing is priced with the door)."""
     if items:
         return lines
-    return [line for line in lines if "window city" not in line.lower()]
+    return [line for line in lines if "window city" not in line.lower() and "primed in white" not in line.lower()]
 
 
 def product_collections(items: list[tuple[dict[str, Any], int]]) -> list[dict[str, Any]]:
