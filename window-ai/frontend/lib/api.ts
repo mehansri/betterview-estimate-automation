@@ -1,5 +1,6 @@
 import type { Hinge, LayoutPreset, LayoutSeries, WindowOperation } from "@/lib/windowLayout";
 import type { PipelineCatalog, PipelineSelection } from "@/lib/doorPipeline";
+import type { PaymentMilestone } from "@/lib/paymentSchedule";
 
 export type WindowSpec = {
   type: string;
@@ -679,8 +680,10 @@ export type CustomerEstimateDraft = {
   description: string;
   notes: string;
   terms: string;
-  /** Terms of payment for this estimate only, one item per line; empty uses the company default. */
+  /** Terms typed before payment schedules existed; payment_schedule replaces them. */
   payment_terms?: string;
+  /** This estimate's payment schedule; null uses the company default. The CRM bills against it. */
+  payment_schedule?: PaymentMilestone[] | null;
   windows: CustomerWindowLine[];
   doors: CustomerDoorOpening[];
   commercial: CommercialSettings;
@@ -879,6 +882,9 @@ export type EstimateDocumentCopy = {
   /** This estimate's terms of payment, else the company default. */
   payment_terms: string[];
   default_payment_terms?: string[];
+  /** The schedule behind payment_terms (null when only typed terms exist). */
+  payment_schedule?: PaymentMilestone[] | null;
+  default_payment_schedule?: PaymentMilestone[];
   collections: EstimateCollectionCopy[];
 };
 
@@ -971,7 +977,8 @@ export type BusinessSettings = {
 /** Settings text is one item per line; collections are keyed by window series or patio door type. */
 export type EstimateDocumentSettings = {
   general_notes: string;
-  payment_terms: string;
+  /** Company default terms of payment; estimates can pick their own. */
+  payment_schedule: PaymentMilestone[];
   collections: Record<string, { title: string; features: string }>;
 };
 

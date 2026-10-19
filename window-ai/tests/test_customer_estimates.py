@@ -539,16 +539,26 @@ def test_payment_terms_can_be_set_per_estimate(tmp_path, monkeypatch):
     assert copy["payment_terms"] == copy["default_payment_terms"] == [
         "35% deposit upon signing.", "65% due upon project completion."]
 
-    draft["payment_terms"] = "50% deposit upon signing.\n50% due upon project completion."
+    assert copy["payment_schedule"] == copy["default_payment_schedule"] == [
+        {"trigger": "deposit", "percentage": 35.0}, {"trigger": "completion", "percentage": 65.0}]
+
+    # The 50 / 50 preset, sent in any order: stored deposit first, worded on the estimate.
+    draft["payment_schedule"] = [{"trigger": "completion", "percentage": 50}, {"trigger": "deposit", "percentage": 50}]
     saved = client.put(f"/api/customer-estimates/{estimate_id}", json=draft)
     assert saved.status_code == 200, saved.text
-    assert saved.json()["payment_terms"] == draft["payment_terms"]
+    assert saved.json()["payment_schedule"] == [{"trigger": "deposit", "percentage": 50.0}, {"trigger": "completion", "percentage": 50.0}]
     assert saved.json()["document"]["payment_terms"] == ["50% deposit upon signing.", "50% due upon project completion."]
+    assert saved.json()["document"]["payment_schedule"] == saved.json()["payment_schedule"]
     assert saved.json()["document"]["default_payment_terms"][0] == "35% deposit upon signing."
 
-    # A save that leaves the field out (e.g. from the CRM) keeps the estimate's terms.
-    del draft["payment_terms"]
-    assert client.put(f"/api/customer-estimates/{estimate_id}", json=draft).json()["payment_terms"].startswith("50%")
+    # A save that leaves the field out (e.g. from the CRM) keeps the estimate's schedule.
+    del draft["payment_schedule"]
+    assert client.put(f"/api/customer-estimates/{estimate_id}", json=draft).json()["payment_schedule"][0]["percentage"] == 50
+
+    # Schedules must start with a deposit and add up to 100%.
+    for bad in ([{"trigger": "deposit", "percentage": 50}, {"trigger": "completion", "percentage": 40}],
+                [{"trigger": "delivery", "percentage": 50}, {"trigger": "completion", "percentage": 50}]):
+        assert client.put(f"/api/customer-estimates/{estimate_id}", json={**draft, "payment_schedule": bad}).status_code == 422
 
     client.post(f"/api/customer-estimates/{estimate_id}/price")
     pdf = client.get(f"/api/customer-estimates/{estimate_id}/pdf")
@@ -561,3 +571,28 @@ def test_payment_terms_can_be_set_per_estimate(tmp_path, monkeypatch):
 
     other = client.post("/api/customer-estimates", json=_draft(mixed=False)).json()["id"]
     assert client.post(f"/api/customer-estimates/{other}/price").json()["document"]["payment_terms"][0].startswith("35%")
+
+    # Back to the company default.
+    cleared = client.put(f"/api/customer-estimates/{estimate_id}", json={**draft, "payment_schedule": None}).json()
+    assert cleared["payment_schedule"] is None and cleared["document"]["payment_terms"][0].startswith("35%")
+
+
+def test_terms_typed_before_schedules_still_print(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = {**_draft(mixed=False), "payment_terms": "40% deposit upon signing.\n60% on completion."}
+    estimate_id = client.post("/api/customer-estimates", json=draft).json()["id"]
+    copy = client.post(f"/api/customer-estimates/{estimate_id}/price").json()["document"]
+    assert copy["payment_terms"] == ["40% deposit upon signing.", "60% on completion."]
+    assert copy["payment_schedule"] is None  # nothing structured for the CRM to bill against
+
+
+def test_company_payment_schedule_is_validated(tmp_path, monkeypatch):
+    from services import business_settings
+
+    _client(tmp_path, monkeypatch)
+    settings = business_settings.get_group("estimate_document")
+    with pytest.raises(ValueError):
+        business_settings.save_group("estimate_document", {**settings, "payment_schedule": [{"trigger": "deposit", "percentage": 90}]})
+    saved = business_settings.save_group("estimate_document", {**settings, "payment_schedule": [
+        {"trigger": "deposit", "percentage": 50}, {"trigger": "delivery", "percentage": 25}, {"trigger": "completion", "percentage": 25}]})
+    assert [entry["percentage"] for entry in saved["payment_schedule"]] == [50, 25, 25]

@@ -44,6 +44,24 @@ button, input, select, textarea { max-width: 100%; }
 .button.primary:hover:not(:disabled) { background: var(--bv-blue-dark); }
 .button.secondary { border-color: #cbdce7; background: #fff; color: var(--bv-navy); }
 .button.secondary:hover:not(:disabled) { border-color: var(--bv-blue); background: var(--bv-soft); }
+
+/* Terms of payment picker (components/estimate/PaymentSchedulePicker.tsx) */
+.payment-picker { display: grid; gap: 0.6rem; border: 1px solid var(--bv-line); border-radius: 0.75rem; background: var(--bv-soft); padding: 0.75rem; }
+.payment-picker-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.payment-picker-presets > span { color: var(--bv-muted); font-size: 0.75rem; font-weight: 700; }
+.payment-chip { border: 1px solid #cbdce7; border-radius: 999px; background: #fff; color: var(--bv-navy); padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 700; transition: 160ms ease; }
+.payment-chip:hover:not(:disabled) { border-color: var(--bv-blue); }
+.payment-chip.active { border-color: var(--bv-blue); background: var(--bv-blue); color: #fff; }
+.payment-chip:disabled { cursor: not-allowed; opacity: 0.5; }
+.payment-picker-rows { display: grid; gap: 0.4rem; }
+.payment-picker-row { display: grid; grid-template-columns: minmax(8rem, 11rem) 7rem minmax(0, 1fr) auto; align-items: center; gap: 0.5rem; }
+.payment-picker-percent { display: flex; align-items: center; gap: 0.3rem; color: var(--bv-muted); font-size: 0.85rem; }
+.payment-picker-amount { color: var(--bv-navy); font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.payment-picker-remove { border: 0; background: none; color: var(--bv-muted); font-size: 0.78rem; font-weight: 700; text-decoration: underline; }
+.payment-picker-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.payment-picker-preview { color: var(--bv-muted); font-size: 0.78rem; }
+.payment-picker-problem { color: #b45309; font-size: 0.8rem; font-weight: 700; }
+@media (max-width: 640px) { .payment-picker-row { grid-template-columns: 1fr 6.5rem; } .payment-picker-amount, .payment-picker-row > :last-child { grid-column: span 1; } }
 .project-message, .project-error { border-radius: 0.7rem; margin-bottom: 1rem; padding: 0.75rem 0.9rem; font-size: 0.82rem; }
 .project-message { background: #ecfdf5; color: #065f46; }
 .project-error { background: #fff1f2; color: #9f1239; }

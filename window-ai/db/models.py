@@ -232,6 +232,10 @@ class CustomerEstimate(Base):
     # Terms of payment for this estimate only (e.g. 50/50); empty uses the
     # company default from Settings -> Estimate document.
     payment_terms: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # This estimate's payment schedule ([{trigger, percentage}], see
+    # services/payment_schedule.py); empty uses the company default. The
+    # wording on the estimate and the CRM's billing both come from it.
+    payment_schedule: Mapped[Optional[list[dict[str, Any]]]] = mapped_column(JSONType, nullable=True)
     windows: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
     doors: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
     commercial: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)

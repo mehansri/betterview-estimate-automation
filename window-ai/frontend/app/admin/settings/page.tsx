@@ -17,6 +17,8 @@ import {
 } from "@/lib/api";
 import { breakpoints, DEFAULT_SLIDING, slidingPlan, slidingProblem } from "@/lib/slidingMargin";
 import { useViewMode } from "@/lib/viewMode";
+import PaymentSchedulePicker from "@/components/estimate/PaymentSchedulePicker";
+import { PAYMENT_SCHEDULE_PRESETS, scheduleProblem } from "@/lib/paymentSchedule";
 
 // ---------------------------------------------------------------- shared helpers
 
@@ -382,7 +384,10 @@ function EstimateDocumentSection({ initial, token }: { initial: EstimateDocument
 
   function save() {
     run(
-      () => null,
+      () => {
+        const problem = scheduleProblem(draft.payment_schedule ?? []);
+        return problem ? `Terms of payment: ${problem}` : null;
+      },
       async (adminToken) => {
         setDraft(await saveBusinessSettings("estimate_document", draft, adminToken));
         return "Estimate document saved.";
@@ -404,14 +409,19 @@ function EstimateDocumentSection({ initial, token }: { initial: EstimateDocument
         <Field label="General notes" hint="Inclusions, delivery time and warranties, shown as a bulleted list after the totals.">
           <textarea className={`${INPUT} min-h-[14rem]`} rows={11} value={draft.general_notes} onChange={(e) => update("general_notes", e.target.value)} />
         </Field>
-        <Field label="Terms of payment" hint="Shown beside the general notes.">
-          <textarea className={`${INPUT} min-h-[6rem]`} rows={4} value={draft.payment_terms} onChange={(e) => update("payment_terms", e.target.value)} />
+        <Field label="Default terms of payment" hint="Used by every estimate that doesn't pick its own; shown beside the general notes.">
+          <PaymentSchedulePicker
+            value={draft.payment_schedule}
+            defaultSchedule={PAYMENT_SCHEDULE_PRESETS[0].schedule}
+            allowDefault={false}
+            onChange={(schedule) => update("payment_schedule", schedule ?? PAYMENT_SCHEDULE_PRESETS[0].schedule)}
+          />
         </Field>
       </div>
       <fieldset className="mt-6">
         <legend className="text-sm font-semibold text-slate-900">Product features by collection</legend>
         <p className="mt-1 text-xs text-slate-500">
-          Printed above the window lines for each collection on the estimate, after a scope summary (quantity and colours) the estimate builds itself. Leave the features empty to show only the summary.
+          Printed after the totals for each collection on the estimate, after a scope summary (quantity and colours) the estimate builds itself. Leave the features empty to show only the summary.
         </p>
         <div className="mt-3 grid gap-4 lg:grid-cols-2">
           {COLLECTIONS.map(({ key, label }) => (

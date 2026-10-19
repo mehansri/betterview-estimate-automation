@@ -5,10 +5,18 @@ from datetime import date, timedelta
 from typing import Any, Literal, Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from api.schemas.doors import DoorOpeningSpec
 from api.schemas.quote import CommercialSettings, QuoteLineInput
+from services.payment_schedule import normalize as normalize_payment_schedule
+
+
+class PaymentMilestone(BaseModel):
+    """One payment: when it is due and its share of the estimate total."""
+
+    trigger: Literal["deposit", "delivery", "completion"]
+    percentage: float = Field(gt=0, le=100)
 
 
 EstimateStatus = Literal["draft", "priced", "finalized", "sent", "viewed", "accepted", "lost"]
@@ -143,6 +151,16 @@ class CustomerEstimateDraft(BaseModel):
     # Terms of payment for this estimate only, one item per line; empty uses the
     # company default. An update that leaves it out keeps the existing terms.
     payment_terms: str = Field(default="", max_length=2000)
+    # This estimate's payment schedule; null uses the company default. An update
+    # that leaves it out keeps the existing schedule.
+    payment_schedule: Optional[list[PaymentMilestone]] = None
+
+    @field_validator("payment_schedule")
+    @classmethod
+    def _complete_schedule(cls, value: Optional[list[PaymentMilestone]]) -> Optional[list[PaymentMilestone]]:
+        if value is not None:
+            normalize_payment_schedule([entry.model_dump() for entry in value])
+        return value
     windows: list[CustomerWindowLine] = Field(default_factory=list)
     doors: list[CustomerDoorOpening] = Field(default_factory=list)
     commercial: CommercialSettings = Field(default_factory=CommercialSettings)

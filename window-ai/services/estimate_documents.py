@@ -12,7 +12,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from services import business_settings
+from services import business_settings, payment_schedule
 from services.doors.pipeline import door_lites
 from services.windowcity.layout import exterior_colour
 
@@ -142,14 +142,28 @@ def document_copy(row) -> dict[str, Any]:
     tier = next((t for t in row.tiers or [] if str(t.get("id")) == str(pricing.get("selected_tier"))), None)
     window_lines = ((pricing.get("sections") or {}).get("windows") or {}).get("lines") or []
     items = _quoted_specs(row, window_lines, tier)
+    default_schedule = _company_schedule(settings)
+    own_schedule = getattr(row, "payment_schedule", None) or None
+    typed_terms = _copy_lines(getattr(row, "payment_terms", None))
+    # The estimate's own schedule wins; then terms typed before schedules existed; then the company default.
+    schedule = own_schedule or (None if typed_terms else default_schedule)
     return {
         "gst_number": str(business_settings.get_group("company").get("gst_number") or "").strip(),
         "general_notes": _for_interior(_copy_lines(settings.get("general_notes")), [spec for spec, _ in items]),
-        # The estimate's own terms of payment win over the company default.
-        "payment_terms": _copy_lines(getattr(row, "payment_terms", None) or settings.get("payment_terms")),
-        "default_payment_terms": _copy_lines(settings.get("payment_terms")),
+        "payment_terms": payment_schedule.terms_lines(schedule) if schedule else typed_terms,
+        "default_payment_terms": payment_schedule.terms_lines(default_schedule),
+        # What the CRM bills against on import; None when only typed terms exist.
+        "payment_schedule": schedule,
+        "default_payment_schedule": default_schedule,
         "collections": product_collections(items),
     }
+
+
+def _company_schedule(settings: dict[str, Any]) -> list[dict[str, Any]]:
+    try:
+        return payment_schedule.normalize(settings.get("payment_schedule"))
+    except payment_schedule.PaymentScheduleError:
+        return payment_schedule.normalize(payment_schedule.DEFAULT_SCHEDULE)
 
 
 def customer_view(row) -> dict[str, Any]:

@@ -7,6 +7,7 @@ import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import { DoorGeometryDrawing } from "@/components/DoorDrawing";
 import { layoutFromLegacySpec } from "@/lib/windowLayout";
 import { specExteriorColour } from "@/lib/productOptions";
+import { scheduleTermsLines } from "@/lib/paymentSchedule";
 
 const BRAND = {
   blue: "#248fd0",
@@ -117,11 +118,13 @@ export default function EstimateDocument({
   const sections = pricing?.sections;
   const totals = pricing?.totals;
   const copy = estimate.document;
-  // The draft's own terms of payment as typed, else the company default.
+  // As document_copy: the draft's schedule, then terms typed before schedules, then the company default.
   const defaultPaymentTerms = copy?.default_payment_terms ?? copy?.payment_terms ?? [];
-  const paymentTerms = estimate.payment_terms?.trim()
-    ? estimate.payment_terms.split("\n").map((line) => line.trim()).filter(Boolean)
-    : defaultPaymentTerms;
+  const paymentTerms = estimate.payment_schedule?.length
+    ? scheduleTermsLines(estimate.payment_schedule)
+    : estimate.payment_terms?.trim()
+      ? estimate.payment_terms.split("\n").map((line) => line.trim()).filter(Boolean)
+      : defaultPaymentTerms;
 
   return (
     <article className="estimate-document" style={{ "--estimate-blue": BRAND.blue, "--estimate-navy": BRAND.navy, "--estimate-muted": BRAND.muted, "--estimate-line": BRAND.line, "--estimate-soft": BRAND.soft } as CSSProperties}>
@@ -258,12 +261,11 @@ export default function EstimateDocument({
         </section>
       ) : null}
 
-      {copy?.general_notes?.length || paymentTerms.length || editable ? (
+      {copy?.general_notes?.length || paymentTerms.length ? (
         <section className="estimate-standing-grid">
           {copy?.general_notes?.length ? <div><p className="estimate-section-label">General notes</p><ul className="estimate-bullets">{copy.general_notes.map((line) => <li key={line}>{line}</li>)}</ul></div> : null}
-          {editable ? (
-            <div><p className="estimate-section-label">Terms of payment</p><EditableArea value={estimate.payment_terms ?? ""} editable onChange={(value) => onChange({ payment_terms: value })} placeholder={defaultPaymentTerms.join("\n") || "Terms of payment"} /></div>
-          ) : paymentTerms.length ? <div><p className="estimate-section-label">Terms of payment</p>{paymentTerms.map((line) => <p key={line}>{line}</p>)}</div> : null}
+          {/* Chosen with the Terms of payment picker in the project details, so the CRM bills the same schedule. */}
+          {paymentTerms.length ? <div><p className="estimate-section-label">Terms of payment</p>{paymentTerms.map((line) => <p key={line}>{line}</p>)}</div> : null}
         </section>
       ) : null}
 

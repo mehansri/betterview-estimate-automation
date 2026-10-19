@@ -10,6 +10,8 @@ import hashlib
 import json
 from typing import Any
 
+from services.payment_schedule import DEFAULT_SCHEDULE as DEFAULT_PAYMENT_SCHEDULE
+from services.payment_schedule import normalize as normalize_payment_schedule
 from services.settings_store import get_setting, set_setting
 
 # Canadian sales-tax rates by province (retail rates; editable in Settings).
@@ -59,7 +61,8 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "peeling, flaking, corroding or fading in excess of generally accepted industry standards, for the "
             "lifetime of the product, transferable. Details: https://www.windowcity.com/warranty",
         ]),
-        "payment_terms": "35% deposit upon signing.\n65% due upon project completion.",
+        # Company default; each estimate can choose its own (services/payment_schedule.py).
+        "payment_schedule": copy.deepcopy(DEFAULT_PAYMENT_SCHEDULE),
         # Product features printed above the line items, by collection: a
         # window series (services/windowcity/layout.py SERIES) or patio door type.
         # A collection with no features still gets its scope summary.
@@ -178,9 +181,10 @@ def validate_group(group: str, value: dict[str, Any]) -> None:
         if int(value.get("follow_up_days", 3)) < 0:
             raise ValueError("follow-up days cannot be negative")
     if group == "estimate_document":
-        for key in ("general_notes", "payment_terms"):
-            if not isinstance(value.get(key, ""), str):
-                raise ValueError(f"{key} must be text")
+        if not isinstance(value.get("general_notes", ""), str):
+            raise ValueError("general_notes must be text")
+        if "payment_schedule" in value:
+            value["payment_schedule"] = normalize_payment_schedule(value["payment_schedule"])
         collections = value.get("collections", {})
         if not isinstance(collections, dict) or not all(
             isinstance(entry, dict) and isinstance(entry.get("features", ""), str) for entry in collections.values()

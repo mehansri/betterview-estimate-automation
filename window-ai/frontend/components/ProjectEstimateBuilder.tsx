@@ -31,6 +31,8 @@ import JobItemsCard from "@/components/estimate/JobItemsCard";
 import OptionTiersCard from "@/components/estimate/OptionTiersCard";
 import PhotosCard from "@/components/estimate/PhotosCard";
 import SameModelCard from "@/components/estimate/SameModelCard";
+import PaymentSchedulePicker from "@/components/estimate/PaymentSchedulePicker";
+import { PAYMENT_SCHEDULE_PRESETS, scheduleProblem } from "@/lib/paymentSchedule";
 import ProfitPanel from "@/components/estimate/ProfitPanel";
 import { estimateToDraft, newEstimateLineId } from "@/lib/quoteHandoff";
 import { overrideReasonFor, useViewMode } from "@/lib/viewMode";
@@ -261,6 +263,8 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   }
 
   function asDraft(value: CustomerEstimate): CustomerEstimateDraft {
+    const problem = value.payment_schedule?.length ? scheduleProblem(value.payment_schedule) : null;
+    if (problem) throw new Error(`Terms of payment: ${problem}`);
     return estimateToDraft(value);
   }
 
@@ -560,7 +564,16 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <Field label="Description" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.description} onChange={(event) => updateMetadata({ description: event.target.value })} disabled={!editable} placeholder="Describe the work included in the estimate." /></Field>
             <Field label="Notes" className="field-span-2"><textarea className="project-input" rows={2} value={estimate.notes} onChange={(event) => updateMetadata({ notes: event.target.value })} disabled={!editable} /></Field>
             <Field label="Terms" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.terms} onChange={(event) => updateMetadata({ terms: event.target.value })} disabled={!editable} /></Field>
-            <Field label="Terms of payment (this estimate only; leave empty for the company default)" className="field-span-2"><textarea className="project-input" rows={2} maxLength={2000} value={estimate.payment_terms ?? ""} onChange={(event) => updateMetadata({ payment_terms: event.target.value })} disabled={!editable} placeholder={(estimate.document?.default_payment_terms ?? []).join("\n") || "e.g. 50% deposit upon signing"} /></Field>
+            <Field label="Terms of payment (printed on the estimate; the CRM bills against it)" className="field-span-2">
+              <PaymentSchedulePicker
+                value={estimate.payment_schedule}
+                typedTerms={estimate.payment_terms}
+                defaultSchedule={estimate.document?.default_payment_schedule ?? PAYMENT_SCHEDULE_PRESETS[0].schedule}
+                total={estimate.pricing?.totals?.total}
+                disabled={!editable}
+                onChange={(schedule) => updateMetadata({ payment_schedule: schedule, payment_terms: "" })}
+              />
+            </Field>
           </div></div>
 
           <SameModelCard

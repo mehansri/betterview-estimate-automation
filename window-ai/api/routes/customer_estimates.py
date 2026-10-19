@@ -38,6 +38,7 @@ from services.customer_estimates import (
 )
 from services.address_key import address_key
 from services.estimate_documents import customer_view, document_copy, render_pdf
+from services.payment_schedule import normalize as normalize_payment_schedule
 
 
 router = APIRouter(prefix="/api/customer-estimates", tags=["customer-estimates"])
@@ -103,6 +104,7 @@ def _row_response(row: CustomerEstimate) -> CustomerEstimateResponse:
         notes=row.notes or "",
         terms=row.terms or "",
         payment_terms=row.payment_terms or "",
+        payment_schedule=row.payment_schedule or None,
         windows=row.windows or [],
         doors=row.doors or [],
         commercial=row.commercial or {},
@@ -150,6 +152,11 @@ def _apply_body(row: CustomerEstimate, body: CustomerEstimateDraft) -> None:
     row.terms = body.terms.strip()
     if "payment_terms" in body.model_fields_set:
         row.payment_terms = body.payment_terms.strip() or None
+    if "payment_schedule" in body.model_fields_set:
+        row.payment_schedule = (
+            normalize_payment_schedule([entry.model_dump() for entry in body.payment_schedule])
+            if body.payment_schedule else None
+        )
     row.windows = windows
     row.doors = doors
     row.commercial = commercial
@@ -543,6 +550,7 @@ def _copy_fields(source: CustomerEstimate) -> dict:
         notes=source.notes,
         terms=source.terms,
         payment_terms=source.payment_terms,
+        payment_schedule=source.payment_schedule,
         windows=source.windows or [],
         doors=source.doors or [],
         commercial=source.commercial or {},
