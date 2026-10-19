@@ -31,6 +31,9 @@ class NegotiationLimitError(SalesPricingError):
 
 
 SETTING_KEY = "sales_config"
+# A negotiated discount below zero is a price increase on the product; this
+# bounds it so a typo cannot multiply the quote.
+MAX_PRICE_INCREASE_PERCENT = 100.0
 
 
 def _bundled_config() -> dict[str, Any]:
@@ -225,11 +228,15 @@ def apply_sales_pricing(
     plan = pricing_plan(preset, basis, config)
     markup_percent = plan["markup_percent"]
     minimum_markup_percent = plan["minimum_markup_percent"]
+    # A negative discount raises the product price: the rep can land on a
+    # higher customer total without changing the preset's markup.
     requested_discount_percent = float(
         commercial.get("negotiated_discount_percent", preset.get("default_discount_percent", 0.0))
     )
-    if requested_discount_percent < 0:
-        raise SalesPricingError("negotiated discount cannot be negative")
+    if requested_discount_percent < -MAX_PRICE_INCREASE_PERCENT:
+        raise SalesPricingError(
+            f"a price increase cannot exceed {MAX_PRICE_INCREASE_PERCENT:.0f}% of the product price"
+        )
     if requested_discount_percent >= 100:
         # Even a manager override may not give merchandise away or price it
         # below zero; that is a scope change, not a discount.
@@ -282,7 +289,7 @@ def apply_sales_pricing(
         line_sell = line_base_merch - line_discount + line_install_sell
         line_profit = line_sell - line_dealer - line_install
         line["base_sell_each"] = _money(line_base_merch + line_install_sell)
-        line["merchandise_discount_each"] = _money(line_discount)
+        line["merchandise_discount_each"] = _money(max(0.0, line_discount))
         line["protected_install_sell_each"] = _money(line_install_sell)
         line["sell_each"] = _money(line_sell)
         line["markup_each"] = _money(line_profit)
@@ -299,6 +306,7 @@ def apply_sales_pricing(
         pre_tax_sell = base_merchandise_sell * (1.0 - negotiated_discount) + protected_install_sell
         base_sell = base_merchandise_sell + protected_install_sell
     merchandise_discount_amount = max(0.0, base_sell - pre_tax_sell)
+    price_increase_amount = max(0.0, pre_tax_sell - base_sell)
     profit = pre_tax_sell - dealer_cost - install_cost
     effective_markup_percent = (profit / (dealer_cost + install_cost) * 100.0) if dealer_cost + install_cost else 0.0
     gross_margin_percent = (profit / pre_tax_sell * 100.0) if pre_tax_sell else 0.0
@@ -309,6 +317,7 @@ def apply_sales_pricing(
     totals["base_sell_before_discount"] = _money(base_sell)
     totals["merchandise_sell_before_discount"] = _money(base_merchandise_sell)
     totals["merchandise_discount"] = _money(merchandise_discount_amount)
+    totals["price_increase"] = _money(price_increase_amount)
     totals["protected_install_sell"] = _money(protected_install_sell)
     totals["minimum_floor_sell"] = _money(floor_sell)
     totals["sell_before_tax"] = _money(pre_tax_sell)
@@ -334,6 +343,7 @@ def apply_sales_pricing(
         "maximum_allowed_discount_percent": _percent(maximum_allowed_discount_percent),
         "remaining_discount_percent": _percent(max(0.0, maximum_allowed_discount_percent - requested_discount_percent)),
         "merchandise_discount_amount": _money(merchandise_discount_amount),
+        "price_increase_amount": _money(price_increase_amount),
         "dealer_cost": _money(dealer_cost),
         "install_cost": _money(install_cost),
         "base_merchandise_sell": _money(base_merchandise_sell),
@@ -347,9 +357,10 @@ def apply_sales_pricing(
     }
     result["sales_pricing"]["override_applied"] = manager_override_applied
 
+    # A price increase is internal: the customer only sees the higher prices.
     result["customer_presentation"] = {
         "preset_name": preset["name"],
-        "negotiated_discount_percent": _percent(requested_discount_percent),
+        "negotiated_discount_percent": _percent(max(0.0, requested_discount_percent)),
         "merchandise_discount": _money(merchandise_discount_amount),
         "lines": [
             {

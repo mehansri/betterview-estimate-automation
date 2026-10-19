@@ -21,7 +21,8 @@ class CommercialSettings(BaseModel):
     """Sales controls; catalog cost and price-book rules are never accepted here."""
 
     preset_id: str = "standard"
-    negotiated_discount_percent: float = Field(default=0.0, ge=0)
+    # Below zero raises the product price (a price increase), down to -100%.
+    negotiated_discount_percent: float = Field(default=0.0, ge=-100)
     agreed_customer_total: Optional[float] = Field(default=None, ge=0)
     presentation_mode: PresentationMode = "internal"
     manager_override_reason: Optional[str] = None
@@ -148,6 +149,7 @@ class DeterministicQuoteTotals(BaseModel):
     base_sell_before_discount: Optional[float] = None
     merchandise_sell_before_discount: Optional[float] = None
     merchandise_discount: Optional[float] = None
+    price_increase: Optional[float] = None
     protected_install_sell: Optional[float] = None
     minimum_floor_sell: Optional[float] = None
 
@@ -169,6 +171,7 @@ class SalesPricingSummary(BaseModel):
     maximum_allowed_discount_percent: Optional[float] = None
     remaining_discount_percent: Optional[float] = None
     merchandise_discount_amount: float
+    price_increase_amount: Optional[float] = None
     dealer_cost: Optional[float] = None
     install_cost: Optional[float] = None
     base_merchandise_sell: Optional[float] = None

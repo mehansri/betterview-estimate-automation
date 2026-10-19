@@ -8,6 +8,7 @@ import {
   CommercialSettings,
   EstimateAdder,
   EstimateTier,
+  MAX_PRICE_INCREASE_PERCENT,
   SavedTemplate,
   TaxRateEntry,
   createCustomerEstimate,
@@ -116,9 +117,12 @@ type AgreedTotalBasis = {
 
 type AgreedTotalOffer = AgreedTotalBasis & {
   target: number;
+  /** Off the window product; below zero the agreed total raises it. */
   discountPercent: number;
   discountAmount: number;
+  increaseAmount: number;
   aboveBase: boolean;
+  aboveIncreaseLimit: boolean;
   belowHardMinimum: boolean;
   underAuthorizedFloor: boolean;
   error?: string;
@@ -135,12 +139,18 @@ function getAgreedTotalBasis(pricing: CustomerEstimate["pricing"]): AgreedTotalB
   const hstRate = numberValue(pricing.tax_rate, 0.13);
   // An agreed total never discounts doors or job items: the server prices them
   // at their undiscounted amount, so the preview adds back any door discount.
+  // The same goes for a door price increase, taken back off.
   const doorDiscount = numberValue(doorSales.negotiated_discount_percent) > 0 ? numberValue(doorSales.merchandise_discount_amount) : 0;
-  const fixedSubtotal = numberValue(doorTotals.sell) + doorDiscount + numberValue(pricing.sections.adders?.subtotal);
+  const doorIncrease = numberValue(doorSales.price_increase_amount);
+  const fixedSubtotal = numberValue(doorTotals.sell) + doorDiscount - doorIncrease + numberValue(pricing.sections.adders?.subtotal);
   const fixedTotal = fixedSubtotal * (1 + hstRate);
   const baseMerchandise = numberValue(salesPricing.base_merchandise_sell);
   const protectedInstall = numberValue(salesPricing.protected_install_sell);
-  const baseTotal = numberValue(pricing.totals.base_total, (baseMerchandise + protectedInstall + fixedSubtotal) * (1 + hstRate));
+  // The estimate's base total includes any price increase already applied; the
+  // offer is measured from the preset price, before any increase or discount.
+  const increased = numberValue(salesPricing.price_increase_amount) + doorIncrease > 0.005;
+  const presetTotal = (baseMerchandise + protectedInstall + fixedSubtotal) * (1 + hstRate);
+  const baseTotal = increased ? presetTotal : numberValue(pricing.totals.base_total, presetTotal);
   const floorWindowSubtotal = numberValue(salesPricing.minimum_floor_sell, baseMerchandise + protectedInstall);
   const minimumFloorTotal = numberValue(pricing.totals.minimum_floor_total, (floorWindowSubtotal + fixedSubtotal) * (1 + hstRate));
   const maxDiscountPercent = numberValue(salesPricing.maximum_allowed_discount_percent);
@@ -217,8 +227,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
   const agreedOffer = useMemo<AgreedTotalOffer | null>(() => {
     if (!agreedBasis || !agreedTotalText.trim()) return null;
     const target = Number(agreedTotalText);
-    if (!Number.isFinite(target)) return { ...agreedBasis, target: 0, discountPercent: 0, discountAmount: 0, aboveBase: false, belowHardMinimum: false, underAuthorizedFloor: false, error: "Enter a valid customer total." };
-    if (target <= 0) return { ...agreedBasis, target, discountPercent: 0, discountAmount: 0, aboveBase: false, belowHardMinimum: false, underAuthorizedFloor: false, error: "Enter a customer total above $0." };
+    const none = { discountPercent: 0, discountAmount: 0, increaseAmount: 0, aboveBase: false, aboveIncreaseLimit: false, belowHardMinimum: false, underAuthorizedFloor: false };
+    if (!Number.isFinite(target)) return { ...agreedBasis, ...none, target: 0, error: "Enter a valid customer total." };
+    if (target <= 0) return { ...agreedBasis, ...none, target, error: "Enter a customer total above $0." };
     const targetWindowTotal = target - agreedBasis.fixedTotal;
     const targetWindowSubtotal = targetWindowTotal / (1 + agreedBasis.hstRate);
     const targetMerchandise = targetWindowSubtotal - agreedBasis.protectedInstall;
@@ -229,9 +240,11 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     return {
       ...agreedBasis,
       target,
-      discountPercent: Math.max(0, discountPercent),
+      discountPercent,
       discountAmount: Math.max(0, agreedBasis.baseTotal - target),
+      increaseAmount: Math.max(0, target - agreedBasis.baseTotal),
       aboveBase,
+      aboveIncreaseLimit: discountPercent < -MAX_PRICE_INCREASE_PERCENT - 1e-6,
       belowHardMinimum,
       underAuthorizedFloor,
     };
@@ -466,8 +479,8 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
       setError(agreedOffer.error);
       return;
     }
-    if (agreedOffer.aboveBase) {
-      setError(`The agreed total cannot exceed the undiscounted estimate total of ${money(agreedOffer.baseTotal)}.`);
+    if (agreedOffer.aboveIncreaseLimit) {
+      setError(`This total would raise the window product price by more than ${MAX_PRICE_INCREASE_PERCENT}%. Check the amount or change the scope.`);
       return;
     }
     if (agreedOffer.belowHardMinimum) {
@@ -589,7 +602,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
 
           <div className="editor-card">
             <div className="card-heading"><div><p className="eyebrow">Sales price</p><h3>Agreed customer total</h3></div><span className="status-pill">{estimate.commercial.agreed_customer_total != null ? "Offer set" : "List / preset"}</span></div>
-            <p className="project-help">Enter the customer’s total including tax. The difference becomes a window merchandise discount; installation, doors, and job items keep their price.</p>
+            <p className="project-help">Enter the customer’s total including tax. A lower total becomes a window merchandise discount; a higher one raises the window product price. Installation, doors, and job items keep their price either way.</p>
             {!estimate.pricing ? <p className="review-box">Price the estimate first. Once the current estimate is priced, enter the total the customer agreed to and apply it.</p> : null}
             {estimate.pricing && !agreedBasis ? <p className="review-box">An agreed total can be converted into a discount when the estimate contains windows. Door-only estimates keep their catalog price.</p> : null}
             <div className="editor-grid">
@@ -597,13 +610,18 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
               <div className="project-actions"><button type="button" className="button primary" onClick={applyAgreedTotal} disabled={!editable || busy || !estimate.pricing || !agreedOffer}>{busy ? "Working…" : "Apply agreed total & price"}</button></div>
             </div>
             {agreedBasis && agreedOffer && !agreedOffer.error ? <div className="offer-summary">
-              <div><span>Undiscounted total</span><strong>{money(agreedOffer.baseTotal)}</strong></div>
-              <div><span>Offer discount</span><strong>−{money(agreedOffer.discountAmount)}</strong></div>
+              <div><span>Preset total</span><strong>{money(agreedOffer.baseTotal)}</strong></div>
+              {agreedOffer.aboveBase
+                ? <div><span>Price increase</span><strong>+{money(agreedOffer.increaseAmount)}</strong></div>
+                : <div><span>Offer discount</span><strong>−{money(agreedOffer.discountAmount)}</strong></div>}
               <div><span>Authorized minimum</span><strong>{money(agreedOffer.minimumAuthorizedTotal)}</strong></div>
               <div><span>Price-book floor</span><strong>{money(agreedOffer.minimumFloorTotal)}</strong></div>
-              <div><span>Merchandise discount rate</span><strong>{agreedOffer.discountPercent.toFixed(2)}%</strong></div>
+              {agreedOffer.aboveBase
+                ? <div><span>Merchandise increase rate</span><strong>+{(-agreedOffer.discountPercent).toFixed(2)}%</strong></div>
+                : <div><span>Merchandise discount rate</span><strong>{agreedOffer.discountPercent.toFixed(2)}%</strong></div>}
             </div> : null}
-            {agreedOffer?.aboveBase ? <div className="review-box"><strong>The agreed total is above the undiscounted estimate.</strong><p>Use a sales preset or change the scope if the customer needs a higher total.</p></div> : null}
+            {agreedOffer?.aboveBase && !agreedOffer.aboveIncreaseLimit ? <p className="project-help">The window product price is raised to meet this total. The customer sees only the higher prices — no increase line is shown.</p> : null}
+            {agreedOffer?.aboveIncreaseLimit ? <div className="review-box"><strong>The agreed total is too far above the estimate.</strong><p>It would raise the window product price by more than {MAX_PRICE_INCREASE_PERCENT}%. Check the amount, or change the scope.</p></div> : null}
             {agreedOffer?.belowHardMinimum ? <div className="review-box"><strong>The agreed total is too low to price safely.</strong><p>It would reduce the merchandise below zero after protecting installation, doors, and job items.</p></div> : null}
             {agreedOffer?.underAuthorizedFloor ? <div className="review-box"><strong>Manager approval required</strong><p>This offer is below the authorized minimum of {money(agreedOffer.minimumAuthorizedTotal)}. Add the reason{managerTokenRequired ? " and authorization token" : ""} before applying it.</p><div className="editor-grid">
               <Field label="Manager reason"><input className="project-input" value={managerReason} onChange={(event) => setManagerReason(event.target.value)} disabled={!editable || busy} placeholder="Approved promotional offer" /></Field>

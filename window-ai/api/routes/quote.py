@@ -103,10 +103,14 @@ def _customer_view(result: dict) -> dict:
         "merchandise_sell_before_discount",
         "protected_install_sell",
         "minimum_floor_sell",
+        "price_increase",
     ):
         totals[key] = None
 
     sales = safe.get("sales_pricing", {})
+    # A negative discount is a price increase, which the customer never sees.
+    if float(sales.get("negotiated_discount_percent") or 0) < 0:
+        sales["negotiated_discount_percent"] = 0.0
     for key in (
         "preset_id",
         "preset_name",
@@ -132,6 +136,7 @@ def _customer_view(result: dict) -> dict:
         "floor_status",
         "manager_override_reason",
         "override_applied",
+        "price_increase_amount",
     ):
         sales[key] = None
 

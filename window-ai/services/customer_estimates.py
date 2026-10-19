@@ -27,7 +27,12 @@ from services.windowcity.catalog import CatalogError
 from services.windowcity.engine import BOOK_VERSION, catalog_cost, check_line, price_quote as price_windowcity_quote
 from services.windowcity.layout import OPERATIONS, SERIES, STYLE_OPERATIONS
 from services.windowcity.quote import CONFIG_PATH as WINDOW_CONFIG_PATH, load_config as load_window_config
-from services.windowcity.sales import SALES_CONFIG_PATH, SalesPricingError, sales_config_version
+from services.windowcity.sales import (
+    MAX_PRICE_INCREASE_PERCENT,
+    SALES_CONFIG_PATH,
+    SalesPricingError,
+    sales_config_version,
+)
 
 _ROOT = Path(__file__).resolve().parents[1]
 _PRICE_SOURCES = (
@@ -155,7 +160,9 @@ def _agreed_total_discount(
     """Window merchandise discount % that makes the estimate total the agreed amount.
 
     ``fixed_subtotal`` is the pre-tax amount that is never discounted (doors and
-    job adders); installation is protected inside the window quote itself.
+    job adders); installation is protected inside the window quote itself. An
+    agreed total above the estimate gives a negative discount: the window
+    product price is raised to meet it.
     """
     sales = base_window_quote.get("sales_pricing") or {}
     base_merchandise = float(sales.get("base_merchandise_sell") or 0)
@@ -164,13 +171,15 @@ def _agreed_total_discount(
         raise CustomerEstimatePricingError("An agreed total needs priced window merchandise to discount.")
     target_merchandise = agreed_total / (1 + tax_rate) - fixed_subtotal - protected_install
     discount = (base_merchandise - target_merchandise) / base_merchandise * 100.0
-    if discount < -0.01:
-        raise CustomerEstimatePricingError("The agreed total is above the undiscounted estimate total.")
+    if discount < -MAX_PRICE_INCREASE_PERCENT - 1e-6:
+        raise CustomerEstimatePricingError(
+            f"The agreed total would raise the window product price by more than {MAX_PRICE_INCREASE_PERCENT:.0f}%."
+        )
     if discount >= 100:
         raise CustomerEstimatePricingError(
             "The agreed total is below the protected installation, door, and job-item amount."
         )
-    return round(max(0.0, discount), 6)
+    return round(discount, 6)
 
 
 # ------------------------------------------------------------------ tiers
@@ -703,6 +712,11 @@ def _price_scope(
         "margin_percent": round(profit / combined_subtotal * 100.0, 2) if combined_subtotal else 0.0,
         "markup_percent": round(profit / total_cost * 100.0, 2) if total_cost else 0.0,
         "discount": offer_discount,
+        # Raised above the preset price (internal; the customer sees the prices).
+        "price_increase": _money(
+            float(window_sales_pricing.get("price_increase_amount") or 0)
+            + float(door_sales_pricing.get("price_increase_amount") or 0)
+        ),
         "breakdown": {
             "windows": {"cost": _money(window_cost), "sell": windows_subtotal},
             "doors": {"cost": _money(door_cost), "sell": doors_subtotal},

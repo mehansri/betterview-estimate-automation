@@ -53,8 +53,12 @@ export type QuoteLineInput = {
 
 export type PresentationMode = "internal" | "customer";
 
+/** Largest price increase, as a negative discount (matches services/windowcity/sales.py). */
+export const MAX_PRICE_INCREASE_PERCENT = 100;
+
 export type CommercialSettings = {
   preset_id: string;
+  /** Off the product price; below zero raises it, down to −MAX_PRICE_INCREASE_PERCENT. */
   negotiated_discount_percent: number;
   agreed_customer_total?: number | null;
   presentation_mode?: PresentationMode;
@@ -230,6 +234,8 @@ export type DeterministicQuoteResponse = {
     base_sell_before_discount?: number | null;
     merchandise_sell_before_discount?: number | null;
     merchandise_discount?: number | null;
+    /** Raised above the preset price by a negative discount (internal only). */
+    price_increase?: number | null;
     protected_install_sell?: number | null;
     minimum_floor_sell?: number | null;
   };
@@ -250,6 +256,8 @@ export type DeterministicQuoteResponse = {
     maximum_allowed_discount_percent?: number | null;
     remaining_discount_percent?: number | null;
     merchandise_discount_amount: number;
+    /** Raised above the preset price by a negative discount (internal only). */
+    price_increase_amount?: number | null;
     dealer_cost?: number | null;
     install_cost?: number | null;
     base_merchandise_sell?: number | null;
@@ -803,6 +811,8 @@ export type Profitability = {
   margin_percent: number;
   markup_percent: number;
   discount: number;
+  /** Raised above the preset price (absent on estimates priced before 2026-10-19). */
+  price_increase?: number;
   breakdown: Record<"windows" | "doors" | "adders", { cost: number; sell: number }>;
   override_applied: boolean;
   effective_discount_percent: number;

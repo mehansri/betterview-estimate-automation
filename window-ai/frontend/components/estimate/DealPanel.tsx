@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { DeterministicQuoteResponse, PresentationMode, SalesPreset } from "@/lib/api";
+import { DeterministicQuoteResponse, MAX_PRICE_INCREASE_PERCENT, PresentationMode, SalesPreset } from "@/lib/api";
 import { marginTone } from "@/components/estimate/ProfitPanel";
 
 type SalesPricing = DeterministicQuoteResponse["sales_pricing"];
@@ -39,7 +39,7 @@ function Row({ label, value, strong, hint }: { label: string; value: string; str
 /**
  * How the price is built, top to bottom: list → dealer cost → + install →
  * cost → + base markup → + extra profit (sliding margin or profit floor) →
- * − discount → sell, then profit and margin. Each step adds up exactly to the
+ * + price increase / − discount → sell, then profit and margin. Each step adds up exactly to the
  * sell price shown above, so the extra-profit line takes the rounding.
  */
 export function priceBuildUp(sp: SalesPricing | null | undefined, totals: DealTotals, preset: SalesPreset | undefined, standardMarkup: number) {
@@ -50,7 +50,8 @@ export function priceBuildUp(sp: SalesPricing | null | undefined, totals: DealTo
   const basePercent = (sp?.strategy ?? preset?.strategy) === "sliding_margin" ? standardMarkup : preset?.markup_percent ?? standardMarkup;
   const baseMarkup = cost * (basePercent / 100);
   const discount = sp?.merchandise_discount_amount ?? 0;
-  const extra = totals.sell + discount - cost - baseMarkup;
+  const increase = sp?.price_increase_amount ?? 0;
+  const extra = totals.sell + discount - increase - cost - baseMarkup;
   const list = totals.list ?? null;
   return {
     list,
@@ -62,6 +63,7 @@ export function priceBuildUp(sp: SalesPricing | null | undefined, totals: DealTo
     baseMarkup,
     extra,
     discount,
+    increase,
     sell: totals.sell,
     profit: totals.sell - cost,
     margin: totals.sell ? ((totals.sell - cost) / totals.sell) * 100 : 0,
@@ -72,6 +74,8 @@ export function priceBuildUp(sp: SalesPricing | null | undefined, totals: DealTo
 /**
  * The one place a rep reads the price and negotiates: customer total, what the
  * job costs and earns, the discount control, the walk-away price, and Save.
+ * The discount runs below zero to raise the price: a negative % or $, or a
+ * total above the preset price, adds to the product without touching markup.
  * Audit and per-line costs sit in a collapsed "Details" section.
  */
 export default function DealPanel({
@@ -126,7 +130,8 @@ export default function DealPanel({
   const configuredCap = sp?.configured_max_discount_percent ?? preset?.max_discount_percent ?? 0;
   const floorCap = sp?.floor_derived_max_discount_percent ?? configuredCap;
   const allowedMax = sp?.maximum_allowed_discount_percent ?? configuredCap;
-  const percent = Math.max(0, discount);
+  const percent = Math.max(-MAX_PRICE_INCREASE_PERCENT, discount);
+  const raising = percent < -1e-9;
   const overLimit = percent > allowedMax + 1e-9;
   const previewDiscount = baseMerch * (percent / 100);
   const previewTotal = (baseMerch * (1 - percent / 100) + protectedInstall) * (1 + hstRate);
@@ -153,13 +158,14 @@ export default function DealPanel({
   const statusTone = status === "Within floor" ? "bg-emerald-100 text-emerald-800" : status === "Manager approved" || status === "Override applied" ? "bg-brand-100 text-brand-800" : "bg-rose-100 text-rose-800";
 
   // With an override flow (window quotes) an over-limit discount is allowed and the box below
-  // handles approval; without one (doors) $ and total entries stop at the limit.
+  // handles approval; without one (doors) $ and total entries stop at the limit. A price
+  // increase (below zero) needs no approval.
   function cap(value: number) {
-    return Math.max(0, Math.min(override ? 99 : allowedMax, value));
+    return Math.max(-MAX_PRICE_INCREASE_PERCENT, Math.min(override ? 99 : allowedMax, value));
   }
   function commit() {
     const value = parseFloat(text) || 0;
-    if (negotiationMode === "percent") onDiscountChange(Math.max(0, value));
+    if (negotiationMode === "percent") onDiscountChange(Math.max(-MAX_PRICE_INCREASE_PERCENT, value));
     else if (baseMerch <= 0) onDiscountChange(0);
     else if (negotiationMode === "dollars") onDiscountChange(cap((value / baseMerch) * 100));
     else onDiscountChange(cap(((baseMerch + protectedInstall - value / (1 + hstRate)) / baseMerch) * 100));
@@ -220,7 +226,7 @@ export default function DealPanel({
         ) : null}
 
         <div>
-          <span className="mb-1 block text-xs font-medium text-slate-600">Discount <span className="font-normal text-slate-400">· product only, never installation</span></span>
+          <span className="mb-1 block text-xs font-medium text-slate-600">Discount or increase <span className="font-normal text-slate-400">· product only, never installation</span></span>
           <div className="flex gap-2">
             <div className="flex flex-1 rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-semibold">
               {([["percent", "% off"], ["dollars", "$ off"], ["price", "Total"]] as const).map(([key, label]) => (
@@ -240,12 +246,12 @@ export default function DealPanel({
             <div className="w-24 shrink-0">
               <input
                 type="number"
-                min={0}
+                min={negotiationMode === "price" ? 0 : negotiationMode === "percent" ? -MAX_PRICE_INCREASE_PERCENT : undefined}
                 step={negotiationMode === "percent" ? 0.1 : negotiationMode === "dollars" ? 1 : 0.01}
                 className={`${FIELD} w-full`}
                 value={text}
                 disabled={negotiationMode !== "percent" && !priced}
-                aria-label={negotiationMode === "percent" ? "Discount percent" : negotiationMode === "dollars" ? "Discount dollars" : "Customer total including tax"}
+                aria-label={negotiationMode === "percent" ? "Discount percent (negative raises the price)" : negotiationMode === "dollars" ? "Discount dollars (negative raises the price)" : "Customer total including tax"}
                 onChange={(event) => setText(event.target.value)}
                 onBlur={commit}
                 onKeyDown={(event) => { if (event.key === "Enter") (event.target as HTMLInputElement).blur(); }}
@@ -253,9 +259,14 @@ export default function DealPanel({
             </div>
           </div>
           {negotiationMode === "percent" ? (
-            <input type="range" min={0} max={Math.max(allowedMax, discount, 5) + 0.5} step={0.5} value={discount} onChange={(event) => onDiscountChange(Number(event.target.value))} className="mt-2 w-full" aria-label="Discount slider" />
+            <input type="range" min={Math.max(-MAX_PRICE_INCREASE_PERCENT, Math.min(-10, discount)) - 0.5} max={Math.max(allowedMax, discount, 5) + 0.5} step={0.5} value={discount} onChange={(event) => onDiscountChange(Number(event.target.value))} className="mt-2 w-full" aria-label="Discount slider" />
           ) : null}
-          {priced ? <p className="mt-1 text-xs text-slate-600">{money(previewDiscount, currency)} off the product ({percent.toFixed(1)}%)</p> : null}
+          {priced ? (
+            raising
+              ? <p className="mt-1 text-xs font-medium text-emerald-700">Price raised {money(-previewDiscount, currency)} on the product (+{(-percent).toFixed(1)}%){internal ? " · the customer sees only the higher prices" : ""}</p>
+              : <p className="mt-1 text-xs text-slate-600">{money(previewDiscount, currency)} off the product ({percent.toFixed(1)}%)</p>
+          ) : null}
+          {negotiationMode !== "price" && internal ? <p className="mt-0.5 text-[11px] text-slate-400">Enter a negative {negotiationMode === "percent" ? "%" : "$"}, or a higher Total, to raise the price.</p> : null}
         </div>
 
         {priced && internal ? (
@@ -320,6 +331,7 @@ export default function DealPanel({
                   value={money(buildUp.extra, currency)}
                 />
               ) : null}
+              {buildUp.increase > 0.005 ? <Row label={`+ Price increase (${(-(sp?.negotiated_discount_percent ?? 0)).toFixed(1)}% on product)`} value={money(buildUp.increase, currency)} /> : null}
               {buildUp.discount > 0.005 ? <Row label={`− Discount (${(sp?.negotiated_discount_percent ?? 0).toFixed(1)}% off product)`} value={`−${money(buildUp.discount, currency)}`} /> : null}
               <Row label="= Sell (pre-tax)" value={money(buildUp.sell, currency)} strong />
               <Row label="Profit (sell − cost)" value={money(buildUp.profit, currency)} />

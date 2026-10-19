@@ -35,6 +35,15 @@ describe("deal price build-up", () => {
     expect(steps.extra).toBeCloseTo(1800 - 1349.52, 2);
   });
 
+  it("shows a price increase as its own step, not extra profit", () => {
+    const raised = { ...sp, negotiated_discount_percent: -10, price_increase_amount: 500 } as SalesPricing;
+    const steps = priceBuildUp(raised, { ...totals, sell: totals.sell + 500 }, { id: "sliding", strategy: "sliding_margin" } as SalesPreset, 30)!;
+    const unraised = priceBuildUp(sp, totals, { id: "sliding", strategy: "sliding_margin" } as SalesPreset, 30)!;
+    expect(steps.increase).toBeCloseTo(500, 2);
+    expect(steps.extra).toBeCloseTo(unraised.extra, 2);
+    expect(steps.cost + steps.baseMarkup + steps.extra + steps.increase - steps.discount).toBeCloseTo(totals.sell + 500, 2);
+  });
+
   it("needs the dealer and install split", () => {
     expect(priceBuildUp({ ...sp, dealer_cost: null } as SalesPricing, totals, undefined, 30)).toBeNull();
   });

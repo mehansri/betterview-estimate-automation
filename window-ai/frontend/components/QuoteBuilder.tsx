@@ -7,6 +7,7 @@ import {
   createTemplate,
   deleteTemplate,
   fetchTemplates,
+  MAX_PRICE_INCREASE_PERCENT,
   SavedTemplate,
   CustomerEstimate,
   CustomerEstimateDraft,
@@ -1095,7 +1096,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       ? lines.map((line) => line.id === selectedEditLineId ? currentLine : line.spec)
       : currentAlreadyAdded ? savedSpecs : [...savedSpecs, currentLine];
     if (!payload.length) return;
-    const requested = Math.max(0, negotiatedDiscount);
+    const requested = Math.max(-MAX_PRICE_INCREASE_PERCENT, negotiatedDiscount);
     // Avoid surfacing a hard server error for an over-limit discount with no reason.
     const needsOverride = requested > allowedMax + 1e-9;
     const reason = overrideReasonFor(overrideReason, managerTokenRequired);
@@ -1172,7 +1173,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
       : currentAlreadyAdded ? savedSpecs : [...savedSpecs, currentLine];
     if (!payload.length) return;
 
-    const requested = Math.max(0, negotiatedDiscount);
+    const requested = Math.max(-MAX_PRICE_INCREASE_PERCENT, negotiatedDiscount);
     const needsOverride = requested > autoPricingDiscountLimit + 1e-9;
     const reason = overrideReasonFor(overrideReason, managerTokenRequired);
     if (needsOverride && (!reason || (managerTokenRequired && !managerToken.trim()))) {
@@ -1317,7 +1318,7 @@ export default function QuoteBuilder({ projectId, editWindowId, editWindows = fa
   const sp = result?.sales_pricing;
   const isPriced = Boolean(sp && sp.base_merchandise_sell != null);
   const allowedMax = sp?.maximum_allowed_discount_percent ?? sp?.configured_max_discount_percent ?? selectedPreset?.max_discount_percent ?? 0;
-  const requestedPct = Math.max(0, negotiatedDiscount);
+  const requestedPct = Math.max(-MAX_PRICE_INCREASE_PERCENT, negotiatedDiscount);
   const cp: Record<string, any> = result?.customer_presentation ?? {};
   const visibleLines: QuoteLineDraft[] = lines;
   const customerLines = Array.isArray(cp.lines)
