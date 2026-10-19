@@ -530,6 +530,23 @@ def test_primed_in_white_lines_are_left_off_dark_interior_jobs(tmp_path, monkeyp
     assert "Includes interior casing primed in white." in copy["general_notes"]
 
 
+def test_window_city_notes_are_left_off_door_only_estimates(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = {**_draft(), "windows": []}
+    estimate_id = client.post("/api/customer-estimates", json=draft).json()["id"]
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+    notes = priced.json()["document"]["general_notes"]
+    assert not any("window city" in line.lower() for line in notes)
+    assert "Includes disposal of old windows/doors." in notes
+
+    # Windows and doors together keep the Window City lines.
+    estimate_id = client.post("/api/customer-estimates", json=_draft()).json()["id"]
+    notes = client.post(f"/api/customer-estimates/{estimate_id}/price").json()["document"]["general_notes"]
+    assert "All windows are Window City Industries manufactured." in notes
+    assert any(line.startswith("Window City warranty") for line in notes)
+
+
 def test_payment_terms_can_be_set_per_estimate(tmp_path, monkeypatch):
     # 35/65 stays the company default; one estimate (Abbey) can be 50/50.
     client = _client(tmp_path, monkeypatch)

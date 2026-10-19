@@ -112,6 +112,14 @@ def _for_interior(lines: list[str], specs: list[dict[str, Any]]) -> list[str]:
     return [line for line in lines if "primed in white" not in line.lower()]
 
 
+def _for_window_city(lines: list[str], items: list[tuple[dict[str, Any], int]]) -> list[str]:
+    """Window City lines (manufacturer, warranty) only apply when the estimate quotes Window City product;
+    a door-only estimate drops them."""
+    if items:
+        return lines
+    return [line for line in lines if "window city" not in line.lower()]
+
+
 def product_collections(items: list[tuple[dict[str, Any], int]]) -> list[dict[str, Any]]:
     """One block per collection on the estimate: a scope summary and its standing features."""
     configured = business_settings.get_group("estimate_document").get("collections") or {}
@@ -149,7 +157,8 @@ def document_copy(row) -> dict[str, Any]:
     schedule = own_schedule or (None if typed_terms else default_schedule)
     return {
         "gst_number": str(business_settings.get_group("company").get("gst_number") or "").strip(),
-        "general_notes": _for_interior(_copy_lines(settings.get("general_notes")), [spec for spec, _ in items]),
+        "general_notes": _for_window_city(
+            _for_interior(_copy_lines(settings.get("general_notes")), [spec for spec, _ in items]), items),
         "payment_terms": payment_schedule.terms_lines(schedule) if schedule else typed_terms,
         "default_payment_terms": payment_schedule.terms_lines(default_schedule),
         # What the CRM bills against on import; None when only typed terms exist.
