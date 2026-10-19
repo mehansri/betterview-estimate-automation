@@ -301,6 +301,7 @@ function CompanySection({ initial, token }: { initial: CompanySettings; token: s
       email: draft.email.trim(),
       address: draft.address.trim(),
       website: draft.website.trim(),
+      gst_number: (draft.gst_number ?? "").trim(),
     };
     run(
       () => {
@@ -343,7 +344,89 @@ function CompanySection({ initial, token }: { initial: CompanySettings; token: s
             <input className={INPUT} value={draft.address} onChange={(e) => update("address", e.target.value)} autoComplete="street-address" />
           </Field>
         </div>
+        <Field label="GST/HST number" hint="Printed in the header and under the totals of every estimate.">
+          <input className={INPUT} value={draft.gst_number ?? ""} onChange={(e) => update("gst_number", e.target.value)} autoComplete="off" />
+        </Field>
       </div>
+    </SectionCard>
+  );
+}
+
+// ---------------------------------------------------------------- estimate document
+
+type EstimateDocument = BusinessSettings["estimate_document"];
+
+// Window series (services/windowcity/layout.py SERIES) and patio door types; one feature block each.
+const COLLECTIONS: Array<{ key: string; label: string }> = [
+  { key: "classic", label: "Classic 3 1/4\" (WC-100 series)" },
+  { key: "classic_400", label: "Classic WC-400 series" },
+  { key: "heritage", label: "Heritage (HC-100 series)" },
+  { key: "heritage_maximum", label: "Heritage Maximum (HC-400 series)" },
+  { key: "patio_sliding", label: "Sliding patio doors" },
+  { key: "patio_swing", label: "Swing patio doors" },
+];
+
+function EstimateDocumentSection({ initial, token }: { initial: EstimateDocument; token: string }) {
+  const [draft, setDraft] = useState<EstimateDocument>(initial);
+  const { saving, status, run, clearStatus } = useSaveAction(token);
+
+  function update<K extends keyof EstimateDocument>(key: K, value: EstimateDocument[K]) {
+    setDraft((current) => ({ ...current, [key]: value }));
+    clearStatus();
+  }
+
+  function updateCollection(key: string, field: "title" | "features", value: string) {
+    const current = draft.collections[key] ?? { title: "", features: "" };
+    update("collections", { ...draft.collections, [key]: { ...current, [field]: value } });
+  }
+
+  function save() {
+    run(
+      () => null,
+      async (adminToken) => {
+        setDraft(await saveBusinessSettings("estimate_document", draft, adminToken));
+        return "Estimate document saved.";
+      }
+    );
+  }
+
+  return (
+    <SectionCard
+      id="estimate-document"
+      title="Estimate document"
+      description="Standing copy printed on every customer estimate, the customer portal and PDFs. One item per line; blank lines are skipped. Lines that say “primed in white” are left off jobs with a non-white interior."
+      saveLabel="Save estimate document"
+      saving={saving}
+      status={status}
+      onSave={save}
+    >
+      <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+        <Field label="General notes" hint="Inclusions, delivery time and warranties, shown as a bulleted list after the totals.">
+          <textarea className={`${INPUT} min-h-[14rem]`} rows={11} value={draft.general_notes} onChange={(e) => update("general_notes", e.target.value)} />
+        </Field>
+        <Field label="Terms of payment" hint="Shown beside the general notes.">
+          <textarea className={`${INPUT} min-h-[6rem]`} rows={4} value={draft.payment_terms} onChange={(e) => update("payment_terms", e.target.value)} />
+        </Field>
+      </div>
+      <fieldset className="mt-6">
+        <legend className="text-sm font-semibold text-slate-900">Product features by collection</legend>
+        <p className="mt-1 text-xs text-slate-500">
+          Printed above the window lines for each collection on the estimate, after a scope summary (quantity and colours) the estimate builds itself. Leave the features empty to show only the summary.
+        </p>
+        <div className="mt-3 grid gap-4 lg:grid-cols-2">
+          {COLLECTIONS.map(({ key, label }) => (
+            <div key={key} className="space-y-2 rounded-xl border border-slate-200 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+              <Field label="Title on the estimate" hint="Empty uses the collection name.">
+                <input className={INPUT} value={draft.collections[key]?.title ?? ""} onChange={(e) => updateCollection(key, "title", e.target.value)} />
+              </Field>
+              <Field label="Features">
+                <textarea className={`${INPUT} min-h-[6rem]`} rows={5} value={draft.collections[key]?.features ?? ""} onChange={(e) => updateCollection(key, "features", e.target.value)} />
+              </Field>
+            </div>
+          ))}
+        </div>
+      </fieldset>
     </SectionCard>
   );
 }
@@ -1459,6 +1542,7 @@ function SalesPricingSection({ token }: { token: string }) {
 const SECTIONS = [
   { id: "sales-pricing", label: "Sales strategies" },
   { id: "company", label: "Company" },
+  { id: "estimate-document", label: "Estimate document" },
   { id: "sales-process", label: "Sales process" },
   { id: "financing", label: "Financing" },
   { id: "tax", label: "Tax rates" },
@@ -1531,6 +1615,7 @@ export default function SalesSettingsPage() {
       {settings ? (
         <>
           <CompanySection initial={settings.company} token={token} />
+          <EstimateDocumentSection initial={settings.estimate_document} token={token} />
           <SalesProcessSection initial={settings.sales_process} token={token} />
           <FinancingSection initial={settings.financing} token={token} />
           <TaxSection initial={settings.tax} token={token} />

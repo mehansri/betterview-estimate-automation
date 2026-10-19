@@ -465,3 +465,99 @@ def test_agreed_total_over_the_limit_prices_while_the_manager_token_is_off(tmp_p
     priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
     assert priced.status_code == 200, priced.text
     assert priced.json()["pricing"]["totals"]["total"] == pytest.approx(listed * 0.8, abs=0.05)
+
+
+def test_estimate_carries_gst_number_general_notes_and_collection_features(tmp_path, monkeypatch):
+    # As the QuickBooks estimates: GST/HST number, product features per collection, general notes.
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=False)
+    draft["windows"].append({"id": "p1", "location": "Rear", "spec": {
+        "type": "patio_sliding", "nominal_ft": 5, "operation": "XO", "colour_ext": "black", "accessories": []}})
+    estimate_id = client.post("/api/customer-estimates", json=draft).json()["id"]
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+
+    copy = priced.json()["document"]
+    assert copy["gst_number"] == "809807191"
+    assert "Includes disposal of old windows/doors." in copy["general_notes"]
+    assert copy["payment_terms"][0].startswith("35% deposit")
+    classic, patio = copy["collections"]
+    assert (classic["key"], patio["key"]) == ("classic", "patio_sliding")
+    assert classic["summary"][0].startswith("To supply and install: 1 new Classic Collection window ")
+    assert patio["summary"][1:] == ["Exterior colour: Black", "Interior colour: White"]
+    assert "Twin point hardware standard." in patio["features"]
+
+    pdf = client.get(f"/api/customer-estimates/{estimate_id}/pdf")
+    assert pdf.status_code == 200, pdf.text
+    text = " ".join(page.extract_text() for page in PdfReader(BytesIO(pdf.content)).pages)
+    for expected in ("GST/HST number: 809807191", "GENERAL NOTES", "TERMS OF PAYMENT", "Sliding Collection patio door",
+                     "CLIENT SIGNATURE"):
+        assert expected in text
+
+
+def test_collection_features_follow_settings(tmp_path, monkeypatch):
+    from services import business_settings
+
+    client = _client(tmp_path, monkeypatch)
+    settings = business_settings.get_group("estimate_document")
+    settings["collections"]["classic"] = {"title": "", "features": "* Fusion-welded corners\n\n- Steel reinforced"}
+    business_settings.save_group("estimate_document", settings)
+    estimate_id = client.post("/api/customer-estimates", json=_draft(mixed=False)).json()["id"]
+    (block,) = client.post(f"/api/customer-estimates/{estimate_id}/price").json()["document"]["collections"]
+    assert block["title"] == 'Classic 3 1/4" (WC-100 series) windows'
+    assert block["features"] == ["Fusion-welded corners", "Steel reinforced"]
+
+
+def test_primed_in_white_lines_are_left_off_dark_interior_jobs(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=False)
+    draft["windows"][0]["spec"].update(colour_ext="black", colour_int="black")  # black in/out, like the Abbey job
+    estimate_id = client.post("/api/customer-estimates", json=draft).json()["id"]
+    priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
+    assert priced.status_code == 200, priced.text
+    copy = priced.json()["document"]
+    assert not any("primed in white" in line for line in copy["general_notes"])
+    assert not any("primed in white" in line for line in copy["collections"][0]["features"])
+    assert "Includes disposal of old windows/doors." in copy["general_notes"]
+
+    draft["windows"][0]["spec"]["colour_int"] = "white"
+    assert client.put(f"/api/customer-estimates/{estimate_id}", json=draft).status_code == 200
+    copy = client.post(f"/api/customer-estimates/{estimate_id}/price").json()["document"]
+    assert "Includes interior casing primed in white." in copy["general_notes"]
+
+
+def test_payment_terms_can_be_set_per_estimate(tmp_path, monkeypatch):
+    # 35/65 stays the company default; one estimate (Abbey) can be 50/50.
+    client = _client(tmp_path, monkeypatch)
+    draft = _draft(mixed=False)
+    estimate_id = client.post("/api/customer-estimates", json=draft).json()["id"]
+    copy = client.post(f"/api/customer-estimates/{estimate_id}/price").json()["document"]
+    assert copy["payment_terms"] == copy["default_payment_terms"] == [
+        "35% deposit upon signing.", "65% due upon project completion."]
+
+    draft["payment_terms"] = "50% deposit upon signing.\n50% due upon project completion."
+    saved = client.put(f"/api/customer-estimates/{estimate_id}", json=draft)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["payment_terms"] == draft["payment_terms"]
+    assert saved.json()["document"]["payment_terms"] == ["50% deposit upon signing.", "50% due upon project completion."]
+    assert saved.json()["document"]["default_payment_terms"][0] == "35% deposit upon signing."
+
+    # A save that leaves the field out (e.g. from the CRM) keeps the estimate's terms.
+    del draft["payment_terms"]
+    assert client.put(f"/api/customer-estimates/{estimate_id}", json=draft).json()["payment_terms"].startswith("50%")
+
+    client.post(f"/api/customer-estimates/{estimate_id}/price")
+    pdf = client.get(f"/api/customer-estimates/{estimate_id}/pdf")
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    text = " ".join(page.extract_text() for page in PdfReader(BytesIO(pdf.content)).pages)
+    assert "50% due upon project completion." in text and "65%" not in text
+
+    other = client.post("/api/customer-estimates", json=_draft(mixed=False)).json()["id"]
+    assert client.post(f"/api/customer-estimates/{other}/price").json()["document"]["payment_terms"][0].startswith("35%")

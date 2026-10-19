@@ -38,6 +38,61 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "email": "info@betterview.ca",
         "address": "1 Greensboro Dr, Suite 308 · Etobicoke, ON M9W 1C8",
         "website": "",
+        # Printed on every customer estimate, portal and PDF.
+        "gst_number": "809807191",
+    },
+    # Standing copy on the customer estimate (taken from the QuickBooks
+    # estimates): one item per line, blank lines are dropped.
+    "estimate_document": {
+        "general_notes": "\n".join([
+            "All windows are Window City Industries manufactured.",
+            "Estimated delivery time at this moment: 4 to 6 weeks.",
+            "Full installation stud to stud.",
+            "Includes any repairs required to existing window/door frames.",
+            "Includes weatherproofing with BlueSkin membrane.",
+            "Includes interior casing primed in white.",
+            "Includes disposal of old windows/doors.",
+            "Labour warranty: 15 years.",
+            "Window City warranty: glass unit 40 years, capstock 20 years.",
+            "White window frames and sashes: non-prorated lifetime warranty. Window City warrants all vinyl "
+            "window frames and sash against defects in material and workmanship that might result in blistering, "
+            "peeling, flaking, corroding or fading in excess of generally accepted industry standards, for the "
+            "lifetime of the product, transferable. Details: https://www.windowcity.com/warranty",
+        ]),
+        "payment_terms": "35% deposit upon signing.\n65% due upon project completion.",
+        # Product features printed above the line items, by collection: a
+        # window series (services/windowcity/layout.py SERIES) or patio door type.
+        # A collection with no features still gets its scope summary.
+        "collections": {
+            "classic": {
+                "title": "Classic Collection windows",
+                "features": "\n".join([
+                    "Installation type: stud to stud or brick to brick.",
+                    "Aluminium capping included if needed.",
+                    "3 1/4\" fusion-welded frame and sash corners for strength.",
+                    "Multi-chambered design.",
+                    "Casements: quiet triple-fin weather seal on the sash to virtually eliminate air infiltration.",
+                    "Casements: 90 degree sash opening lets you easily clean from inside.",
+                    "Casements: multi-point locking system for additional security, premium hardware.",
+                    "Fixed casements: fully interlocking sash to maximize security and air and water tightness.",
+                    "Standard pocket sill (welded) with interior drainage channel.",
+                    "Interior wood casing and jamb primed in white included.",
+                    "Windows are CSA approved and ENERGY STAR® qualified.",
+                    "Sealed units made on 4SG-TPS (thermoplastic spacer) lines, black spacer only. 40 years warranty.",
+                ]),
+            },
+            "patio_sliding": {
+                "title": "Sliding Collection patio doors",
+                "features": "\n".join([
+                    "Installation type: stud to stud or brick to brick.",
+                    "All uPVC multi-chambered 5 3/4\" frame.",
+                    "Multi-chambered welded sash; all vertical stiles are steel reinforced.",
+                    "uPVC sloped sill with aluminum reinforcement, designed with offset drainage.",
+                    "Twin point hardware standard.",
+                    "Double weather stripping and co-extruded bulb seal on the frame.",
+                ]),
+            },
+        },
     },
     "sales_process": {
         # Deposit requested on acceptance, as a % of the customer total.
@@ -122,6 +177,15 @@ def validate_group(group: str, value: dict[str, Any]) -> None:
             raise ValueError("deposit must be between 0 and 100%")
         if int(value.get("follow_up_days", 3)) < 0:
             raise ValueError("follow-up days cannot be negative")
+    if group == "estimate_document":
+        for key in ("general_notes", "payment_terms"):
+            if not isinstance(value.get(key, ""), str):
+                raise ValueError(f"{key} must be text")
+        collections = value.get("collections", {})
+        if not isinstance(collections, dict) or not all(
+            isinstance(entry, dict) and isinstance(entry.get("features", ""), str) for entry in collections.values()
+        ):
+            raise ValueError("collections must map each collection to its title and features")
     if group == "measurement":
         if not 0 <= float(value.get("rough_opening_deduction_in", 0)) < 6:
             raise ValueError("rough-opening deduction must be between 0 and 6 inches")

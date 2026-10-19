@@ -68,6 +68,7 @@ function blankEstimate(): CustomerEstimate {
     valid_until: plusDays(30),
     description: "",
     notes: "",
+    payment_terms: "",
     terms: "This estimate is based on the information available at the time of quoting. Final measurements, site conditions, product availability, and installation details will be confirmed before ordering.",
     windows: [],
     doors: [],
@@ -559,6 +560,7 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
             <Field label="Description" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.description} onChange={(event) => updateMetadata({ description: event.target.value })} disabled={!editable} placeholder="Describe the work included in the estimate." /></Field>
             <Field label="Notes" className="field-span-2"><textarea className="project-input" rows={2} value={estimate.notes} onChange={(event) => updateMetadata({ notes: event.target.value })} disabled={!editable} /></Field>
             <Field label="Terms" className="field-span-2"><textarea className="project-input" rows={3} value={estimate.terms} onChange={(event) => updateMetadata({ terms: event.target.value })} disabled={!editable} /></Field>
+            <Field label="Terms of payment (this estimate only; leave empty for the company default)" className="field-span-2"><textarea className="project-input" rows={2} maxLength={2000} value={estimate.payment_terms ?? ""} onChange={(event) => updateMetadata({ payment_terms: event.target.value })} disabled={!editable} placeholder={(estimate.document?.default_payment_terms ?? []).join("\n") || "e.g. 50% deposit upon signing"} /></Field>
           </div></div>
 
           <SameModelCard

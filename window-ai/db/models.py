@@ -229,6 +229,9 @@ class CustomerEstimate(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     terms: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Terms of payment for this estimate only (e.g. 50/50); empty uses the
+    # company default from Settings -> Estimate document.
+    payment_terms: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     windows: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
     doors: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
     commercial: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)

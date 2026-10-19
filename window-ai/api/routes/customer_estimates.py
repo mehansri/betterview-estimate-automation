@@ -37,7 +37,7 @@ from services.customer_estimates import (
     pricing_hash,
 )
 from services.address_key import address_key
-from services.estimate_documents import customer_view, render_pdf
+from services.estimate_documents import customer_view, document_copy, render_pdf
 
 
 router = APIRouter(prefix="/api/customer-estimates", tags=["customer-estimates"])
@@ -102,6 +102,7 @@ def _row_response(row: CustomerEstimate) -> CustomerEstimateResponse:
         description=row.description or "",
         notes=row.notes or "",
         terms=row.terms or "",
+        payment_terms=row.payment_terms or "",
         windows=row.windows or [],
         doors=row.doors or [],
         commercial=row.commercial or {},
@@ -122,6 +123,7 @@ def _row_response(row: CustomerEstimate) -> CustomerEstimateResponse:
         lost_at=_iso(row.lost_at),
         lost_reason=row.lost_reason,
         public_token=row.public_token,
+        document=document_copy(row),
         revision_of=str(row.revision_of) if row.revision_of else None,
         revision_number=row.revision_number or 1,
         deleted_at=_iso(row.deleted_at),
@@ -146,6 +148,8 @@ def _apply_body(row: CustomerEstimate, body: CustomerEstimateDraft) -> None:
     row.description = body.description.strip()
     row.notes = body.notes.strip()
     row.terms = body.terms.strip()
+    if "payment_terms" in body.model_fields_set:
+        row.payment_terms = body.payment_terms.strip() or None
     row.windows = windows
     row.doors = doors
     row.commercial = commercial
@@ -538,6 +542,7 @@ def _copy_fields(source: CustomerEstimate) -> dict:
         description=source.description,
         notes=source.notes,
         terms=source.terms,
+        payment_terms=source.payment_terms,
         windows=source.windows or [],
         doors=source.doors or [],
         commercial=source.commercial or {},

@@ -298,7 +298,9 @@ export default function CustomerPortal({ token }: { token: string }) {
     return <ErrorState notFound={isNotFound(message)} message={message} onRetry={() => setReloadKey((key) => key + 1)} />;
   }
 
-  const company = estimate.company ?? { name: "", phone: "", email: "", address: "", website: "" };
+  const company = estimate.company ?? { name: "", phone: "", email: "", address: "", website: "", gst_number: "" };
+  const copy = estimate.document;
+  const gstNumber = copy?.gst_number || company.gst_number;
   const companyName = company.name || "Better View Solutions Inc.";
   const sections = estimate.sections;
   const windowLines = sections?.windows?.lines ?? [];
@@ -482,6 +484,7 @@ export default function CustomerPortal({ token }: { token: string }) {
               <address className="mt-4 space-y-0.5 text-sm not-italic text-slate-600">
                 <p className="font-semibold text-slate-900">{companyName}</p>
                 {company.address ? <p className="whitespace-pre-line">{company.address}</p> : null}
+                {gstNumber ? <p>GST/HST No. {gstNumber}</p> : null}
                 {company.phone ? (
                   <p>
                     <a href={telHref(company.phone)} className="rounded hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
@@ -678,7 +681,29 @@ export default function CustomerPortal({ token }: { token: string }) {
           {hasTiers ? (
             <p className="mt-4 text-right text-xs text-slate-500">Totals shown for the scope above. See the options below for package pricing.</p>
           ) : null}
+          {gstNumber ? <p className="mt-3 text-right text-xs text-slate-500">GST/HST number: {gstNumber}</p> : null}
         </Card>
+
+        {/* Product details by collection */}
+        {copy?.collections?.length ? (
+          <Card>
+            <div className="space-y-3">
+              {copy.collections.map((block) => (
+                <div key={block.key} className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 print:break-inside-avoid print:bg-white">
+                  <h3 className="text-sm font-semibold text-slate-900">{block.title}</h3>
+                  <div className="mt-1 space-y-0.5 text-sm text-slate-700">
+                    {block.summary.map((line) => <p key={line}>{line}</p>)}
+                  </div>
+                  {block.features.length ? (
+                    <ul className="mt-3 list-disc gap-x-8 space-y-1 pl-5 text-xs leading-relaxed text-slate-600 sm:columns-2">
+                      {block.features.map((line) => <li key={line} className="break-inside-avoid">{line}</li>)}
+                    </ul>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : null}
 
         {/* Options (Good / Better / Best) */}
         {hasTiers ? (
@@ -752,6 +777,30 @@ export default function CustomerPortal({ token }: { token: string }) {
                 </p>
               ) : null}
               {financing?.options?.length ? <FinancingPanel financing={financing} tierName={chosenTier?.financing ? chosenTier.name : null} /> : null}
+            </div>
+          </Card>
+        ) : null}
+
+        {/* General notes & terms of payment (company's standing copy) */}
+        {copy?.general_notes?.length || copy?.payment_terms?.length ? (
+          <Card>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
+              {copy.general_notes.length ? (
+                <div className={copy.payment_terms.length ? "md:col-span-3" : "md:col-span-5"}>
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-700">General notes</h2>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-slate-700">
+                    {copy.general_notes.map((line) => <li key={line}>{line}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+              {copy.payment_terms.length ? (
+                <div className={copy.general_notes.length ? "md:col-span-2" : "md:col-span-5"}>
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-700">Terms of payment</h2>
+                  <div className="mt-2 space-y-1 text-sm leading-relaxed text-slate-700">
+                    {copy.payment_terms.map((line) => <p key={line}>{line}</p>)}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </Card>
         ) : null}

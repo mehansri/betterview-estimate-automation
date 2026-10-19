@@ -679,6 +679,8 @@ export type CustomerEstimateDraft = {
   description: string;
   notes: string;
   terms: string;
+  /** Terms of payment for this estimate only, one item per line; empty uses the company default. */
+  payment_terms?: string;
   windows: CustomerWindowLine[];
   doors: CustomerDoorOpening[];
   commercial: CommercialSettings;
@@ -864,6 +866,20 @@ export type CustomerEstimate = CustomerEstimateDraft & {
   /** Set when the project was started from a CRM opportunity. */
   crm_opportunity_id?: string | null;
   crm_contact_id?: string | null;
+  document?: EstimateDocumentCopy | null;
+};
+
+/** One collection on the estimate (Classic windows, sliding patio doors…): scope summary and standing features. */
+export type EstimateCollectionCopy = { key: string; title: string; summary: string[]; features: string[] };
+
+/** Standing customer-document copy from Settings → Estimate document and the company GST/HST number. */
+export type EstimateDocumentCopy = {
+  gst_number: string;
+  general_notes: string[];
+  /** This estimate's terms of payment, else the company default. */
+  payment_terms: string[];
+  default_payment_terms?: string[];
+  collections: EstimateCollectionCopy[];
 };
 
 export type CustomerEstimateSummary = {
@@ -908,7 +924,7 @@ export type SendEstimateResult = {
   estimate: CustomerEstimate;
 };
 
-export type CompanySettings = { name: string; phone: string; email: string; address: string; website: string };
+export type CompanySettings = { name: string; phone: string; email: string; address: string; website: string; gst_number: string };
 
 /** Customer-safe estimate as the public portal and PDF see it. */
 export type PublicEstimate = {
@@ -935,6 +951,7 @@ export type PublicEstimate = {
   financing?: FinancingOptions;
   deposit: number;
   company: CompanySettings;
+  document?: EstimateDocumentCopy | null;
   accepted?: { name: string; accepted_at: string; tier_name?: string | null; total?: number; deposit?: number } | null;
   can_accept: boolean;
   superseded_by?: string | null;
@@ -948,6 +965,14 @@ export type BusinessSettings = {
   financing: { enabled: boolean; apr_percent: number; terms_months: number[]; minimum_amount: number; disclaimer: string };
   measurement: { rough_opening_deduction_in: number };
   tax: { default_province: string; rates: Record<string, TaxRateEntry> };
+  estimate_document: EstimateDocumentSettings;
+};
+
+/** Settings text is one item per line; collections are keyed by window series or patio door type. */
+export type EstimateDocumentSettings = {
+  general_notes: string;
+  payment_terms: string;
+  collections: Record<string, { title: string; features: string }>;
 };
 
 export type BusinessSettingsGroup = keyof BusinessSettings;

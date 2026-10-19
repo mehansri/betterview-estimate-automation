@@ -66,6 +66,7 @@ export function estimateToDraft(estimate: CustomerEstimate, patch: Partial<Custo
     description: estimate.description,
     notes: estimate.notes,
     terms: estimate.terms,
+    payment_terms: estimate.payment_terms ?? "",
     windows: estimate.windows,
     doors: estimate.doors,
     commercial: estimate.commercial,

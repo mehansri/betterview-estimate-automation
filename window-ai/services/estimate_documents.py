@@ -43,6 +43,115 @@ def _with_window_colours(windows: dict[str, Any], row, pricing: dict[str, Any]) 
     ]}
 
 
+def _copy_lines(text: Any) -> list[str]:
+    """Settings text as list items: one per line, bullets and blank lines dropped."""
+    return [line.strip().lstrip("*•-").strip() for line in str(text or "").splitlines() if line.strip().lstrip("*•-").strip()]
+
+
+def collection_key(spec: dict[str, Any]) -> str | None:
+    """The window series ('classic', 'heritage', ...) or patio door type a line belongs to."""
+    from services.windowcity import layout
+    from services.windowcity.catalog import CatalogError, style
+
+    kind = spec.get("type") or "window"
+    if kind in ("patio_sliding", "patio_swing"):
+        return kind
+    if kind in ("unit", "bay_bow") and spec.get("layout"):
+        return spec.get("series") or layout.DEFAULT_SERIES
+    lite = next((item for item in spec.get("lites") or [] if isinstance(item, dict)), None)
+    name = spec.get("style") or (lite or {}).get("style")
+    if not name:
+        return None
+    try:
+        found = style(str(name))
+    except CatalogError:
+        return None
+    code = found["code"]
+    return next((key for key, series in layout.SERIES.items() if code in series["styles"].values()), found.get("collection"))
+
+
+def _collection_title(key: str, configured: dict[str, Any]) -> str:
+    from services.windowcity import layout
+
+    if (configured.get(key) or {}).get("title"):
+        return str(configured[key]["title"])
+    if key == "patio_sliding":
+        return "Sliding patio doors"
+    if key == "patio_swing":
+        return "Swing patio doors"
+    return f"{layout.SERIES.get(key, {}).get('label') or key.replace('_', ' ').title()} windows"
+
+
+def _colour_names(values: list[Any], default: str = "") -> str:
+    names: list[str] = []
+    for value in values:
+        name = str(value or default).strip().replace("_", " ")
+        if name and name.title() not in names:
+            names.append(name.title())
+    return ", ".join(names)
+
+
+def _quoted_specs(row, window_lines: list[dict[str, Any]], tier: dict[str, Any] | None) -> list[tuple[dict[str, Any], int]]:
+    """(spec, qty) of each priced window line, from the saved lines with the quoted option applied,
+    so an option that moves the job to Heritage describes Heritage."""
+    from services.customer_estimates import apply_tier
+
+    specs = {str(line.get("id")): line.get("spec") or {} for line in apply_tier(row.windows or [], tier)}
+    return [(specs[str(line.get("id"))], int(line.get("qty") or 1))
+            for line in window_lines if specs.get(str(line.get("id")))]
+
+
+def _white_inside(specs: list[dict[str, Any]]) -> bool:
+    return all(str(spec.get("colour_int") or "white").strip().lower() == "white" for spec in specs)
+
+
+def _for_interior(lines: list[str], specs: list[dict[str, Any]]) -> list[str]:
+    """Lines promising casing/jambs "primed in white" only apply when every interior is white."""
+    if _white_inside(specs):
+        return lines
+    return [line for line in lines if "primed in white" not in line.lower()]
+
+
+def product_collections(items: list[tuple[dict[str, Any], int]]) -> list[dict[str, Any]]:
+    """One block per collection on the estimate: a scope summary and its standing features."""
+    configured = business_settings.get_group("estimate_document").get("collections") or {}
+    groups: dict[str, list[tuple[dict[str, Any], int]]] = {}
+    for spec, qty in items:
+        key = collection_key(spec)
+        if key:
+            groups.setdefault(key, []).append((spec, qty))
+    blocks = []
+    for key, group in groups.items():
+        count = sum(qty for _, qty in group)
+        specs = [spec for spec, _ in group]
+        title = _collection_title(key, configured)
+        noun = title[:-1] if count == 1 and title.endswith("s") else title
+        summary = [f"To supply and install: {count} new {noun} as per the drawings in this estimate."]
+        exterior = _colour_names([spec.get("colour_ext") or spec.get("color") for spec in specs], "white")
+        interior = _colour_names([spec.get("colour_int") for spec in specs], "white")
+        summary += [f"Exterior colour: {exterior}", f"Interior colour: {interior}"]
+        features = _for_interior(_copy_lines((configured.get(key) or {}).get("features")), specs)
+        blocks.append({"key": key, "title": title, "summary": summary, "features": features})
+    return blocks
+
+
+def document_copy(row) -> dict[str, Any]:
+    """Standing estimate copy (GST/HST number, general notes, payment terms, product features)."""
+    pricing = row.pricing_snapshot or {}
+    settings = business_settings.get_group("estimate_document")
+    tier = next((t for t in row.tiers or [] if str(t.get("id")) == str(pricing.get("selected_tier"))), None)
+    window_lines = ((pricing.get("sections") or {}).get("windows") or {}).get("lines") or []
+    items = _quoted_specs(row, window_lines, tier)
+    return {
+        "gst_number": str(business_settings.get_group("company").get("gst_number") or "").strip(),
+        "general_notes": _for_interior(_copy_lines(settings.get("general_notes")), [spec for spec, _ in items]),
+        # The estimate's own terms of payment win over the company default.
+        "payment_terms": _copy_lines(getattr(row, "payment_terms", None) or settings.get("payment_terms")),
+        "default_payment_terms": _copy_lines(settings.get("payment_terms")),
+        "collections": product_collections(items),
+    }
+
+
 def customer_view(row) -> dict[str, Any]:
     pricing = row.pricing_snapshot or {}
     sections = pricing.get("sections") or {}
@@ -86,6 +195,7 @@ def customer_view(row) -> dict[str, Any]:
         "financing": pricing.get("financing"),
         "deposit": pricing.get("deposit") or 0,
         "company": business_settings.get_group("company"),
+        "document": document_copy(row),
         "accepted": {
             "name": acceptance.get("name"),
             "accepted_at": acceptance.get("accepted_at"),
@@ -298,23 +408,26 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
     blue, navy, muted = (colors.HexColor(PDF_BRAND[key]) for key in ("blue", "navy", "muted"))
     line_colour, soft, text_colour, row_rule = (colors.HexColor(PDF_BRAND[key]) for key in ("line", "soft", "text", "row"))
 
-    body = ParagraphStyle("body", fontName="Helvetica", fontSize=8.5, leading=12, textColor=text_colour)
-    small = ParagraphStyle("small", parent=body, fontSize=7.5, leading=10, textColor=muted)
-    cell = ParagraphStyle("cell", parent=body, fontSize=8, leading=10.5)
+    # Print sizes: 10pt body, 9pt tables and standing copy, nothing under 7.5pt.
+    body = ParagraphStyle("body", fontName="Helvetica", fontSize=10, leading=13.5, textColor=text_colour)
+    small = ParagraphStyle("small", parent=body, fontSize=9, leading=12, textColor=muted)
+    # Notes, terms and product features: the customer reads these before signing, so body colour.
+    copy_text = ParagraphStyle("copy_text", parent=body, fontSize=9, leading=12.5)
+    cell = ParagraphStyle("cell", parent=body, fontSize=9, leading=12)
     cell_right = ParagraphStyle("cell_right", parent=cell, alignment=TA_RIGHT)
     cell_strong = ParagraphStyle("cell_strong", parent=cell, fontName="Helvetica-Bold", textColor=navy)
     cell_strong_right = ParagraphStyle("cell_strong_right", parent=cell_strong, alignment=TA_RIGHT)
-    head = ParagraphStyle("head", parent=small, fontName="Helvetica-Bold", fontSize=6.5, leading=8)
+    head = ParagraphStyle("head", parent=small, fontName="Helvetica-Bold", fontSize=7.5, leading=9.5)
     head_right = ParagraphStyle("head_right", parent=head, alignment=TA_RIGHT)
-    kicker = ParagraphStyle("kicker", parent=body, fontName="Helvetica-Bold", fontSize=6.5, leading=9, textColor=blue)
+    kicker = ParagraphStyle("kicker", parent=body, fontName="Helvetica-Bold", fontSize=7.5, leading=10, textColor=blue)
     kicker_right = ParagraphStyle("kicker_right", parent=kicker, alignment=TA_RIGHT)
     title_style = ParagraphStyle("title", parent=body, fontName="Helvetica-Bold", fontSize=17, leading=21, textColor=navy, alignment=TA_RIGHT)
-    number_style = ParagraphStyle("number", parent=small, fontSize=8, alignment=TA_RIGHT)
-    company_style = ParagraphStyle("company", parent=small, fontName="Helvetica-Bold", fontSize=7)
-    customer_style = ParagraphStyle("customer", parent=body, fontName="Helvetica-Bold", fontSize=12, leading=15, textColor=navy)
-    h2 = ParagraphStyle("h2", parent=body, fontName="Helvetica-Bold", fontSize=12, leading=15, textColor=navy)
-    h2_right = ParagraphStyle("h2_right", parent=h2, fontSize=10.5, alignment=TA_RIGHT)
-    h3 = ParagraphStyle("h3", parent=body, fontName="Helvetica-Bold", fontSize=9.5, leading=12, textColor=navy)
+    number_style = ParagraphStyle("number", parent=small, fontSize=9, alignment=TA_RIGHT)
+    company_style = ParagraphStyle("company", parent=small, fontName="Helvetica-Bold", fontSize=8, leading=10)
+    customer_style = ParagraphStyle("customer", parent=body, fontName="Helvetica-Bold", fontSize=13, leading=16, textColor=navy)
+    h2 = ParagraphStyle("h2", parent=body, fontName="Helvetica-Bold", fontSize=13, leading=16, textColor=navy)
+    h2_right = ParagraphStyle("h2_right", parent=h2, fontSize=11.5, alignment=TA_RIGHT)
+    h3 = ParagraphStyle("h3", parent=body, fontName="Helvetica-Bold", fontSize=10.5, leading=13, textColor=navy)
     h3_right = ParagraphStyle("h3_right", parent=h3, alignment=TA_RIGHT)
 
     def p(text: Any, style=body) -> Paragraph:
@@ -366,10 +479,13 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
     story.append(header)
 
     # Contact bar: blue top rule over a pale band.
-    contact = [company.get("phone"), company.get("email"), company.get("address")]
+    copy = view.get("document") or {}
+    gst_number = copy.get("gst_number") or ""
+    contact = [company.get("phone"), company.get("email"), company.get("address"),
+               f"GST/HST No. {gst_number}" if gst_number else ""]
     contact_text = " &nbsp; &nbsp; &nbsp; ".join(
         str(item).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;") for item in contact if item)
-    bar = Table([[Paragraph(contact_text, small)]], colWidths=[width])
+    bar = Table([[Paragraph(contact_text, ParagraphStyle("contact", parent=small, fontSize=8, leading=10))]], colWidths=[width])
     bar.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), soft), ("LINEABOVE", (0, 0), (-1, -1), 2.25, blue),
         ("LINEBELOW", (0, 0), (-1, -1), 0.75, line_colour),
@@ -446,6 +562,42 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         return [label(name, head_right if name in numeric else head) for name in names]
 
     inner = width - 2 * pad
+
+    def bullets(items: list[str], style=copy_text, columns: int = 1, total: float | None = None) -> Table | None:
+        """A list of short items, split down ``columns`` columns ``total`` points wide (default the content width)."""
+        if not items:
+            return None
+        total = total or inner
+        per = -(-len(items) // columns)
+        hanging = ParagraphStyle(f"{style.name}_bullet", parent=style, leftIndent=8, bulletIndent=0, spaceAfter=1.5)
+        cols = [[Paragraph(str(item).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), hanging, bulletText="•")
+                 for item in items[i * per:(i + 1) * per]] for i in range(columns)]
+        t = Table([cols], colWidths=[total / columns] * columns)
+        t.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        return t
+
+    def collection_blocks() -> list[Any]:
+        """Scope summary and features per collection, in a pale box like the preliminary notice, after the totals."""
+        out: list[Any] = []
+        for block in copy.get("collections") or []:
+            content: list[Any] = [p(block.get("title"), h3), Spacer(1, 3)]
+            content += [p(line, cell) for line in block.get("summary") or []]
+            features = bullets(block.get("features") or [], columns=2)
+            if features is not None:
+                content += [Spacer(1, 5), features]
+            box = Table([[content]], colWidths=[inner])
+            box.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), soft), ("BOX", (0, 0), (-1, -1), 0.75, line_colour),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+            ]))
+            out += [Spacer(1, 8), box]
+        return out
+
     sections = view.get("sections") or {}
     windows = (sections.get("windows") or {}).get("lines") or []
     if windows:
@@ -502,9 +654,9 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
 
     # Totals: right-aligned block, a blue rule over the grand total.
     totals = view.get("totals") or {}
-    total_style = ParagraphStyle("total", parent=body, fontSize=8.5)
+    total_style = ParagraphStyle("total", parent=body, fontSize=10)
     total_value = ParagraphStyle("total_value", parent=total_style, fontName="Helvetica-Bold", textColor=navy, alignment=TA_RIGHT)
-    grand = ParagraphStyle("grand", parent=body, fontName="Helvetica-Bold", fontSize=12, leading=15, textColor=navy)
+    grand = ParagraphStyle("grand", parent=body, fontName="Helvetica-Bold", fontSize=13, leading=16, textColor=navy)
     grand_value = ParagraphStyle("grand_value", parent=grand, alignment=TA_RIGHT)
     total_rows: list[list[Any]] = []
     if float(totals.get("base_subtotal") or 0) > float(totals.get("subtotal") or 0) + 0.01:
@@ -527,7 +679,15 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ("TOPPADDING", (0, 0), (-1, 0), 8), ("TOPPADDING", (0, grand_row), (-1, grand_row), 8),
     ]))
-    story.extend(padded(KeepTogether(totals_table), top=12))
+    totals_block: list[Any] = [totals_table]
+    if gst_number:
+        totals_block += [Spacer(1, 4), Table([[p(f"GST/HST number: {gst_number}", ParagraphStyle(
+            "gst", parent=small, alignment=TA_RIGHT))]], colWidths=[3.5 * inch], hAlign="RIGHT",
+            style=[("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)])]
+    story.extend(padded(KeepTogether(totals_block), top=12))
+    blocks = collection_blocks()
+    if blocks:
+        story.extend(padded(blocks, top=6))
 
     tiers = view.get("tiers") or []
     if tiers:
@@ -562,15 +722,44 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
                 pass
         story.extend(padded(KeepTogether(block), top=14))
 
+    # General notes | Terms of payment, the company's standing copy.
+    payment = [p(line, copy_text) for line in copy.get("payment_terms") or []]
+    general_width = inner * 0.62 if payment else inner
+    general = bullets(copy.get("general_notes") or [], total=general_width)
+    if general is not None or payment:
+        cells = [cell for cell in (
+            [label("General notes"), Spacer(1, 4), general] if general is not None else None,
+            [label("Terms of payment"), Spacer(1, 4), *payment] if payment else None,
+        ) if cell]
+        grid = Table([cells], colWidths=[general_width, inner - general_width] if len(cells) == 2 else [inner])
+        grid.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("LEFTPADDING", (1, 0), (1, 0), 14), ("LINEBEFORE", (1, 0), (1, 0), 0.75, line_colour),
+        ]))
+        story.extend(padded(grid, top=18))
+
     # Notes | Terms side by side, as .estimate-copy-grid.
-    notes = [label("Notes"), Spacer(1, 4), p(view.get("notes") or "—", small)]
-    terms = [label("Terms"), Spacer(1, 4), p(view.get("terms") or "—", small)]
+    notes = [label("Notes"), Spacer(1, 4), p(view.get("notes") or "—", copy_text)]
+    terms = [label("Terms"), Spacer(1, 4), p(view.get("terms") or "—", copy_text)]
     copy_grid = Table([[notes, terms]], colWidths=[inner * 0.5, inner * 0.5])
     copy_grid.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (0, 0), 14), ("RIGHTPADDING", (1, 0), (1, 0), 0),
     ]))
-    story.extend(padded(copy_grid, top=14))
+    closing: list[Any] = [copy_grid]
+    if not accepted:
+        # Signature lines for a printed copy; an accepted estimate carries the signature above.
+        signatures = Table([[label("Client signature"), "", label("Sales rep signature")]],
+                           colWidths=[inner * 0.45, inner * 0.1, inner * 0.45])
+        signatures.setStyle(TableStyle([
+            ("LINEABOVE", (0, 0), (0, 0), 0.75, navy), ("LINEABOVE", (2, 0), (2, 0), 0.75, navy),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 4), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]))
+        closing += [Spacer(1, 0.45 * inch), signatures]
+    # Notes, terms and signatures share a page, so the signature lines never sit alone.
+    story.extend(padded(KeepTogether(closing), top=14, bottom=6))
 
     footer_items = [company.get("name"), " · ".join(filter(None, [company.get("phone"), company.get("email")])), _website(company)]
 
@@ -582,7 +771,7 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         canvas.setLineWidth(0.75)
         canvas.rect(x, y, width, footer_height, stroke=0, fill=1)
         canvas.line(x, y + footer_height, x + width, y + footer_height)
-        canvas.setFont("Helvetica", 7)
+        canvas.setFont("Helvetica", 8)
         canvas.setFillColor(muted)
         baseline = y + footer_height / 2 - 2.5
         canvas.drawString(x + pad, baseline, footer_items[0] or "")

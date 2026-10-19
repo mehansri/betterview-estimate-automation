@@ -140,6 +140,9 @@ class CustomerEstimateDraft(BaseModel):
         "Final measurements, site conditions, product availability, and installation details "
         "will be confirmed before ordering."
     )
+    # Terms of payment for this estimate only, one item per line; empty uses the
+    # company default. An update that leaves it out keeps the existing terms.
+    payment_terms: str = Field(default="", max_length=2000)
     windows: list[CustomerWindowLine] = Field(default_factory=list)
     doors: list[CustomerDoorOpening] = Field(default_factory=list)
     commercial: CommercialSettings = Field(default_factory=CommercialSettings)
@@ -186,6 +189,9 @@ class CustomerEstimateResponse(CustomerEstimateDraft):
     revision_of: Optional[str] = None
     revision_number: int = 1
     deleted_at: Optional[str] = None
+    # Standing customer-document copy: GST/HST number, general notes, payment
+    # terms and product features (services/estimate_documents.document_copy).
+    document: Optional[dict[str, Any]] = None
 
 
 class CustomerEstimateSummary(BaseModel):

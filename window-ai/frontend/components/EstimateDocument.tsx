@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import type { CustomerEstimate, CustomerEstimatePricing } from "@/lib/api";
+import type { CustomerEstimate, CustomerEstimatePricing, EstimateCollectionCopy } from "@/lib/api";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import { DoorGeometryDrawing } from "@/components/DoorDrawing";
@@ -90,6 +90,17 @@ function WindowLineSketch({ line, estimate }: { line: NonNullable<CustomerEstima
   return <span className="mb-1 block"><WindowUnitDrawing layout={drawable.layout} width={drawable.width} height={drawable.height} colour={colour} size={84} showDimensions={false} showIndexes={false} /></span>;
 }
 
+/** Scope summary and standing features of one collection, after the totals. */
+function CollectionBlock({ block }: { block: EstimateCollectionCopy }) {
+  return (
+    <div className="estimate-collection">
+      <h3>{block.title}</h3>
+      {block.summary.map((line) => <p key={line}>{line}</p>)}
+      {block.features.length ? <ul className="estimate-bullets estimate-bullets-columns">{block.features.map((line) => <li key={line}>{line}</li>)}</ul> : null}
+    </div>
+  );
+}
+
 export default function EstimateDocument({
   estimate,
   editable,
@@ -105,6 +116,12 @@ export default function EstimateDocument({
   const pricing = estimate.pricing as CustomerEstimatePricing | null | undefined;
   const sections = pricing?.sections;
   const totals = pricing?.totals;
+  const copy = estimate.document;
+  // The draft's own terms of payment as typed, else the company default.
+  const defaultPaymentTerms = copy?.default_payment_terms ?? copy?.payment_terms ?? [];
+  const paymentTerms = estimate.payment_terms?.trim()
+    ? estimate.payment_terms.split("\n").map((line) => line.trim()).filter(Boolean)
+    : defaultPaymentTerms;
 
   return (
     <article className="estimate-document" style={{ "--estimate-blue": BRAND.blue, "--estimate-navy": BRAND.navy, "--estimate-muted": BRAND.muted, "--estimate-line": BRAND.line, "--estimate-soft": BRAND.soft } as CSSProperties}>
@@ -126,6 +143,7 @@ export default function EstimateDocument({
         <span>647-326-0613</span>
         <span>info@betterview.ca</span>
         <span>1 Greensboro Dr, Suite 308 · Etobicoke, ON M9W 1C8</span>
+        {copy?.gst_number ? <span>GST/HST No. {copy.gst_number}</span> : null}
       </div>
 
       <section className="estimate-meta-grid">
@@ -207,7 +225,14 @@ export default function EstimateDocument({
           : <div className="estimate-total-line"><span>HST</span><strong>{money(totals?.hst)}</strong></div>}
         <div className="estimate-total-line estimate-grand-total"><span>Total</span><strong>{money(totals?.total)}</strong></div>
         {pricing?.deposit ? <div className="estimate-total-line"><span>Deposit due on acceptance</span><strong>{money(pricing.deposit)}</strong></div> : null}
+        {copy?.gst_number ? <p className="estimate-tax-number">GST/HST number: {copy.gst_number}</p> : null}
       </section>
+
+      {copy?.collections?.length ? (
+        <section className="estimate-collections">
+          {copy.collections.map((block) => <CollectionBlock key={block.key} block={block} />)}
+        </section>
+      ) : null}
 
       {pricing?.tiers?.some((tier) => !tier.error) ? (
         <section className="estimate-product-section">
@@ -233,10 +258,26 @@ export default function EstimateDocument({
         </section>
       ) : null}
 
+      {copy?.general_notes?.length || paymentTerms.length || editable ? (
+        <section className="estimate-standing-grid">
+          {copy?.general_notes?.length ? <div><p className="estimate-section-label">General notes</p><ul className="estimate-bullets">{copy.general_notes.map((line) => <li key={line}>{line}</li>)}</ul></div> : null}
+          {editable ? (
+            <div><p className="estimate-section-label">Terms of payment</p><EditableArea value={estimate.payment_terms ?? ""} editable onChange={(value) => onChange({ payment_terms: value })} placeholder={defaultPaymentTerms.join("\n") || "Terms of payment"} /></div>
+          ) : paymentTerms.length ? <div><p className="estimate-section-label">Terms of payment</p>{paymentTerms.map((line) => <p key={line}>{line}</p>)}</div> : null}
+        </section>
+      ) : null}
+
       <section className="estimate-copy-grid">
         <div><p className="estimate-section-label">Notes</p><EditableArea value={estimate.notes} editable={editable} onChange={(value) => onChange({ notes: value })} placeholder="Optional project notes" /></div>
         <div><p className="estimate-section-label">Terms</p><EditableArea value={estimate.terms} editable={editable} onChange={(value) => onChange({ terms: value })} placeholder="Estimate terms" /></div>
       </section>
+
+      {!estimate.acceptance ? (
+        <section className="estimate-signatures">
+          <div><p className="estimate-section-label">Client signature</p></div>
+          <div><p className="estimate-section-label">Sales rep signature</p></div>
+        </section>
+      ) : null}
 
       <footer className="estimate-footer">
         <span>Better View Solutions Inc.</span>
