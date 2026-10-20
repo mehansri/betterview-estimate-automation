@@ -121,6 +121,12 @@ def split_items(text: str) -> tuple[dict[str, Any], list[Item]]:
             current = Item(m.group(1), int(m.group(2)), m.group(3))
             items.append(current)
             continue
+        if m and CONFIG_LINE.match(m.group(3)):
+            # No room name: the configuration shares the item line
+            # ("1 8 F1 - Fixed SINGLE FRAME p", order 125401082).
+            current = Item(m.group(1), int(m.group(2)), "", [m.group(3)])
+            items.append(current)
+            continue
         if "Total Qty" in stripped:
             current = None
             continue
@@ -168,8 +174,13 @@ def _accessories(text: str, *, patio: bool, warnings: list[str], tag: str) -> li
         if patio:
             accessories.append({"kind": "brickmould", "name": "Brickmould EP326 installed"})
         elif bm:
+            size = bm.group(2).strip()
+            if size == "0" and "EP326" in text:
+                # "Classic BM - 0 inch, EP326-0" (order 125401101) is the
+                # installed 1" Classic brickmould, EP326.
+                size = "1"
             accessories.append({"kind": "brickmould",
-                                "name": f'{bm.group(2).strip()}" brickmould ({bm.group(1).lower()})'})
+                                "name": f'{size}" brickmould ({bm.group(1).lower()})'})
         else:
             warnings.append(f"Item {tag}: brickmould type not recognised; add it by hand")
     jamb = WOOD_JAMB.search(text)
@@ -274,11 +285,37 @@ def _window_line(item: Item, sections: list[Item], warnings: list[str]) -> dict[
                                 f"'{item.config}'")
         division = DIVISION.search(text)
         parts = [float(p) for p in division.group(1).split(":")] if division else []
-        if parts and len(parts) != len(children):
-            warnings.append(f"Item {item.number}: {len(parts)} divisions for {len(children)} sections")
-        sizes: list[Any] = [_number(str(p)) for p in parts[:-1]] + ["*"] if len(parts) == len(children) else \
-            ["*"] * len(children)
-        tree: dict[str, Any] = {"split": "cols", "sizes": sizes, "children": children}
+        # "Fixed over Awning" stacks its sections; everything else sits side by side.
+        stacked = " over " in item.config.lower()
+        # Each section item carries its own frame size. The Division line is
+        # not always in section order (order 125401151 item 1, "Fixed +
+        # Casement (right)", Division 24:48, has the 48" fixed as section 1.1),
+        # so each section takes the Division value nearest its own frame --
+        # frames run 0.025" under nominal and the book bills the nominal size.
+        section_sizes = []
+        for section in sorted(sections, key=lambda s: float(s.number)):
+            frame = FRAME_SIZE.search(section.text)
+            section_sizes.append(float(frame.group(2 if stacked else 1)) if frame else None)
+        if children and len(section_sizes) == len(children) and None not in section_sizes:
+            remaining = list(parts) if len(parts) == len(children) else []
+            nominal = []
+            for size in section_sizes:
+                if remaining:
+                    match = min(remaining, key=lambda p: abs(p - size))
+                    remaining.remove(match)
+                    nominal.append(match)
+                else:
+                    nominal.append(size + 0.025)
+            sizes: list[Any] = [_number(str(round(p, 4))) for p in nominal[:-1]] + ["*"]
+        elif len(parts) == len(children):
+            sizes = [_number(str(p)) for p in parts[:-1]] + ["*"]
+            warnings.append(f"Item {item.number}: section sizes read from the Division line; "
+                            "check the order of the sections")
+        else:
+            if parts:
+                warnings.append(f"Item {item.number}: {len(parts)} divisions for {len(children)} sections")
+            sizes = ["*"] * len(children)
+        tree: dict[str, Any] = {"split": "rows" if stacked else "cols", "sizes": sizes, "children": children}
         if division:
             notes.append(f"Division {':'.join(_fraction(p) for p in parts)}")
         if len(children) < 2:
