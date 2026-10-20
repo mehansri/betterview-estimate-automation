@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import io
+import math
 import re
 from datetime import date
 from pathlib import Path
@@ -339,12 +340,13 @@ def window_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, m
 def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max_height: float):
     """A small elevation of a door opening, viewed from outside (reportlab points).
 
-    Matches frontend/components/DoorDrawing.tsx: frame and brickmould, transom,
-    sidelites, slab colour, glass lites, handle and sill.
+    Matches frontend/components/DoorDrawing.tsx: brickmould and frame, transom,
+    sidelites, slab colour and panels, glass lites with grilles/SDL bars, hinges,
+    handles (a double's inactive leaf carries the dummy), astragal and sill.
     """
     if not geometry or not geometry.get("doors"):
         return None
-    from reportlab.graphics.shapes import Circle, Drawing, Ellipse, Rect, Wedge
+    from reportlab.graphics.shapes import Circle, Drawing, Ellipse, Line, Rect, Wedge
     from reportlab.lib import colors
 
     doors = int(geometry["doors"])
@@ -357,33 +359,55 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     inner_w = doors * slab_w + sidelites * (side_w + mull)
     total_w = inner_w + frame * 2
     total_h = slab_h + transom_h + (mull if transom_h else 0) + frame + 1.5
-    scale = min(max_width / total_w, max_height / total_h)
+    # The brickmould sits 1.5" outside the frame on the sides and top.
+    scale = min(max_width / (total_w + 3), max_height / (total_h + 1.5))
     ink = colors.HexColor("#334155")
+    hardware = colors.HexColor("#111827")
     glass_fill = colors.HexColor("#bae6fd")
     frosted = colors.HexColor("#e2e8f0")
-    slab_colour = colors.HexColor(geometry.get("slab_colour") or "#f8fafc")
-    frame_colour = colors.HexColor(geometry.get("frame_colour") or "#f8fafc")
-    d = Drawing(total_w * scale, total_h * scale)
+    slab_hex = geometry.get("slab_colour") or "#f8fafc"
+    frame_hex = geometry.get("frame_colour") or "#f8fafc"
+    slab_colour = _hex_colour(slab_hex)
+    frame_colour = _hex_colour(frame_hex)
+    lock = geometry.get("lock")
+    d = Drawing((total_w + 3) * scale, (total_h + 1.5) * scale)
 
     def rect(x: float, y: float, w: float, h: float, fill, stroke=ink, width=0.4) -> None:
-        d.add(Rect(x * scale, (total_h - y - h) * scale, w * scale, h * scale, fillColor=fill, strokeColor=stroke, strokeWidth=width))
+        d.add(Rect((x + 1.5) * scale, (total_h - y - h) * scale, w * scale, h * scale, fillColor=fill, strokeColor=stroke, strokeWidth=width))
 
-    def lites(ox: float, oy: float, w: float, h: float, glass: dict[str, Any] | None) -> None:
+    def line(x1: float, y1: float, x2: float, y2: float, stroke, width: float) -> None:
+        d.add(Line((x1 + 1.5) * scale, (total_h - y1) * scale, (x2 + 1.5) * scale, (total_h - y2) * scale, strokeColor=stroke, strokeWidth=width))
+
+    def lites(ox: float, oy: float, w: float, h: float, glass: dict[str, Any] | None) -> list[tuple[float, float, float, float, str]]:
         if not glass:
-            return
-        fill = frosted if glass.get("family") in ("sandblast", "obscure") else glass_fill
-        for lx, ly, lw, lh, shape in door_lites(glass.get("size"), w, h):
-            x, y = (ox + lx) * scale, (total_h - oy - ly - lh) * scale
+            return []
+        family = glass.get("family")
+        fill = frosted if family in ("sandblast", "obscure") else glass_fill
+        found = door_lites(glass.get("size"), w, h)
+        for lx, ly, lw, lh, shape in found:
+            x, y = (ox + lx + 1.5) * scale, (total_h - oy - ly - lh) * scale
             if shape == "oval":
                 d.add(Ellipse(x + lw * scale / 2, y + lh * scale / 2, lw * scale / 2, lh * scale / 2, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
             elif shape == "half":
                 d.add(Wedge(x + lw * scale / 2, y, lw * scale / 2, 0, 180, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
             else:
                 d.add(Rect(x, y, lw * scale, lh * scale, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+                if family in ("grills", "sdl"):
+                    # As LiteShape: one vertical bar, horizontal bars about every 12".
+                    bars = colors.HexColor("#f8fafc")
+                    line(ox + lx + lw / 2, oy + ly, ox + lx + lw / 2, oy + ly + lh, bars, 0.8 * scale)
+                    rows = max(2, _js_round(lh / 12))
+                    for i in range(max(1, _js_round(lh / 12) - 1)):
+                        row_y = oy + ly + (i + 1) * lh / rows
+                        line(ox + lx, row_y, ox + lx + lw, row_y, bars, 0.8 * scale)
+        return found
 
+    # Brickmould, then the frame.
+    d.add(Rect(0, 0, (total_w + 3) * scale, (total_h + 1.5) * scale, fillColor=_hex_colour(frame_hex, -25), strokeColor=None))
     rect(0, 0, total_w, total_h, frame_colour)
     door_top = frame + transom_h + (mull if transom_h else 0)
     if transom_h:
+        rect(frame, frame, inner_w, transom_h, _hex_colour(frame_hex, -10), stroke=None)
         rect(frame + 2, frame + 2, inner_w - 4, transom_h - 4, glass_fill if geometry.get("transom_glass") else frosted, width=0.3)
     sidelite_glass = list(geometry.get("sidelite_glass") or [])
     parts: list[tuple[str, int]] = []
@@ -396,13 +420,23 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     for kind, index in parts:
         if kind == "sidelite":
             rect(cursor, door_top, side_w, slab_h, slab_colour)
-            lites(cursor, door_top, side_w, slab_h, sidelite_glass[index] if index < len(sidelite_glass) else None)
+            if not lites(cursor, door_top, side_w, slab_h, sidelite_glass[index] if index < len(sidelite_glass) else None):
+                rect(cursor + 3, door_top + 6, side_w - 6, slab_h - 12, None, stroke=_hex_colour(slab_hex, -30), width=0.4)
             cursor += side_w + mull
             continue
         rect(cursor, door_top, slab_w, slab_h, slab_colour, width=0.5)
-        lites(cursor, door_top, slab_w, slab_h, geometry.get("door_glass"))
-        handle_x = cursor + slab_w - 3.2 if index == 0 else cursor + 3.2
-        pull_bar = float(geometry.get("pull_bar_in") or 0) if geometry.get("lock") == "pull_bar" else 0.0
+        door_glass = geometry.get("door_glass") or {}
+        for px, py, pw, ph in _door_panels(str(geometry.get("model") or ""), slab_w, slab_h, door_lites(door_glass.get("size"), slab_w, slab_h) if door_glass else []):
+            rect(cursor + px, door_top + py, pw, ph, _hex_colour(slab_hex, -12), stroke=None)
+            rect(cursor + px + 1.2, door_top + py + 1.2, pw - 2.4, ph - 2.4, _hex_colour(slab_hex, 8), stroke=None)
+        lites(cursor, door_top, slab_w, slab_h, door_glass or None)
+        hinge_left = index == 0
+        handle_x = cursor + slab_w - 3.2 if hinge_left else cursor + 3.2
+        hinge_x = cursor + 0.2 if hinge_left else cursor + slab_w - 1.2
+        for f in (0.15, 0.5, 0.85):
+            rect(hinge_x, door_top + slab_h * f - 2, 1, 4, hardware, stroke=None)
+        pull_bar = float(geometry.get("pull_bar_in") or 0) if lock == "pull_bar" else 0.0
+        inactive = doors == 2 and index == 1
         if pull_bar:
             # To scale, as in DoorDrawing.tsx pullBarTop(): centred ~42" off the floor, 4" inside the slab.
             bar = min(pull_bar, slab_h - 8)
@@ -410,12 +444,64 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
             if centre + bar / 2 > slab_h - 4:
                 centre = slab_h - 4 - bar / 2
             top = door_top + slab_h - (centre + bar / 2)
-            d.add(Rect((handle_x - 0.7) * scale, (total_h - top - bar) * scale, 1.4 * scale, bar * scale, fillColor=colors.HexColor("#111827"), strokeColor=colors.HexColor("#cbd5e1"), strokeWidth=0.3))
-        elif not (doors == 2 and index == 1):
-            d.add(Circle(handle_x * scale, (total_h - door_top - slab_h * 0.48) * scale, max(1.2 * scale, 0.8), fillColor=colors.HexColor("#111827"), strokeColor=None))
+            rect(handle_x - 0.7, top, 1.4, bar, hardware, stroke=colors.HexColor("#cbd5e1"), width=0.3)
+        elif lock in ("multipoint", "pull_bar"):
+            # Lever on a plate; a double's inactive leaf carries the dummy, drawn the same.
+            rect(handle_x - 0.6, door_top + slab_h * 0.44, 1.2, 9, hardware, stroke=None)
+            rect(handle_x - 3.6 if hinge_left else handle_x - 0.2, door_top + slab_h * 0.44 + 2, 3.8, 0.9, hardware, stroke=None)
+        else:
+            d.add(Circle((handle_x + 1.5) * scale, (total_h - door_top - slab_h * 0.48) * scale, max(1.2 * scale, 0.8), fillColor=hardware, strokeColor=None))
+            if not inactive:
+                d.add(Circle((handle_x + 1.5) * scale, (total_h - door_top - slab_h * 0.42) * scale, max(0.8 * scale, 0.5), fillColor=hardware, strokeColor=None))
+        if inactive:
+            rect(cursor - 0.6, door_top, 1.2, slab_h, _hex_colour(slab_hex, -35), stroke=None)  # astragal
         cursor += slab_w
-    d.add(Rect(0, 0, total_w * scale, max(1.5 * scale, 0.8), fillColor=colors.HexColor("#111827"), strokeColor=None))
+    d.add(Rect(1.5 * scale, 0, total_w * scale, max(1.5 * scale, 0.8), fillColor=hardware, strokeColor=None))
     return d
+
+
+def _js_round(value: float) -> int:
+    """Math.round(): halves round up, so the PDF lays out like the on-screen drawing."""
+    return math.floor(value + 0.5)
+
+
+def _hex_colour(hex_value: str, amount: int = 0):
+    """A reportlab colour, lightened or darkened by ``amount`` per channel (shade() in DoorDrawing.tsx)."""
+    from reportlab.lib import colors
+
+    if not str(hex_value).startswith("#") or len(hex_value) != 7:
+        return colors.HexColor("#64748b")
+    value = int(hex_value[1:], 16)
+    channel = lambda shift: max(0, min(255, ((value >> shift) & 255) + amount)) / 255  # noqa: E731
+    return colors.Color(channel(16), channel(8), channel(0))
+
+
+def _door_panels(model: str, slab_w: float, slab_h: float, lites: list[tuple[float, float, float, float, str]]) -> list[tuple[float, float, float, float]]:
+    """Raised panels on a slab as (x, y, w, h); mirrors panelRects() in frontend/components/DoorDrawing.tsx."""
+    label = model.lower()
+    inset = 4.0
+    glass_bottom = max((ly + lh for _, ly, _, lh, _ in lites), default=0.0)
+    top = glass_bottom + 4 if lites else inset + 2
+    available = slab_h - top - inset - 2
+    if re.search(r"flush|contemporary|plank|grooved|teak", label) or available < 10:
+        return []
+    if re.search(r"6-panel|6 panel|6-lite", label):
+        rows = 3
+    elif re.search(r"4-panel|4 panel", label):
+        rows = 2
+    elif re.search(r"3.?panel|craftsman", label):
+        rows = 3
+    elif re.search(r"2.?panel|london|orleans|soho|sydney|victoria|shaker", label):
+        rows = 1
+    else:
+        rows = 2
+    cols = 1 if re.search(r"3.?panel|craftsman|shaker|era|tao|oso|vog|linea", label) else 2
+    if lites:
+        rows = max(1, min(rows, _js_round(available / 22)))
+    gap = 3.0
+    w = (slab_w - inset * 2 - gap * (cols - 1)) / cols
+    h = (available - gap * (rows - 1)) / rows
+    return [(inset + c * (w + gap), top + r * (h + gap), w, h) for r in range(rows) for c in range(cols)]
 
 
 # Brand palette of the on-screen estimate (frontend/components/EstimateDocument.tsx

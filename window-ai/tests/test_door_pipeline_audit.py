@@ -318,6 +318,22 @@ def test_pull_bars_are_drawn_to_length():
     assert (handle["lock"], handle["pull_bar_in"]) == ("multipoint", None)
 
 
+def test_pdf_door_drawing_matches_the_preview():
+    """The PDF sketch draws what DoorDrawing.tsx draws: panels, hinges, and a lever on both leaves of a double."""
+    from reportlab.graphics.shapes import Rect
+
+    from services.estimate_documents import door_drawing_flowable
+
+    geometry = {"doors": 2, "sidelites": 0, "transom": False, "width": 32, "height": 80, "model": "Craftsman 3DP",
+                "door_glass": {"size": "22x17", "family": "sdl"}, "slab_colour": "#8b5a2b", "frame_colour": "#8b5a2b", "lock": "multipoint"}
+    drawing = door_drawing_flowable(geometry, 300, 300)
+    scale = drawing.width / (2 * 32 + 4 + 3)
+    lever_plates = [shape for shape in drawing.contents if isinstance(shape, Rect) and abs(shape.height - 9 * scale) < 1e-6]
+    hinges = [shape for shape in drawing.contents if isinstance(shape, Rect) and abs(shape.height - 4 * scale) < 1e-6 and abs(shape.width - scale) < 1e-6]
+    assert len(lever_plates) == 2  # active handle and the inactive leaf's dummy
+    assert len(hinges) == 6
+
+
 def test_a_price_book_published_before_the_audit_still_quotes(monkeypatch):
     """A door import published in the app replaces the file whole, without the audit's new fields."""
     import copy
