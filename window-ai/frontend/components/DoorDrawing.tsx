@@ -256,7 +256,8 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
             {lock === "pull_bar" && pullBarIn ? (
               // To scale on the latch side, centred near handle height; a double's inactive leaf carries the dummy bar.
               <PullBar x={handleX} top={doorTop + pullBarTop(pullBarIn, heightIn)} length={Math.min(pullBarIn, heightIn - 8)} />
-            ) : doors === 2 && part.index === 1 ? null : lock === "multipoint" || lock === "pull_bar" ? (
+            ) : lock === "multipoint" || lock === "pull_bar" ? (
+              // A double's inactive leaf carries the dummy handle, drawn like the active one.
               <g>
                 <rect x={handleX - 0.6} y={doorTop + heightIn * 0.44} width={1.2} height={9} rx={0.5} fill="#111827" />
                 <rect x={hingeLeft ? handleX - 3.6 : handleX - 0.2} y={doorTop + heightIn * 0.44 + 2} width={3.8} height={0.9} rx={0.4} fill="#111827" />
@@ -264,7 +265,7 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
             ) : (
               <g>
                 <circle cx={handleX} cy={doorTop + heightIn * 0.48} r={1.2} fill="#111827" />
-                <circle cx={handleX} cy={doorTop + heightIn * 0.42} r={0.8} fill="#111827" />
+                {doors === 2 && part.index === 1 ? null : <circle cx={handleX} cy={doorTop + heightIn * 0.42} r={0.8} fill="#111827" />}
               </g>
             )}
             {doors === 2 && part.index === 1 ? <rect x={part.x - 0.6} y={doorTop} width={1.2} height={heightIn} fill={shade(slabColour, -35)} /> : null}
