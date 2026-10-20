@@ -8,6 +8,7 @@ import { DoorGeometryDrawing } from "@/components/DoorDrawing";
 import { layoutFromLegacySpec } from "@/lib/windowLayout";
 import { specExteriorColour } from "@/lib/productOptions";
 import { scheduleTermsLines } from "@/lib/paymentSchedule";
+import { specPair } from "@/lib/doorPipeline";
 
 const BRAND = {
   blue: "#248fd0",
@@ -201,7 +202,15 @@ export default function EstimateDocument({
                   <DoorGeometryDrawing geometry={opening.drawing} size={96} />
                   <span>Configure</span>
                 </button>
-              ) : <span className="estimate-door-sketch"><DoorGeometryDrawing geometry={opening.drawing} size={96} /></span>) : null}<div className="estimate-door-title"><h3>{`Item ${openingIndex + 1} · ${opening.scope || opening.label}`}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p>{opening.scope && opening.details?.length ? <ul className="estimate-bullets">{opening.details.map((line) => <li key={line}>{line}</li>)}</ul> : null}</div><strong>{money(opening.base_subtotal ?? opening.subtotal)}</strong></div>
+              ) : <span className="estimate-door-sketch"><DoorGeometryDrawing geometry={opening.drawing} size={96} /></span>) : null}<div className="estimate-door-title"><h3>{`Item ${openingIndex + 1} · ${opening.scope || opening.label}`}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p></div><strong className="estimate-door-price">{money(opening.base_subtotal ?? opening.subtotal)}</strong>
+                {opening.scope && opening.details?.length ? (
+                  <dl className="estimate-door-specs">
+                    {opening.details.map((line) => {
+                      const pair = specPair(line);
+                      return pair ? <div key={line}><dt>{pair[0]}</dt><dd>{pair[1]}</dd></div> : <div key={line}><dd className="estimate-door-spec-note">{line}</dd></div>;
+                    })}
+                  </dl>
+                ) : null}</div>
               <table className="estimate-table estimate-table-compact"><tbody>{opening.items.map((item, index) => <tr key={`${opening.id}-${index}`}><td data-label="Description">{item.description}</td><td data-label="Qty" className="text-right">{item.qty}</td><td data-label="Unit" className="text-right">{money(item.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(item.line_total)}</td></tr>)}</tbody></table>
             </div>
           ))}

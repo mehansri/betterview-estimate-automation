@@ -555,14 +555,23 @@ def test_door_only_estimates_print_the_palma_door_notes(tmp_path, monkeypatch):
     assert "Includes interior casing primed in white." in notes
     assert "Includes disposal of old windows/doors." in notes
 
-    draft["doors"] = [_pipeline_door({"type": "white"})]
+    # The builder saves its own summary as the description; the breakdown doesn't repeat it.
+    draft["doors"] = [{**_pipeline_door({"type": "white"}),
+                       "description": "Opening 1 - Steel - 36\" x 6'8\" - Single - Orleans slab - Solid slab - Double-bore prep"}]
     assert client.put(f"/api/customer-estimates/{estimate_id}", json=draft).status_code == 200
     priced = client.post(f"/api/customer-estimates/{estimate_id}/price")
     assert priced.status_code == 200, priced.text
     assert "Includes interior casing primed in white." in priced.json()["document"]["general_notes"]
     (opening,) = priced.json()["pricing"]["sections"]["doors"]["openings"]
     assert opening["scope"] == "To supply and install: Single door"
+    assert opening["details"][0].startswith("Frame system:")
     assert "Interior door colour: Factory white" in opening["details"]
+
+    # One the rep wrote stays, first.
+    draft["doors"][0]["description"] = "Keep the existing mail slot opening"
+    assert client.put(f"/api/customer-estimates/{estimate_id}", json=draft).status_code == 200
+    (opening,) = client.post(f"/api/customer-estimates/{estimate_id}/price").json()["pricing"]["sections"]["doors"]["openings"]
+    assert opening["details"][0] == "Keep the existing mail slot opening"
 
     # Palma's finished casing trim replaces ours: the primed line goes.
     draft["doors"] = [_pipeline_door({"type": "white"}, casing=True)]

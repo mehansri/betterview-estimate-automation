@@ -46,7 +46,8 @@ export type PipelineMaterial = {
   side_types: Array<{ key: string; label: string }>;
   frame_depths: Array<{ key: string; label: string; standard: boolean; frame_types: string[]; retractable_screen?: boolean }>;
   sills: Array<{ key: string; label: string; not_with: string[] }>;
-  handles: Array<{ item: string; label: string; has_dummy: boolean; tedee?: "yes" | "miami_only" | "no" }>;
+  /** Priced handle rows; ``models``/``finishes`` are the handles a row covers (pipeline.py HANDLE_CHOICES). */
+  handles: Array<{ item: string; label: string; has_dummy: boolean; tedee?: "yes" | "miami_only" | "no"; models?: string[]; finishes?: string[] }>;
   pull_bars?: PipelinePullBarOptions;
   models: PipelineModel[];
   sidelite_models: PipelineSideliteModel[];
@@ -118,6 +119,9 @@ export type PipelineSelection = {
     hinges: "black" | "satin_nickel" | "standard";
     lock?: "double_bore" | "multipoint" | "pull_bar";
     handle?: string;
+    /** The handle the customer chose within the priced row and its finish, as printed on the estimate. */
+    handle_model?: string;
+    handle_finish?: string;
     pull_bar?: PipelinePullBar;
   };
   extras: {
@@ -659,6 +663,10 @@ export function normalizeSelection(catalog: PipelineCatalog, input: PipelineSele
   }
   if (sel.standard.lock !== "multipoint") delete sel.standard.handle;
   else if (sel.standard.handle && !material.handles.some((handle) => handle.item === sel.standard.handle)) delete sel.standard.handle;
+  if (!sel.standard.handle) {
+    delete sel.standard.handle_model;
+    delete sel.standard.handle_finish;
+  }
   if (sel.standard.lock !== "pull_bar") delete sel.standard.pull_bar;
   else {
     const options = material.pull_bars;
@@ -779,10 +787,24 @@ export function selectionSummary(catalog: PipelineCatalog, sel: PipelineSelectio
   ].filter(Boolean) as string[];
 }
 
+/** "Frame system: 6'8" - ..." -> ["Frame system", "6'8" - ..."]; null for a line without a label (as door_specs in estimate_documents.py). */
+export function specPair(line: string): [string, string] | null {
+  const at = line.indexOf(": ");
+  return at > 0 && at <= 24 ? [line.slice(0, at), line.slice(at + 2)] : null;
+}
+
+/** The chosen handle and finish, else the priced row; mirrors handle_wording in services/doors/pipeline.py. */
+export function handleWording(standard: PipelineSelection["standard"]): string {
+  const model = (standard.handle_model || "").trim().replace(/\s+/g, " ");
+  const finish = (standard.handle_finish || "").trim().replace(/\s+/g, " ");
+  if (!model) return (standard.handle || "").replace(/^\[NEW\]\s*/, "");
+  return finish ? `${model} - ${finish}` : model;
+}
+
 /** Lock wording on estimates; mirrors pipeline_summary in services/doors/pipeline.py. */
 export function lockSummary(sel: PipelineSelection): string {
-  const { lock, handle, pull_bar } = sel.standard;
-  if (lock === "multipoint") return `Multipoint lock: ${(handle || "").replace(/^\[NEW\]\s*/, "")}`;
+  const { lock, pull_bar } = sel.standard;
+  if (lock === "multipoint") return `Multipoint lock: ${handleWording(sel.standard)}`;
   if (lock === "pull_bar") {
     const style = pull_bar?.style || "straight";
     return `Pull bar: ${style.charAt(0).toUpperCase()}${style.slice(1)} ${pull_bar?.length_in || 36}"`;

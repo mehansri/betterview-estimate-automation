@@ -602,6 +602,29 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         t.setStyle(TableStyle(style))
         return t
 
+    spec_label = ParagraphStyle("spec_label", parent=cell, fontName="Helvetica-Bold", textColor=navy)
+
+    def door_specs(lines: list[str], total: float) -> Table:
+        """A door's spec lines as label | value rows; a line without a label spans both."""
+        label_width = 1.3 * inch
+        rows, spans = [], []
+        for number, line in enumerate(lines):
+            name, _, value = line.partition(": ")
+            if value and len(name) <= 24:
+                rows.append([p(name, spec_label), p(value, cell)])
+            else:
+                rows.append([p(line, cell), ""])
+                spans.append(("SPAN", (0, number), (1, number)))
+        t = Table(rows, colWidths=[label_width, total - label_width])
+        t.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LINEABOVE", (0, 0), (-1, 0), 0.5, row_rule), ("LINEBELOW", (0, 0), (-1, -1), 0.5, row_rule),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            *spans,
+        ]))
+        return t
+
     def heads(*names: str) -> list[Paragraph]:
         numeric = {"Qty", "Unit", "Amount", "Total"}
         return [label(name, head_right if name in numeric else head) for name in names]
@@ -670,24 +693,33 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         for index, opening in enumerate(openings, start=1):
             detail = " · ".join(filter(None, [opening.get("location"), opening.get("material"), opening.get("finish_label")]))
             title_cell = [p(f"Item {index} · {opening.get('scope') or opening.get('label')}", h3), Spacer(1, 2), p(detail, small)]
-            if opening.get("scope") and opening.get("details"):
-                title_cell += [Spacer(1, 3), *(p(f"• {line}", copy_text) for line in opening["details"])]
             sketch = door_drawing_flowable(opening.get("drawing"), 1.3 * inch, 1.1 * inch)
-            cells = ([sketch] if sketch is not None else []) + [title_cell, p(_money(_before_discount(opening)), h3_right)]
-            widths = ([1.45 * inch] if sketch is not None else []) + [0, 1.2 * inch]
-            widths[-2] = inner - sum(widths)
-            heading = Table([cells], colWidths=widths)
-            heading.setStyle(TableStyle([
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ]))
+            lead = 1.45 * inch if sketch is not None else 0
+            widths = ([lead] if lead else []) + [inner - lead - 1.2 * inch, 1.2 * inch]
+            rows: list[list[Any]] = [([sketch] if lead else []) + [title_cell, p(_money(_before_discount(opening)), h3_right)]]
+            style = [("VALIGN", (0, 0), (-1, -1), "TOP"),
+                     ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]
+            if opening.get("scope") and opening.get("details"):
+                # Spec lines one per row, label | value (as the QuickBooks estimates), under the title
+                # and across to the price column; the sketch spans both rows.
+                rows.append(([""] if lead else []) + [door_specs(opening["details"], inner - lead), ""])
+                first = 1 if lead else 0
+                style += [("SPAN", (first, 1), (-1, 1)), ("TOPPADDING", (first, 1), (-1, 1), 6)]
+                if lead:
+                    style.append(("SPAN", (0, 0), (0, 1)))
+            heading = Table(rows, colWidths=widths)
+            heading.setStyle(TableStyle(style))
             items = [[p(item.get("description"), cell), p(item.get("qty"), cell_right),
                       p(_money(item.get("unit_price")), cell_right), p(_money(item.get("line_total")), cell_strong_right)]
                      for item in opening.get("items") or []]
+            # The heading (with its spec lines) keeps its first price lines; the rest may run onto
+            # the next page, so a tall door no longer leaves the page before it empty.
+            item_widths = [inner - 2.85 * inch, 0.45 * inch, 1.2 * inch, 1.2 * inch]
             block: list[Any] = [heading]
             if items:
-                block.append(product_table(items, [inner - 2.85 * inch, 0.45 * inch, 1.2 * inch, 1.2 * inch], header=False))
-            story.extend(padded(KeepTogether(block), top=12))
+                block += [Spacer(1, 8), product_table(items[:2], item_widths, header=False)]
+            story.extend(padded([KeepTogether(block),
+                                 *([product_table(items[2:], item_widths, header=False)] if items[2:] else [])], top=12))
 
     adders = (sections.get("adders") or {}).get("lines") or []
     if adders:

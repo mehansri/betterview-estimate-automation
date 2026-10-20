@@ -130,6 +130,9 @@ class PipelineStandard(BaseModel):
     hinges: Literal["black", "satin_nickel", "standard"] = "black"
     lock: Optional[Literal["double_bore", "multipoint", "pull_bar"]] = None
     handle: Optional[str] = None
+    # The handle the customer chose within the priced row, and its finish ("Miami 910 Lever", "Satin Nickel or Black").
+    handle_model: Optional[str] = None
+    handle_finish: Optional[str] = None
     pull_bar: Optional[PipelinePullBar] = None
 
 

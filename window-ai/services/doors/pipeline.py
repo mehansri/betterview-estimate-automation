@@ -787,6 +787,42 @@ def _tedee(row: dict[str, Any]) -> str:
     return "no"
 
 
+# The handles each priced handle row covers, so the rep can name the one the
+# customer chose ("Miami 910 Lever") instead of the whole row printing on the
+# estimate. Free text is allowed too; finishes are the ones the row prints.
+_LARGE_LEVERS = ["Verona Lever", "Miliano Large Lever", "Country Lever", "Ribbon Lever", "Miami Large Lever"]
+HANDLE_CHOICES: dict[str, dict[str, list[str]]] = {
+    "Berlin - Large Thumb-Push Gripset (Black, Satin Nickel, Dark Bronze, Pewter)": {
+        "models": ["Berlin Large Thumb-Push Gripset"], "finishes": ["Black", "Satin Nickel", "Dark Bronze", "Pewter"]},
+    "Berlin - Large Lever Handleset (Black, Satin Nickel, Dark Bronze, Pewter)": {
+        "models": ["Berlin Large Lever Handleset"], "finishes": ["Black", "Satin Nickel", "Dark Bronze", "Pewter"]},
+    "ROMA Lever Handle & 55mm Plate (Satin Nickel, Dark Bronze, Pewter)": {
+        "models": ["Roma Lever Handle & 55mm Plate"], "finishes": ["Satin Nickel", "Dark Bronze", "Pewter"]},
+    "Belcanto Lever Euro": {"models": ["Belcanto Lever Euro"], "finishes": []},
+    "Berkeley Gripset (Black, Satin Nickel, Dark Bronze, Pewter)": {
+        "models": ["Berkeley Gripset"], "finishes": ["Black", "Satin Nickel", "Dark Bronze", "Pewter"]},
+    "Capri, Venice, Torino, Allegro - Lever handles": {
+        "models": ["Capri Lever", "Venice Lever", "Torino Lever", "Allegro Lever"], "finishes": []},
+    "Large Lever Handle: Verona, Miliano, Country, Ribbon and Miami Large (Active)": {"models": _LARGE_LEVERS, "finishes": []},
+    "Small Lever Handle: Miliano, Tuscana and Miami Small (Active)": {
+        "models": ["Miliano Small Lever", "Tuscana Lever", "Miami Small Lever"], "finishes": []},
+}
+
+
+def handle_label(item: Any) -> str:
+    return re.sub(r"^\[NEW\]\s*", "", str(item or ""))
+
+
+def handle_wording(standard: dict[str, Any]) -> str:
+    """The handle as the estimate names it: the chosen model and finish
+    ("Miami 910 Lever - Satin Nickel or Black"), else the priced row."""
+    model = _clean(standard.get("handle_model"))
+    finish = _clean(standard.get("handle_finish"))
+    if not model:
+        return handle_label(standard.get("handle"))
+    return f"{model} - {finish}" if finish else model
+
+
 def handle_options(material: str) -> list[dict[str, Any]]:
     rows = [
         row
@@ -796,9 +832,10 @@ def handle_options(material: str) -> list[dict[str, Any]]:
     return [
         {
             "item": row["item"],
-            "label": re.sub(r"^\[NEW\]\s*", "", row["item"]),
+            "label": handle_label(row["item"]),
             "has_dummy": "dummy" in row.get("prices", {}),
             "tedee": _tedee(row),
+            **HANDLE_CHOICES.get(handle_label(row["item"]), {"models": [], "finishes": []}),
         }
         for row in rows
     ]
@@ -1629,11 +1666,17 @@ def quote_pipeline(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, An
         )
     lock = standard.get("lock")
     if lock == "multipoint":
+        # Priced on the handle row; the customer line names the handle the rep chose.
+        chosen = handle_wording(standard) if _clean(standard.get("handle_model")) else None
         quote.add_option({"category": None, "item": standard["handle"], "column": "active", "qty": 1, "row": "Multipoint"})
         _suffix_last(quote, "multipoint lock, active leaf")
+        if chosen:
+            quote.items[-1]["customer_description"] = f"Multipoint lock {chosen} — active leaf"
         if doors == 2 and standard["handle_row"]["has_dummy"]:
             quote.add_option({"category": None, "item": standard["handle"], "column": "dummy", "qty": 1, "row": "Multipoint"})
             _suffix_last(quote, "inactive leaf (dummy)")
+            if chosen:
+                quote.items[-1]["customer_description"] = f"{chosen} dummy handle — inactive leaf"
     elif lock == "pull_bar":
         pull = standard["pull"]
         record = pull["record"]
@@ -1851,8 +1894,7 @@ def pipeline_summary(pipe: dict[str, Any]) -> list[str]:
         details.append(f"design: {door_glass['design']}")
     standard = pipe.get("standard") or {}
     if standard.get("lock") == "multipoint":
-        handle = re.sub(r"^\[NEW\]\s*", "", str(standard.get("handle") or ""))
-        details.append(f"Multipoint lock: {handle}")
+        details.append(f"Multipoint lock: {handle_wording(standard)}")
     elif standard.get("lock") == "pull_bar":
         pull = standard.get("pull_bar") or {}
         details.append(f'Pull bar: {str(pull.get("style") or "straight").title()} {pull.get("length_in") or 36}"')
@@ -1955,8 +1997,10 @@ def pipeline_spec_lines(pipe: dict[str, Any]) -> list[str]:
 
     lock = standard.get("lock")
     if lock == "multipoint" and standard.get("handle"):
-        handle = re.sub(r"^\[NEW\]\s*", "", str(standard["handle"]))
-        lines.append(f"Locking system: Multipoint lock - {handle}")
+        # "Multipoint lock Miami 910 Lever - Satin Nickel or Black" (QuickBooks estimate 1499).
+        chosen = _clean(standard.get("handle_model"))
+        lines.append(f"Locking system: Multipoint lock {handle_wording(standard)}" if chosen
+                     else f"Locking system: Multipoint lock - {handle_wording(standard)}")
     elif lock == "pull_bar":
         pull = standard.get("pull_bar") or {}
         lines.append(f'Locking system: Pull bar - {str(pull.get("style") or "straight").title()} {pull.get("length_in") or 36}"')

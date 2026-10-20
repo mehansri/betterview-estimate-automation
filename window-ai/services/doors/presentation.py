@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from services.descriptions import door_description
-from services.doors.pipeline import door_drawing, pipeline_scope, pipeline_spec_lines
+from services.doors.pipeline import door_drawing, pipeline_scope, pipeline_spec_lines, pipeline_summary
 
 
 def _money(value: Any) -> float:
@@ -22,6 +22,13 @@ def _allocate(total: float, weights: list[float]) -> list[float]:
         shares.append(share)
         remaining = _money(remaining - share)
     return shares
+
+
+def _builder_description(text: str, pipe: dict[str, Any]) -> bool:
+    """The door builder saves its own summary as the description ("Opening 1 - Fiberglass -
+    42" x 6'8" - ..."); the breakdown already says all of it. One the rep wrote stays."""
+    head = " - ".join(pipeline_summary(pipe)[:3])
+    return bool(head) and head.casefold() in text.casefold()
 
 
 def customer_door_openings(
@@ -66,7 +73,7 @@ def customer_door_openings(
         pipe = (project_opening.get("spec") or {}).get("pipeline")
         details = pipeline_spec_lines(pipe)
         custom = str(project_opening.get("description") or "").strip()
-        if details and custom:
+        if details and custom and not _builder_description(custom, pipe):
             details.insert(0, custom)
         customer_openings.append(
             {

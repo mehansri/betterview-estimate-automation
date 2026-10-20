@@ -155,7 +155,7 @@ button, input, select, textarea { max-width: 100%; }
 .estimate-editable { width: 100%; min-width: 0; border: 1px dashed transparent; background: transparent; color: inherit; font: inherit; outline: none; padding: 0.05rem 0.15rem; }
 .estimate-editable:hover, .estimate-editable:focus { border-color: #9ccde8; background: #f8fcff; }
 .estimate-textarea { resize: vertical; }
-.estimate-product-section { padding: 1.4rem 2rem 0; break-inside: avoid; }
+.estimate-product-section { padding: 1.4rem 2rem 0; }
 .estimate-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; border-bottom: 2px solid var(--estimate-blue); padding-bottom: 0.45rem; }
 .estimate-section-heading h2 { color: var(--estimate-navy); font-size: 1rem; font-weight: 800; margin-top: 0.15rem; }
 .estimate-section-heading > span { color: var(--estimate-navy); font-size: 0.86rem; font-weight: 800; }
@@ -165,10 +165,19 @@ button, input, select, textarea { max-width: 100%; }
 .estimate-table td:first-child { color: var(--estimate-navy); font-weight: 700; }
 .estimate-table-compact { margin-top: 0.35rem; }
 .estimate-table-compact td:first-child { font-weight: 500; }
-.estimate-door-opening { margin-top: 0.9rem; break-inside: avoid; }
-.estimate-door-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
-.estimate-door-heading .estimate-door-title { flex: 1; min-width: 0; }
+/* A door may run onto the next page; its heading and spec lines stay with its first price lines. */
+.estimate-door-opening { margin-top: 0.9rem; }
+/* Sketch | title | price, with the spec lines under the title across to the price (as the PDF). */
+.estimate-door-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; break-inside: avoid; break-after: avoid; }
+.estimate-door-heading .estimate-door-title { grid-column: 2; grid-row: 1; min-width: 0; }
+.estimate-door-heading .estimate-door-price { grid-column: 3; grid-row: 1; margin-left: 1rem; }
 .estimate-door-sketch { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; flex-shrink: 0; }
+.estimate-door-heading .estimate-door-sketch { grid-column: 1; grid-row: 1 / span 2; margin-right: 1rem; }
+.estimate-door-specs { grid-column: 2 / -1; grid-row: 2; margin-top: 0.6rem; border-top: 1px solid #edf3f6; font-size: 0.78rem; line-height: 1.4; }
+.estimate-door-specs > div { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 0.75rem; padding: 0.32rem 0; border-bottom: 1px solid #edf3f6; }
+.estimate-door-specs dt { color: var(--estimate-navy); font-weight: 700; }
+.estimate-door-specs dd { color: #315269; }
+.estimate-door-specs .estimate-door-spec-note { grid-column: 1 / -1; }
 .estimate-door-sketch-button { border: 1px solid var(--estimate-line); border-radius: 0.6rem; padding: 0.35rem; background: #fff; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
 .estimate-door-sketch-button:hover { border-color: var(--estimate-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
 .estimate-door-sketch-button span { color: var(--estimate-blue); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -248,6 +257,9 @@ button, input, select, textarea { max-width: 100%; }
   .estimate-table td::before { content: attr(data-label); color: var(--estimate-muted); font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-align: left; text-transform: uppercase; }
   .estimate-table td[data-label="Description"] { text-align: left; }
   .estimate-table-compact { min-width: 0; }
+  .estimate-door-specs { grid-column: 1 / -1; grid-row: 3; }
+  .estimate-door-heading .estimate-door-sketch { grid-row: 1 / span 1; }
+  .estimate-door-specs > div { grid-template-columns: 1fr; gap: 0.1rem; }
   .product-hub-card { grid-template-columns: 1fr; padding: 1rem; }
   .product-hub-actions { display: grid; grid-template-columns: 1fr; }
   .product-hub-actions .button { width: 100%; }
@@ -261,6 +273,8 @@ button, input, select, textarea { max-width: 100%; }
   .project-workspace, .project-preview { display: block !important; }
   .estimate-document { max-width: none; border: 0; box-shadow: none; }
   .estimate-editable { border: 0 !important; background: transparent !important; }
-  .estimate-product-section, .estimate-door-opening, .estimate-panel, .estimate-copy-grid > div, .estimate-collection, .estimate-signatures { break-inside: avoid; }
+  .estimate-section-heading { break-after: avoid; }
+  .estimate-table tr { break-inside: avoid; }
+  .estimate-panel, .estimate-copy-grid > div, .estimate-collection, .estimate-signatures { break-inside: avoid; }
   .estimate-header { padding-top: 0; }
 }

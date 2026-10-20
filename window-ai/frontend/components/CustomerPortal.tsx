@@ -9,6 +9,7 @@ import {
   type FinancingOptions,
   type PublicEstimate,
 } from "@/lib/api";
+import { specPair } from "@/lib/doorPipeline";
 import SignaturePad from "@/components/SignaturePad";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import { DoorGeometryDrawing } from "@/components/DoorDrawing";
@@ -591,21 +592,28 @@ export default function CustomerPortal({ token }: { token: string }) {
               {doorOpenings.map((opening, openingIndex) => {
                 const details = [opening.location, opening.material, opening.finish_label].filter(Boolean).join(" · ");
                 return (
-                  <div key={opening.id} className="print:break-inside-avoid">
-                    <div className="flex items-start justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200 print:bg-white">
-                      {opening.drawing ? <span className="shrink-0"><DoorGeometryDrawing geometry={opening.drawing} size={96} title={`Door ${openingIndex + 1}, viewed from outside`} /></span> : null}
-                      <div className="min-w-0 flex-1">
+                  <div key={opening.id}>
+                    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200 print:break-inside-avoid print:bg-white">
+                      {opening.drawing ? <span className="col-start-1 row-start-1 mr-3 sm:row-span-2"><DoorGeometryDrawing geometry={opening.drawing} size={96} title={`Door ${openingIndex + 1}, viewed from outside`} /></span> : null}
+                      <div className="col-start-2 row-start-1 min-w-0">
                         <h3 className="text-sm font-semibold text-slate-900">
                           Item {openingIndex + 1} · {opening.scope || opening.label}
                         </h3>
                         {details ? <p className="mt-0.5 text-xs text-slate-600">{details}</p> : null}
-                        {opening.scope && opening.details?.length ? (
-                          <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-xs text-slate-700">
-                            {opening.details.map((line) => <li key={line}>{line}</li>)}
-                          </ul>
-                        ) : null}
                       </div>
-                      <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(opening.base_subtotal ?? opening.subtotal)}</p>
+                      <p className="col-start-3 row-start-1 ml-3 text-sm font-semibold tabular-nums text-slate-900">{money(opening.base_subtotal ?? opening.subtotal)}</p>
+                      {opening.scope && opening.details?.length ? (
+                        <dl className="col-span-3 row-start-2 mt-2 border-t border-slate-200 text-xs sm:col-span-2 sm:col-start-2">
+                          {opening.details.map((line) => {
+                            const pair = specPair(line);
+                            return (
+                              <div key={line} className="grid gap-0.5 border-b border-slate-200 py-1.5 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-3">
+                                {pair ? <><dt className="font-semibold text-slate-900">{pair[0]}</dt><dd className="text-slate-700">{pair[1]}</dd></> : <dd className="text-slate-700 sm:col-span-2">{line}</dd>}
+                              </div>
+                            );
+                          })}
+                        </dl>
+                      ) : null}
                     </div>
                     <div className="mt-1 px-1">
                       <LineTable

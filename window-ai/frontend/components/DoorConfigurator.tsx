@@ -610,11 +610,32 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
             {value.standard.lock === "multipoint" ? (
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {material.handles.map((item) => (
-                  <OptionCard key={item.item} active={value.standard.handle === item.item} onClick={() => update((draft) => { draft.standard.handle = item.item; })} className="p-2.5">
+                  <OptionCard key={item.item} active={value.standard.handle === item.item} onClick={() => update((draft) => {
+                    if (draft.standard.handle !== item.item) {
+                      delete draft.standard.handle_model;
+                      delete draft.standard.handle_finish;
+                    }
+                    draft.standard.handle = item.item;
+                  })} className="p-2.5">
                     <p className="pr-6 text-xs font-semibold text-slate-900">{item.label}</p>
                     {item.tedee ? <p className="text-[10px] text-slate-500">{item.tedee === "yes" ? "Tedee compatible" : item.tedee === "miami_only" ? "Tedee: Miami handle only" : "Not Tedee compatible"}</p> : null}
                   </OptionCard>
                 ))}
+              </div>
+            ) : null}
+            {value.standard.lock === "multipoint" && handle ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Handle on the estimate</span>
+                  <input className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm" list="door-handle-models" placeholder={handle.models?.[0] ? `e.g. ${handle.models[0]}` : "e.g. Miami 910 Lever"} value={value.standard.handle_model || ""} onChange={(event) => update((draft) => { draft.standard.handle_model = event.target.value || undefined; })} />
+                  <datalist id="door-handle-models">{(handle.models || []).map((model) => <option key={model} value={model} />)}</datalist>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Finish</span>
+                  <input className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm" list="door-handle-finishes" placeholder="e.g. Satin Nickel or Black" value={value.standard.handle_finish || ""} onChange={(event) => update((draft) => { draft.standard.handle_finish = event.target.value || undefined; })} />
+                  <datalist id="door-handle-finishes">{(handle.finishes || []).map((finish) => <option key={finish} value={finish} />)}</datalist>
+                </label>
+                <p className="text-[11px] text-slate-500 sm:col-span-2">Priced on the row above. The estimate prints this handle instead of every handle in the row; leave it empty until the customer picks one.</p>
               </div>
             ) : null}
             {value.standard.lock === "pull_bar" && material.pull_bars ? (

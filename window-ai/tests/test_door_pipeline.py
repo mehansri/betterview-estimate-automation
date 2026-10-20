@@ -67,6 +67,29 @@ def _lines(result: dict, text: str) -> list[dict]:
     return [item for item in result["line_items"] if text in item["description"]]
 
 
+def test_the_estimate_names_the_chosen_handle_not_the_whole_row():
+    """Priced on the handle row; the customer reads "Multipoint lock Miami 910 Lever - Satin Nickel or Black"."""
+    from services.doors.pipeline import handle_options, pipeline_spec_lines, pipeline_summary
+
+    row = "Large Lever Handle: Verona, Miliano, Country, Ribbon and Miami Large (Active)"
+    large = next(item for item in handle_options("fiberglass") if item["item"] == row)
+    assert "Miami Large Lever" in large["models"]
+    assert all(item["models"] for item in handle_options("fiberglass") if "EMTEK" not in item["item"])
+
+    unnamed = _fiberglass_selection(standard={"lock": "multipoint", "handle": row})
+    named = _fiberglass_selection(standard={"lock": "multipoint", "handle": row,
+                                            "handle_model": "Miami 910 Lever", "handle_finish": "Satin Nickel or Black"})
+    assert "Locking system: Multipoint lock - " + row in pipeline_spec_lines(unnamed)
+    assert "Locking system: Multipoint lock Miami 910 Lever - Satin Nickel or Black" in pipeline_spec_lines(named)
+    assert "Multipoint lock: Miami 910 Lever - Satin Nickel or Black" in pipeline_summary(named)
+
+    before, after = quote(_spec(unnamed), CFG), quote(_spec(named), CFG)
+    assert before["list_total"] == after["list_total"]
+    [lock] = _lines(after, "multipoint lock, active leaf")
+    assert lock["customer_description"] == "Multipoint lock Miami 910 Lever - Satin Nickel or Black — active leaf"
+    assert row in lock["description"]  # the order still names Palma's row
+
+
 def test_spec_lines_read_like_the_quickbooks_door_estimates():
     from services.doors.pipeline import pipeline_scope, pipeline_spec_lines
 
@@ -89,6 +112,7 @@ def test_spec_lines_read_like_the_quickbooks_door_estimates():
     ]
     steel = _steel_selection(colours={"exterior": {"type": "painted"}, "interior": {"type": "white"}})
     assert "Exterior door colour: Painted TBD" in pipeline_spec_lines(steel)
+    assert "Locking system: Double bore prep - Customer supplied hardware" in pipeline_spec_lines(steel)
     assert "Frame system: 6'8\" - Solid exterior vinyl frame with internal reinforcement, 4-5/8\" jamb" in pipeline_spec_lines(steel)
     assert 'Door slab: 36" Steel - Orleans - Solid' in pipeline_spec_lines(steel)
 
