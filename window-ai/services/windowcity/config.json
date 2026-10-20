@@ -48,6 +48,9 @@
       "horizontal_rate_lf": 22.0,
       "horizontal_label": "1\" horizontal reinforcement mullion (EP-155)"
     },
+    "stock_wood_jamb_rates_lf": {
+      "4.5": 4.0
+    },
     "patio": {
       "dealer_factor": 0.81,
       "brickmould": {

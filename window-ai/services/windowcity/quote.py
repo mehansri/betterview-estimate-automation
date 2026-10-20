@@ -309,8 +309,21 @@ def _accessory_components(accessories: list[dict], w: float, h: float, bm_width:
             ov = cfg["engine"].get("nailing_flange_override")
             if ov:
                 white_lf, colour_lf = ov["rate_white_lf"], ov["rate_colour_lf"]
+        label = _accessory_label(acc, row)
+        if acc["kind"] == "wood_jamb":
+            # The 4 1/2" jamb is a stock depth Window City bills at 4.00/lf, not
+            # the book's 10.00 custom row: orders 125401074 (Frank Hanna) and
+            # 125401101 (Dorothy) priced every 4 1/2" window jamb that way, as
+            # patio doors already are (wood_jamb_rate_lf_to_4_5).
+            depth = catalog.wood_jamb_depth(acc)
+            stock = cfg["engine"].get("stock_wood_jamb_rates_lf") or {}
+            match = next((float(rate) for key, rate in stock.items()
+                          if depth is not None and abs(float(key) - depth) < 1e-6), None)
+            if match is not None:
+                white_lf = colour_lf = match
+                label = f"{depth:g}\" stock wood jamb"
         rate = colour_lf if (coloured and colour_lf) else white_lf
-        comps.append(Component(f"{_accessory_label(acc, row)} {lf:.2f} lf @ {rate:.2f}", lf * rate))
+        comps.append(Component(f"{label} {lf:.2f} lf @ {rate:.2f}", lf * rate))
     return comps
 
 
