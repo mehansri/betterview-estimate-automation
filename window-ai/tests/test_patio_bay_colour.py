@@ -98,8 +98,9 @@ def test_black_interior_is_priced_as_black_in_out() -> None:
     base = white["components"][0]["list"]
     colour = [c for c in both["components"] if c["label"].startswith("Colour")][0]
     assert "black in/out" in colour["label"]
-    # Book 40% for exterior + interior black, billed at the calibrated 3/4.
-    assert colour["list"] == pytest.approx(round(base * 0.30, 2))
+    # Book 40% for exterior + interior black, billed in full (order 125400662,
+    # Alex Fraser); only exterior-only colour takes the calibrated 3/4.
+    assert colour["list"] == pytest.approx(round(base * 0.40, 2))
     assert both["dealer_each"] > exterior["dealer_each"] > white["dealer_each"]
 
 

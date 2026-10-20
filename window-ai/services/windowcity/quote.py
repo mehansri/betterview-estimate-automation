@@ -198,6 +198,8 @@ def price_window(line: dict, cfg: dict, warnings: list[str],
     # Past ~35 sqft the sealed unit needs 6mm glass; Cantor bills it at
     # $8.00/sqft list (calibrated from order 125401135: 72x72 = 36 sqft ->
     # $288.00). Smaller auto-thickness bumps (4mm at ~20-25 sqft) are free.
+    # Triple units go to 6mm too (420 order checklists, 2024-2026), so they
+    # carry the same charge -- unverified on a priced triple order, erring high.
     oversize = cfg["engine"].get("oversize_glass", {"threshold_sqft": 35,
                                                     "rate_sqft": 8.0})
     if billed > oversize["threshold_sqft"]:
@@ -206,16 +208,18 @@ def price_window(line: dict, cfg: dict, warnings: list[str],
                 f"{s['code']} {w:g}x{h:g}: {billed:.1f} sqft exceeds the "
                 f"{oversize['threshold_sqft']} sqft triple-pane glass limit — "
                 "confirm with Window City")
-        else:
-            comps.append(Component(
-                f"Oversize glass 6mm ({billed:.1f} sqft @ "
-                f"{oversize['rate_sqft']:.2f})",
-                oversize["rate_sqft"] * billed))
+        comps.append(Component(
+            f"Oversize glass 6mm ({billed:.1f} sqft @ "
+            f"{oversize['rate_sqft']:.2f})",
+            oversize["rate_sqft"] * billed))
 
     # Colour: Cantor bills the capstock upcharge on the BASE column only, at
     # 3/4 of the book's printed percentage (Jet Black: book 20% -> billed 15%
     # of base; exact on order 125401159). Only the black/20% case is
     # price-verified; pct_scale applies to all until another colour is tested.
+    # Black in / black out bills the full book percentage (pct_scale_in_out):
+    # order 125400662 (Alex Fraser, all black/black HC-400 with 2x2 colonial
+    # grilles) matches within $1.50 on its casements and small awnings that way.
     colour = (line.get("colour_ext") or "white")
     int_too = interior_matches(line)
     try:
@@ -230,16 +234,31 @@ def price_window(line: dict, cfg: dict, warnings: list[str],
             f"black in / black out is offered on {', '.join(offered)}") from None
     if pct:
         ccfg = cfg["engine"].get("colour", {"base": "base_only", "pct_scale": 0.75})
-        eff = pct * ccfg.get("pct_scale", 1.0)
+        eff = pct * (ccfg.get("pct_scale_in_out", ccfg.get("pct_scale", 1.0)) if int_too
+                     else ccfg.get("pct_scale", 1.0))
         base_amt = (comps[0].amount if ccfg.get("base") == "base_only"
                     else sum(c.amount for c in comps))
         name = f"{colour} in/out" if int_too else colour
         comps.append(Component(
             f"Colour {name} ({eff * 100:g}% of base)", base_amt * eff))
 
-    for frag in line.get("adders", []):
+    adders = list(line.get("adders", []))
+    if not any("reinforce" in str(a).lower() for a in adders) and sash_reinforcement_needed(
+            s["name"], w, h, line.get("colour_ext"), line.get("colour_int")):
+        adders.append("sash reinforcement")
+    for frag in adders:
         a = catalog.style_adder(s, frag)
         comps.append(Component(a["name"].strip(": "), a["amount"]))
+
+    grilles = line.get("grilles")
+    if grilles:
+        style = str(grilles.get("style") or "colonial").lower()
+        if style == "sdl":  # the simulated bar follows the frame: 3/4" heritage, 1 1/4" classic
+            style = "sdl heritage" if s["code"].upper().startswith("HC") else "sdl classic"
+        rate, label = catalog.grille_rate(style, grilles.get("colour", "white"), grilles.get("size"))
+        squares = int(grilles.get("squares") or 0)
+        if squares:
+            comps.append(Component(f"Grilles: {label}, {squares} squares @ {rate:.2f}", rate * squares))
 
     comps += _accessory_components(line.get("accessories", []), w, h, bm_width, bool(pct), cfg)
 
@@ -357,11 +376,17 @@ def _mullion_components(lines: list, total_w: float, total_h: float, side_by_sid
     2" EP-156 -- the horizontal profile/rate comes from config. Only joints
     that run the full height (vertical) or full width (horizontal) of the
     unit are reinforced; AW5's short joint between the two awnings was not.
+
+    Window City reinforces well inside the chart: across 420 order checklists
+    (1,271 mulled units, 2024-2026) the chart caught 36 of the 166 reinforced
+    units. "Over 66 tall and at least 48 wide", any colour or section count,
+    catches 143 and over-reinforces 34 -- erring high, as under-quoting costs
+    margin. ``side_by_side`` (the chart's 108" case) no longer changes it.
     """
-    wide_limit = 108.0 if side_by_side >= 3 else 72.0
-    if not (total_h > 66.0 and total_w >= wide_limit):
-        return []
     mcfg = cfg["engine"].get("mullion", {})
+    if not (total_h > mcfg.get("min_height_in", 66.0)
+            and total_w >= mcfg.get("min_width_in", 48.0) - layout.EPS):
+        return []
     comps: list[Component] = []
     v_lf = h_lf = 0.0
     for line in lines:
@@ -431,6 +456,38 @@ def price_combination(line: dict, cfg: dict, warnings: list[str]) -> list[Compon
 
 DARK_COLOURS = ("black", "dark bronze", "charcoal")
 
+# Sash reinforcement thresholds (inches), read from 420 Window City order
+# checklists (5,700 single frames, 2024-2026). The book says casements past
+# 72" (66" on dark colours); Window City reinforces earlier by colour:
+# black in / black out from about 48" tall, a Jet Black or Dark Bronze
+# exterior from 62", Charcoal from 66", Sandstone and white past 72" (white
+# was never reinforced; the book's 72" is kept, erring high). Every awning
+# wider than 48" was reinforced, in any colour.
+SASH_REINFORCEMENT_HEIGHT = {"dark_interior": 48.0, "black_bronze": 62.0,
+                             "charcoal": 65.0, "light": 72.0}
+AWNING_REINFORCEMENT_WIDTH = 48.0
+
+
+def sash_reinforcement_needed(style_name: str, width: float, height: float,
+                              colour_ext: str | None, colour_int: str | None) -> bool:
+    """Whether Window City steel-reinforces this casement or awning sash."""
+    name = str(style_name or "").strip().upper()
+    if name == "AWNING":
+        return width > AWNING_REINFORCEMENT_WIDTH + layout.EPS
+    if name != "CASEMENT":
+        return False
+    ext = str(colour_ext or "white").lower()
+    inside = str(colour_int or "white").lower()
+    if any(dark in inside for dark in DARK_COLOURS):
+        limit = SASH_REINFORCEMENT_HEIGHT["dark_interior"]
+    elif "black" in ext or "bronze" in ext:  # "Jet Black" is Window City's name for black
+        limit = SASH_REINFORCEMENT_HEIGHT["black_bronze"]
+    elif "charcoal" in ext:
+        limit = SASH_REINFORCEMENT_HEIGHT["charcoal"]
+    else:
+        limit = SASH_REINFORCEMENT_HEIGHT["light"]
+    return height > limit + layout.EPS
+
 
 def _unit_sections(line: dict) -> tuple[layout.Resolved, list[dict]]:
     """Resolve a unit's layout and build one window line per section."""
@@ -438,17 +495,16 @@ def _unit_sections(line: dict) -> tuple[layout.Resolved, list[dict]]:
     resolved = layout.resolve(line.get("layout"), w, h)
     series = line.get("series") or layout.DEFAULT_SERIES
     unit_glazing = line.get("glazing") or {}
-    colour = str(line.get("colour_ext") or "white").lower()
     section_lines = []
     for section in resolved.sections:
         node = section.node
         style_code = layout.style_for(section, series)
         adders = list(node.get("adders") or [])
-        # Book 90/112: casement sashes must be reinforced past 72" tall (66" on
-        # dark exterior colours) -- add the style's own adder when required.
-        limit = 66.0 if colour in DARK_COLOURS else 72.0
-        if node["op"] == "casement" and section.height > limit + layout.EPS and not any(
-                "reinforce" in str(a).lower() for a in adders):
+        # Listed on the section so the unit's details show it; price_window
+        # adds the same adder to lines that arrive without it.
+        if not any("reinforce" in str(a).lower() for a in adders) and sash_reinforcement_needed(
+                catalog.style(style_code)["name"], section.width, section.height,
+                line.get("colour_ext"), line.get("colour_int")):
             adders.append("sash reinforcement")
         section_lines.append({
             "type": "window", "style": style_code,
@@ -456,6 +512,8 @@ def _unit_sections(line: dict) -> tuple[layout.Resolved, list[dict]]:
             **{k: line[k] for k in ("colour_ext", "colour_int") if k in line},
             "glazing": {**unit_glazing, **(node.get("glazing") or {})},
             "adders": adders,
+            **({"grilles": node.get("grilles") or line.get("grilles")}
+               if node.get("grilles") or line.get("grilles") else {}),
         })
     return resolved, section_lines
 

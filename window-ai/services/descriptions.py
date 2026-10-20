@@ -66,9 +66,27 @@ def _window_options(spec: dict[str, Any]) -> list[str]:
             name = accessory_text(accessory, product)
             if name:
                 options.append(name)
+    grille = grille_text(spec.get("grilles"))
+    if grille:
+        options.append(grille)
     if spec.get("kick_lock"):
         options.append("Kick lock")
     return options
+
+
+GRILLE_STYLE_LABELS = {"colonial": "Colonial", "georgian": "Georgian", "pencil": "Pencil", "sdl": "Simulated divided lite",
+                       "sdl classic": "Simulated divided lite", "sdl heritage": "Simulated divided lite"}
+
+
+def grille_text(grilles: Any) -> str:
+    """'Colonial grilles 2 x 2, black' -- mirrors grilleText() in the frontend."""
+    if not isinstance(grilles, dict) or not grilles.get("squares"):
+        return ""
+    label = GRILLE_STYLE_LABELS.get(str(grilles.get("style") or "colonial").lower(), "Colonial")
+    across, down = grilles.get("across"), grilles.get("down")
+    grid = f"{across} x {down}" if across and down else str(grilles.get("grid") or f"{grilles['squares']} squares")
+    colour = str(grilles.get("colour") or "white").lower()
+    return f"{label} grilles {grid}, {colour}"
 
 
 def _fraction(value: float) -> str:

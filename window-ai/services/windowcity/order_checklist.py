@@ -121,6 +121,12 @@ def split_items(text: str) -> tuple[dict[str, Any], list[Item]]:
             current = Item(m.group(1), int(m.group(2)), m.group(3))
             items.append(current)
             continue
+        if m and CONFIG_LINE.match(m.group(3)):
+            # No room name: the configuration shares the item line
+            # ("1 8 F1 - Fixed SINGLE FRAME p", order 125401082).
+            current = Item(m.group(1), int(m.group(2)), "", [m.group(3)])
+            items.append(current)
+            continue
         if "Total Qty" in stripped:
             current = None
             continue
@@ -140,7 +146,8 @@ def _colours(text: str) -> tuple[str, str]:
 
 def _glazing(text: str) -> dict[str, Any]:
     lowered = text.lower()
-    glazing: dict[str, Any] = {"loe180": "low e 180" in lowered or "low e180" in lowered}
+    # "Low E 180", "Low E180" and "LowE 180  Neat Glass" (order 125400662) all name LoE 180.
+    glazing: dict[str, Any] = {"loe180": bool(re.search(r"low\s*e\s*180", lowered))}
     if "i89" in lowered:
         glazing["i89"] = True
     if "triple pane" in lowered:
@@ -168,8 +175,13 @@ def _accessories(text: str, *, patio: bool, warnings: list[str], tag: str) -> li
         if patio:
             accessories.append({"kind": "brickmould", "name": "Brickmould EP326 installed"})
         elif bm:
+            size = bm.group(2).strip()
+            if size == "0" and "EP326" in text:
+                # "Classic BM - 0 inch, EP326-0" (order 125401101) is the
+                # installed 1" Classic brickmould, EP326.
+                size = "1"
             accessories.append({"kind": "brickmould",
-                                "name": f'{bm.group(2).strip()}" brickmould ({bm.group(1).lower()})'})
+                                "name": f'{size}" brickmould ({bm.group(1).lower()})'})
         else:
             warnings.append(f"Item {tag}: brickmould type not recognised; add it by hand")
     jamb = WOOD_JAMB.search(text)
@@ -178,6 +190,9 @@ def _accessories(text: str, *, patio: bool, warnings: list[str], tag: str) -> li
         finish = "primed" if jamb.group(2).lower().startswith("primed") else "unfinished"
         accessories.append({"kind": "wood_jamb", "name": f'{_fraction(depth)}"', "depth_in": _number(jamb.group(1)),
                             "finish": finish})
+    if not patio and re.search(r"-\s*nailing flange\b", text, re.I):
+        # "-nailing flange , lenght 23 ft. nail_flang" (order 125401151)
+        accessories.append({"kind": "misc", "name": "Nailing Flange"})
     return accessories
 
 
@@ -207,12 +222,43 @@ def _details(item: Item, *, notes: list[str]) -> dict[str, Any]:
     return details
 
 
+GRILLE_FIELD = re.compile(r"-grill\s+field#\s*\d+\s*,\s*type\s+(.+?)\s+Grill\s*,\s*Color-\s*(\w+)", re.I)
+GRILLE_GRID = re.compile(r"\b(\d+)\s+by\s+(\d+)\s+grid\b", re.I)
+GRILLE_COLOURS = {"white": "white", "ww": "white", "black": "black", "jj": "black", "jw": "two-tone"}
+
+
+def _grilles(text: str, warnings: list[str], tag: str) -> dict[str, Any] | None:
+    """'-grill field# 1, type Colonial Grill, Color- black' + '2 by 2 grid' -> 4 squares."""
+    field_match = GRILLE_FIELD.search(text)
+    if not field_match:
+        return None
+    kind, colour = field_match.group(1).lower(), field_match.group(2).lower()
+    grids = GRILLE_GRID.findall(text)
+    squares = sum(int(a) * int(b) for a, b in grids)
+    if not squares:
+        warnings.append(f"Item {tag}: grilles without a readable grid; add them by hand")
+        return None
+    if "simulated" in kind:
+        style = "sdl heritage" if re.search(r"\bHC-\d{3}", text) else "sdl classic"
+    elif "two-tone" in kind or "two tone" in kind:
+        style, colour = "colonial", "two-tone"
+    else:
+        style = "georgian" if "georgian" in kind else "pencil" if "pencil" in kind else "colonial"
+    grille: dict[str, Any] = {"style": style, "colour": GRILLE_COLOURS.get(colour, colour), "squares": squares}
+    if len(grids) == 1:
+        grille.update(across=int(grids[0][0]), down=int(grids[0][1]))
+    return grille
+
+
 def _leaf_from_section(item: Item, warnings: list[str]) -> dict[str, Any]:
     code = STYLE_CODE.search(item.text)
     op = STYLE_OPS.get(code.group(1), (None, None))[1] if code else None
     if op is None:
         op = _ops_from_config(item.config)[0]["op"]
     leaf: dict[str, Any] = {"op": op}
+    grilles = _grilles(item.text, warnings, item.number)
+    if grilles:
+        leaf["grilles"] = grilles
     hinge = HINGE.search(item.text)
     if op in ("casement", "single_slider") and hinge:
         leaf["hinge"] = hinge.group(1)
@@ -274,11 +320,37 @@ def _window_line(item: Item, sections: list[Item], warnings: list[str]) -> dict[
                                 f"'{item.config}'")
         division = DIVISION.search(text)
         parts = [float(p) for p in division.group(1).split(":")] if division else []
-        if parts and len(parts) != len(children):
-            warnings.append(f"Item {item.number}: {len(parts)} divisions for {len(children)} sections")
-        sizes: list[Any] = [_number(str(p)) for p in parts[:-1]] + ["*"] if len(parts) == len(children) else \
-            ["*"] * len(children)
-        tree: dict[str, Any] = {"split": "cols", "sizes": sizes, "children": children}
+        # "Fixed over Awning" stacks its sections; everything else sits side by side.
+        stacked = " over " in item.config.lower()
+        # Each section item carries its own frame size. The Division line is
+        # not always in section order (order 125401151 item 1, "Fixed +
+        # Casement (right)", Division 24:48, has the 48" fixed as section 1.1),
+        # so each section takes the Division value nearest its own frame --
+        # frames run 0.025" under nominal and the book bills the nominal size.
+        section_sizes = []
+        for section in sorted(sections, key=lambda s: float(s.number)):
+            frame = FRAME_SIZE.search(section.text)
+            section_sizes.append(float(frame.group(2 if stacked else 1)) if frame else None)
+        if children and len(section_sizes) == len(children) and None not in section_sizes:
+            remaining = list(parts) if len(parts) == len(children) else []
+            nominal = []
+            for size in section_sizes:
+                if remaining:
+                    match = min(remaining, key=lambda p: abs(p - size))
+                    remaining.remove(match)
+                    nominal.append(match)
+                else:
+                    nominal.append(size + 0.025)
+            sizes: list[Any] = [_number(str(round(p, 4))) for p in nominal[:-1]] + ["*"]
+        elif len(parts) == len(children):
+            sizes = [_number(str(p)) for p in parts[:-1]] + ["*"]
+            warnings.append(f"Item {item.number}: section sizes read from the Division line; "
+                            "check the order of the sections")
+        else:
+            if parts:
+                warnings.append(f"Item {item.number}: {len(parts)} divisions for {len(children)} sections")
+            sizes = ["*"] * len(children)
+        tree: dict[str, Any] = {"split": "rows" if stacked else "cols", "sizes": sizes, "children": children}
         if division:
             notes.append(f"Division {':'.join(_fraction(p) for p in parts)}")
         if len(children) < 2:
