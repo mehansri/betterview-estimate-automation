@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyAstragalDefault,
   availableModels,
   customColours,
   emptySelection,
@@ -204,6 +205,25 @@ describe("cascade re-validation", () => {
     expect(single.selection.extras.astragal_lock).toBe(false);
     expect(single.selection.standard.handle).toBeUndefined();
     expect(single.cleared).toHaveLength(2);
+  });
+
+  it("ticks the astragal mortise lock when a door first becomes a multipoint double", () => {
+    const before = { ...completeSteel(), configuration: "single" };
+    before.standard = { ...before.standard, lock: "multipoint" };
+    const after: PipelineSelection = JSON.parse(JSON.stringify({ ...before, configuration: "double" }));
+    applyAstragalDefault(catalog, before, after);
+    expect(after.extras.astragal_lock).toBe(true);
+
+    // Already a multipoint double: an unticked lock stays unticked.
+    const unticked: PipelineSelection = JSON.parse(JSON.stringify({ ...after, extras: { ...after.extras, astragal_lock: false } }));
+    const next: PipelineSelection = JSON.parse(JSON.stringify(unticked));
+    applyAstragalDefault(catalog, unticked, next);
+    expect(next.extras.astragal_lock).toBe(false);
+
+    // A double with double-bore prep is not ticked.
+    const bore: PipelineSelection = JSON.parse(JSON.stringify({ ...before, configuration: "double", standard: { ...before.standard, lock: "double_bore" } }));
+    applyAstragalDefault(catalog, before, bore);
+    expect(bore.extras.astragal_lock).toBe(false);
   });
 
   it("resets a sill the new frame depth cannot take", () => {

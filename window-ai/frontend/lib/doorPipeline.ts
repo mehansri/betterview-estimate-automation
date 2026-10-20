@@ -225,6 +225,16 @@ export function configurationOf(catalog: PipelineCatalog, sel: PipelineSelection
   return catalog.configurations.find((item) => item.key === sel.configuration) || null;
 }
 
+/**
+ * A double door's inactive leaf takes the FERCO astragal mortise lock, so it is ticked
+ * when a change first makes the door a double with a multipoint lock. The rep can untick it;
+ * later changes that keep it a multipoint double leave their choice alone.
+ */
+export function applyAstragalDefault(catalog: PipelineCatalog, before: PipelineSelection, after: PipelineSelection) {
+  const isMultipointDouble = (sel: PipelineSelection) => configurationOf(catalog, sel)?.doors === 2 && sel.standard.lock === "multipoint";
+  if (isMultipointDouble(after) && !isMultipointDouble(before)) after.extras.astragal_lock = true;
+}
+
 export function heightInches(catalog: PipelineCatalog, height?: string) {
   return catalog.heights.find((item) => item.key === height)?.inches ?? 80;
 }

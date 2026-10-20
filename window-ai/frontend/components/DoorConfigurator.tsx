@@ -8,6 +8,7 @@ import { useViewMode } from "@/lib/viewMode";
 import { isCustomColour, PALMA_PAINTS, PALMA_STAINS, standardColourName } from "@/lib/palmaColours";
 import {
   accentsFor,
+  applyAstragalDefault,
   availableModels,
   configurationOf,
   configurationOffered,
@@ -268,6 +269,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
   function update(mutate: (draft: PipelineSelection) => void) {
     const draft = JSON.parse(JSON.stringify(value)) as PipelineSelection;
     mutate(draft);
+    applyAstragalDefault(catalog, value, draft);
     const result = normalizeSelection(catalog, draft);
     // Fill new sidelite slots with a sensible starting model.
     result.selection.glass.sidelites = result.selection.glass.sidelites.map((part) => (part.model ? part : { ...defaultSidelite(catalog, result.selection), ...part }));
@@ -453,7 +455,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
               ))}
             </div>
           </div>
-          {layout ? <Note>{layout.sidelites ? `Glass is chosen for ${layout.sidelites === 1 ? "the sidelite" : "each sidelite"}` : "No sidelites"}{layout.transom ? " and the transom" : ""} in step 6.{layout.doors === 2 ? " Double doors add the astragal mortise lock to the extras." : ""}</Note> : null}
+          {layout ? <Note>{layout.sidelites ? `Glass is chosen for ${layout.sidelites === 1 ? "the sidelite" : "each sidelite"}` : "No sidelites"}{layout.transom ? " and the transom" : ""} in step 6.{layout.doors === 2 ? " With a multipoint lock, double doors include the astragal mortise lock for the inactive leaf (step 8)." : ""}</Note> : null}
         </div>
       ) : null}
 
