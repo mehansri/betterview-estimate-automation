@@ -217,6 +217,9 @@ def price_window(line: dict, cfg: dict, warnings: list[str],
     # 3/4 of the book's printed percentage (Jet Black: book 20% -> billed 15%
     # of base; exact on order 125401159). Only the black/20% case is
     # price-verified; pct_scale applies to all until another colour is tested.
+    # Black in / black out bills the full book percentage (pct_scale_in_out):
+    # order 125400662 (Alex Fraser, all black/black HC-400 with 2x2 colonial
+    # grilles) matches within $1.50 on its casements and small awnings that way.
     colour = (line.get("colour_ext") or "white")
     int_too = interior_matches(line)
     try:
@@ -231,7 +234,8 @@ def price_window(line: dict, cfg: dict, warnings: list[str],
             f"black in / black out is offered on {', '.join(offered)}") from None
     if pct:
         ccfg = cfg["engine"].get("colour", {"base": "base_only", "pct_scale": 0.75})
-        eff = pct * ccfg.get("pct_scale", 1.0)
+        eff = pct * (ccfg.get("pct_scale_in_out", ccfg.get("pct_scale", 1.0)) if int_too
+                     else ccfg.get("pct_scale", 1.0))
         base_amt = (comps[0].amount if ccfg.get("base") == "base_only"
                     else sum(c.amount for c in comps))
         name = f"{colour} in/out" if int_too else colour
@@ -245,6 +249,14 @@ def price_window(line: dict, cfg: dict, warnings: list[str],
     for frag in adders:
         a = catalog.style_adder(s, frag)
         comps.append(Component(a["name"].strip(": "), a["amount"]))
+
+    grilles = line.get("grilles")
+    if grilles:
+        rate, label = catalog.grille_rate(grilles.get("style", "colonial"), grilles.get("colour", "white"),
+                                          grilles.get("size"))
+        squares = int(grilles.get("squares") or 0)
+        if squares:
+            comps.append(Component(f"Grilles: {label}, {squares} squares @ {rate:.2f}", rate * squares))
 
     comps += _accessory_components(line.get("accessories", []), w, h, bm_width, bool(pct), cfg)
 
@@ -498,6 +510,8 @@ def _unit_sections(line: dict) -> tuple[layout.Resolved, list[dict]]:
             **{k: line[k] for k in ("colour_ext", "colour_int") if k in line},
             "glazing": {**unit_glazing, **(node.get("glazing") or {})},
             "adders": adders,
+            **({"grilles": node.get("grilles") or line.get("grilles")}
+               if node.get("grilles") or line.get("grilles") else {}),
         })
     return resolved, section_lines
 

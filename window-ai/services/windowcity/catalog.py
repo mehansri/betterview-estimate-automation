@@ -5,6 +5,7 @@ spec problem the caller must surface, never a silent zero.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 DATA = Path(__file__).resolve().parent / "data"
@@ -85,6 +86,43 @@ def colour_pct(style_row: dict, colour: str, interior_too: bool = False) -> floa
         f"colour {colour!r} (interior_too={interior_too}) not offered for "
         f"{style_row['code']}; page {style_row['source_page_pdf']} lists: "
         f"{style_row['colour_upcharges']}")
+
+
+GRILLE_STYLES = {
+    # order-checklist / UI name -> (book style, default size)
+    "colonial": ("colonial flat bar", '5/8" x 1/4"'),
+    "georgian": ("georgian", '11/16" x 1/4"'),
+    "pencil": ("pencil", '5/16"'),
+    "sdl heritage": ("simulated (heritage)", '3/4" x 1/4"'),
+    "sdl classic": ("simulated (classic)", '1 1/4" x 1/4"'),
+}
+
+
+def grille_rate(style: str, colour: str = "white", size: str | None = None) -> tuple[float, str]:
+    """List price per grille square (one pane of the grid), book p.24.
+
+    Columns: white, pewter or black, two-tone (colour out / white in), solid brass.
+    """
+    key = str(style or "colonial").strip().lower()
+    book_style, default_size = GRILLE_STYLES.get(key, (key, None))
+    rows = [r for r in load("options")["grilles_flat"]["per_sq_unit"]
+            if r["style"].lower() == book_style and (size or default_size) in (None, r["size"])]
+    if not rows:
+        raise CatalogError(f"no grille row for {style!r} {size or default_size or ''}".strip())
+    row = rows[0]
+    c = str(colour or "white").strip().lower()
+    column = ("solid_brass" if "brass" in c else "two_tone_out_white_in" if "two" in c
+              else "white" if c in ("", "white") else "pewter_or_black")
+    value = row["values"][row["columns"].index(column)]
+    m = re.match(r"\s*([\d.]+)", value)
+    if not m and book_style.startswith("simulated") and column == "pewter_or_black":
+        # SDL is not listed in black; Window City builds it (jj on orders), so
+        # price it at the two-tone column rather than refuse the window.
+        column = "two_tone_out_white_in"
+        m = re.match(r"\s*([\d.]+)", row["values"][row["columns"].index(column)])
+    if not m:
+        raise CatalogError(f"{row['style']} {row['size']} grilles are not offered in {column.replace('_', ' ')}")
+    return float(m.group(1)), f"{row['style']} {row['size']} {column.replace('_', ' ')}"
 
 
 def style_adder(style_row: dict, name_frag: str) -> dict:

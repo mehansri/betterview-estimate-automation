@@ -146,7 +146,8 @@ def _colours(text: str) -> tuple[str, str]:
 
 def _glazing(text: str) -> dict[str, Any]:
     lowered = text.lower()
-    glazing: dict[str, Any] = {"loe180": "low e 180" in lowered or "low e180" in lowered}
+    # "Low E 180", "Low E180" and "LowE 180  Neat Glass" (order 125400662) all name LoE 180.
+    glazing: dict[str, Any] = {"loe180": bool(re.search(r"low\s*e\s*180", lowered))}
     if "i89" in lowered:
         glazing["i89"] = True
     if "triple pane" in lowered:
@@ -189,6 +190,9 @@ def _accessories(text: str, *, patio: bool, warnings: list[str], tag: str) -> li
         finish = "primed" if jamb.group(2).lower().startswith("primed") else "unfinished"
         accessories.append({"kind": "wood_jamb", "name": f'{_fraction(depth)}"', "depth_in": _number(jamb.group(1)),
                             "finish": finish})
+    if not patio and re.search(r"-\s*nailing flange\b", text, re.I):
+        # "-nailing flange , lenght 23 ft. nail_flang" (order 125401151)
+        accessories.append({"kind": "misc", "name": "Nailing Flange"})
     return accessories
 
 
@@ -218,12 +222,39 @@ def _details(item: Item, *, notes: list[str]) -> dict[str, Any]:
     return details
 
 
+GRILLE_FIELD = re.compile(r"-grill\s+field#\s*\d+\s*,\s*type\s+(.+?)\s+Grill\s*,\s*Color-\s*(\w+)", re.I)
+GRILLE_GRID = re.compile(r"\b(\d+)\s+by\s+(\d+)\s+grid\b", re.I)
+GRILLE_COLOURS = {"white": "white", "ww": "white", "black": "black", "jj": "black", "jw": "two-tone"}
+
+
+def _grilles(text: str, warnings: list[str], tag: str) -> dict[str, Any] | None:
+    """'-grill field# 1, type Colonial Grill, Color- black' + '2 by 2 grid' -> 4 squares."""
+    field_match = GRILLE_FIELD.search(text)
+    if not field_match:
+        return None
+    kind, colour = field_match.group(1).lower(), field_match.group(2).lower()
+    squares = sum(int(a) * int(b) for a, b in GRILLE_GRID.findall(text))
+    if not squares:
+        warnings.append(f"Item {tag}: grilles without a readable grid; add them by hand")
+        return None
+    if "simulated" in kind:
+        style = "sdl heritage" if re.search(r"\bHC-\d{3}", text) else "sdl classic"
+    elif "two-tone" in kind or "two tone" in kind:
+        style, colour = "colonial", "two-tone"
+    else:
+        style = "georgian" if "georgian" in kind else "pencil" if "pencil" in kind else "colonial"
+    return {"style": style, "colour": GRILLE_COLOURS.get(colour, colour), "squares": squares}
+
+
 def _leaf_from_section(item: Item, warnings: list[str]) -> dict[str, Any]:
     code = STYLE_CODE.search(item.text)
     op = STYLE_OPS.get(code.group(1), (None, None))[1] if code else None
     if op is None:
         op = _ops_from_config(item.config)[0]["op"]
     leaf: dict[str, Any] = {"op": op}
+    grilles = _grilles(item.text, warnings, item.number)
+    if grilles:
+        leaf["grilles"] = grilles
     hinge = HINGE.search(item.text)
     if op in ("casement", "single_slider") and hinge:
         leaf["hinge"] = hinge.group(1)

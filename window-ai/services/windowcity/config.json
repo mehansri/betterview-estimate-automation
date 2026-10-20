@@ -24,7 +24,8 @@
     "accessory_footage_allowance_in": 0,
     "colour": {
       "base": "base_only",
-      "pct_scale": 0.75
+      "pct_scale": 0.75,
+      "pct_scale_in_out": 1.0
     },
     "triple_loe_panes": 2,
     "casement_max_height_in": 72,

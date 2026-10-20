@@ -149,6 +149,41 @@ def test_import_reads_ep326_zero_inch_as_the_1_inch_classic_brickmould() -> None
     assert {"kind": "brickmould", "name": '1" brickmould (classic)'} in living["accessories"]
 
 
+@pytest.mark.parametrize(("style", "colour", "per_square"), [
+    ("colonial", "white", 6.0), ("colonial", "black", 8.0), ("colonial", "two-tone", 8.0),
+    ("georgian", "white", 8.0), ("sdl classic", "white", 50.0), ("sdl heritage", "black", 34.5),
+])
+def test_grilles_price_per_square_from_the_book(style, colour, per_square) -> None:
+    line = {**_single("fixed", 36, 48), "grilles": {"style": style, "colour": colour, "squares": 6}}
+    grille = [c for c in price_quote({"lines": [line]})["lines"][0]["components"] if c["label"].startswith("Grilles")]
+    assert grille and grille[0]["list"] == pytest.approx(6 * per_square)
+
+
+def test_import_reads_grilles_per_section() -> None:
+    text = CHECKLIST.replace(
+        "Color: outside: Jet Black / inside: White jw\nright hinge cmr",
+        "Color: outside: Jet Black / inside: White jw\nright hinge cmr\n"
+        "-grill  field# 1, type Colonial Grill,  Color- jw grill_cw\n2 by 3 grid")
+    living = {line["details"]["tag"]: line["spec"] for line in lines_from_text(text)["windows"]}["1"]
+    fixed, casement = living["layout"]["children"]
+    assert "grilles" not in fixed
+    assert casement["grilles"] == {"style": "colonial", "colour": "two-tone", "squares": 6}
+
+
+def test_import_reads_lowe_180_neat_as_loe_180() -> None:
+    text = CHECKLIST.replace("right hinge cmr", "right hinge cmr\n-LowE 180  Neat Glass exterior pane,\n-I89 Glass interior pane I89")
+    living = {line["details"]["tag"]: line["spec"] for line in lines_from_text(text)["windows"]}["1"]
+    assert living["glazing"]["loe180"] and living["glazing"]["i89"]
+
+
+def test_import_reads_the_nailing_flange() -> None:
+    text = CHECKLIST.replace(
+        "Division 24.0000:48.0000 inch\n",
+        "Division 24.0000:48.0000 inch\n-nailing flange , lenght 23 ft. nail_flang\n")
+    living = {line["details"]["tag"]: line["spec"] for line in lines_from_text(text)["windows"]}["1"]
+    assert {"kind": "misc", "name": "Nailing Flange"} in living["accessories"]
+
+
 def test_import_stacks_fixed_over_awning() -> None:
     stack = {line["details"]["tag"]: line["spec"] for line in lines_from_text(CHECKLIST)["windows"]}["2"]
     assert stack["layout"]["split"] == "rows"
