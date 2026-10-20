@@ -115,8 +115,25 @@ function windowOptions(spec: Record<string, unknown>) {
       if (name) options.push(name);
     }
   }
+  const grille = grilleText(spec.grilles);
+  if (grille) options.push(grille);
   if (spec.kick_lock) options.push("Kick lock");
   return options;
+}
+
+const GRILLE_STYLE_LABELS: Record<string, string> = {
+  colonial: "Colonial", georgian: "Georgian", pencil: "Pencil",
+  sdl: "Simulated divided lite", "sdl classic": "Simulated divided lite", "sdl heritage": "Simulated divided lite",
+};
+
+/** "Colonial grilles 2 x 2, black" -- mirrors services/descriptions.py grille_text. */
+export function grilleText(grilles: unknown): string {
+  if (!grilles || typeof grilles !== "object") return "";
+  const value = grilles as Record<string, unknown>;
+  if (!value.squares) return "";
+  const label = GRILLE_STYLE_LABELS[String(value.style || "colonial").toLowerCase()] || "Colonial";
+  const grid = value.across && value.down ? `${value.across} x ${value.down}` : String(value.grid || `${value.squares} squares`);
+  return `${label} grilles ${grid}, ${String(value.colour || "white").toLowerCase()}`;
 }
 
 /** Mirrors services/descriptions.py unit_description (the estimate compares both). */

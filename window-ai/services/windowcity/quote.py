@@ -252,8 +252,10 @@ def price_window(line: dict, cfg: dict, warnings: list[str],
 
     grilles = line.get("grilles")
     if grilles:
-        rate, label = catalog.grille_rate(grilles.get("style", "colonial"), grilles.get("colour", "white"),
-                                          grilles.get("size"))
+        style = str(grilles.get("style") or "colonial").lower()
+        if style == "sdl":  # the simulated bar follows the frame: 3/4" heritage, 1 1/4" classic
+            style = "sdl heritage" if s["code"].upper().startswith("HC") else "sdl classic"
+        rate, label = catalog.grille_rate(style, grilles.get("colour", "white"), grilles.get("size"))
         squares = int(grilles.get("squares") or 0)
         if squares:
             comps.append(Component(f"Grilles: {label}, {squares} squares @ {rate:.2f}", rate * squares))

@@ -26,8 +26,7 @@ SUPPORTED_TYPES = {
 }
 
 _UNSUPPORTED_KEYS = {
-    "grille": "Grilles are extracted from the price book but are not wired into the engine yet.",
-    "grilles": "Grilles are extracted from the price book but are not wired into the engine yet.",
+    "grille": 'Grilles are priced from "grilles": {"style", "colour", "squares"}; "grille" is not read.',
     "paint": "Paint options require manual review until their price table is wired in.",
     "paint_color": "Paint options require manual review until their price table is wired in.",
     "sealed_unit": "Sealed-unit overrides require manual review until their price table is wired in.",

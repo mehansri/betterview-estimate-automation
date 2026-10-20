@@ -233,7 +233,8 @@ def _grilles(text: str, warnings: list[str], tag: str) -> dict[str, Any] | None:
     if not field_match:
         return None
     kind, colour = field_match.group(1).lower(), field_match.group(2).lower()
-    squares = sum(int(a) * int(b) for a, b in GRILLE_GRID.findall(text))
+    grids = GRILLE_GRID.findall(text)
+    squares = sum(int(a) * int(b) for a, b in grids)
     if not squares:
         warnings.append(f"Item {tag}: grilles without a readable grid; add them by hand")
         return None
@@ -243,7 +244,10 @@ def _grilles(text: str, warnings: list[str], tag: str) -> dict[str, Any] | None:
         style, colour = "colonial", "two-tone"
     else:
         style = "georgian" if "georgian" in kind else "pencil" if "pencil" in kind else "colonial"
-    return {"style": style, "colour": GRILLE_COLOURS.get(colour, colour), "squares": squares}
+    grille: dict[str, Any] = {"style": style, "colour": GRILLE_COLOURS.get(colour, colour), "squares": squares}
+    if len(grids) == 1:
+        grille.update(across=int(grids[0][0]), down=int(grids[0][1]))
+    return grille
 
 
 def _leaf_from_section(item: Item, warnings: list[str]) -> dict[str, Any]:

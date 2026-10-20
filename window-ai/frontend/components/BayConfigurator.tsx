@@ -180,6 +180,7 @@ export default function BayConfigurator({ catalog, value, onChange, colours, pri
             { key: "frost_tint", label: "Frost / tint (all lites)" },
           ]}
           interiorUnavailable={interiorUnavailable}
+          grilles
           lead={(
             <div>
               <SectionTitle>Series</SectionTitle>

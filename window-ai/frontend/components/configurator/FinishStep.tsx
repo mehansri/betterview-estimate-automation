@@ -3,13 +3,16 @@
 import { ReactNode } from "react";
 import type { QuoteCatalog } from "@/lib/api";
 import { FRAME_SWATCHES } from "@/components/WindowUnitDrawing";
-import { ChipGroup, InchInput, OptionCard, SectionTitle } from "@/components/configurator/parts";
+import { ChipGroup, InchInput, OptionCard, SectionTitle, Stepper } from "@/components/configurator/parts";
 import {
   activeGlass,
   CUSTOM_JAMB,
   defaultJamb,
   FinishOptions,
   GlassPackage,
+  GRILLE_COLOURS,
+  GRILLE_COLOURS_NOT_OFFERED,
+  GRILLE_STYLES,
   INTERIOR_COLOURS,
   jambDepthIn,
   jambDepthOptions,
@@ -43,6 +46,8 @@ type Props = {
   glassNote?: ReactNode;
   /** Jamb standard and priming limit follow the product (patio doors: 4 1/2", primed up to 4 1/2"). */
   jambProduct?: JambProduct;
+  /** Offer grilles (windows and bays); the grid applies to every section. */
+  grilles?: boolean;
 };
 
 function Swatch({ colour, active, onClick, disabled, title }: { colour: string; active: boolean; onClick: () => void; disabled?: boolean; title?: string }) {
@@ -56,7 +61,7 @@ function Swatch({ colour, active, onClick, disabled, title }: { colour: string; 
 }
 
 /** Glass & finish: the same colours, glass and trim fields, in the same order, for every product. */
-export default function FinishStep({ catalog, value, onChange, colours, glass, unavailableGlass = {}, gases, flags, interiorUnavailable, lead, brickmould, extraTrim, glassNote, jambProduct = "window" }: Props) {
+export default function FinishStep({ catalog, value, onChange, colours, glass, unavailableGlass = {}, gases, flags, interiorUnavailable, lead, brickmould, extraTrim, glassNote, jambProduct = "window", grilles = false }: Props) {
   const set = (patch: Partial<FinishOptions>) => onChange(withColourRules(value, patch));
   const current = activeGlass(glass, value);
   const depths = jambDepthOptions(catalog, jambProduct);
@@ -135,7 +140,41 @@ export default function FinishStep({ catalog, value, onChange, colours, glass, u
             <p className="pr-6 text-sm font-semibold text-slate-900">Wood jamb extension</p>
             <p className="text-[11px] text-slate-500">{value.wood_jamb ? jambLabel(value, catalog, jambProduct) : "Interior jamb extension"}</p>
           </OptionCard>
+          {grilles ? (
+            <OptionCard active={Boolean(value.grille_style)} onClick={() => set({ grille_style: value.grille_style ? "" : "colonial", grille_colour: value.grille_colour || "white", grille_across: value.grille_across || 2, grille_down: value.grille_down || 2 })} className="p-3">
+              <p className="pr-6 text-sm font-semibold text-slate-900">Grilles</p>
+              <p className="text-[11px] text-slate-500">
+                {value.grille_style
+                  ? `${GRILLE_STYLES.find((item) => item.id === value.grille_style)?.label || value.grille_style} · ${value.grille_across || 2} × ${value.grille_down || 2} per section`
+                  : "Between the glass, priced per grille square"}
+              </p>
+            </OptionCard>
+          ) : null}
         </div>
+        {grilles && value.grille_style ? (
+          <div className="mt-3 space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+            <ChipGroup
+              label="Bar"
+              options={GRILLE_STYLES}
+              value={value.grille_style}
+              onChange={(grille_style) => set({
+                grille_style,
+                ...((GRILLE_COLOURS_NOT_OFFERED[grille_style] || []).includes(value.grille_colour || "white") ? { grille_colour: "white" } : {}),
+              })}
+            />
+            <ChipGroup
+              label="Colour"
+              options={GRILLE_COLOURS.map((item) => ({ ...item, disabled: (GRILLE_COLOURS_NOT_OFFERED[value.grille_style || ""] || []).includes(item.id) }))}
+              value={value.grille_colour || "white"}
+              onChange={(grille_colour) => set({ grille_colour })}
+            />
+            <div className="flex flex-wrap items-center gap-4">
+              <Stepper label="Across" value={value.grille_across || 2} onChange={(grille_across) => set({ grille_across })} min={1} max={8} />
+              <Stepper label="Down" value={value.grille_down || 2} onChange={(grille_down) => set({ grille_down })} min={1} max={8} />
+              <span className="text-[11px] text-slate-500">{(value.grille_across || 2) * (value.grille_down || 2)} squares in every section</span>
+            </div>
+          </div>
+        ) : null}
         {value.wood_jamb ? (
           <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
             <p className="text-xs font-semibold text-slate-700">Jamb depth <span className="font-normal text-slate-500">· {defaultJamb(catalog, jambProduct).replace('"', "″")} is the standard</span></p>

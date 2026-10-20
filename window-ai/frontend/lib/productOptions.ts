@@ -36,7 +36,56 @@ export type FinishOptions = {
   jamb_custom: NumericInputValue;
   /** Primed white when the depth allows it (see PRIMED_MAX_IN); otherwise unfinished. */
   jamb_primed: boolean;
+  /** Grilles on every section: "" for none, else a GRILLE_STYLES id. Windows and bays only. */
+  grille_style?: string;
+  grille_colour?: string;
+  /** Grid per section: lites across x lites down (Window City's "2 by 2 grid"). */
+  grille_across?: number;
+  grille_down?: number;
 };
+
+/** Grille bars from Window City's price book (p.24), priced per grille square. */
+export const GRILLE_STYLES = [
+  { id: "colonial", label: "Colonial flat bar" },
+  { id: "georgian", label: "Georgian" },
+  { id: "pencil", label: "Pencil" },
+  { id: "sdl", label: "Simulated divided lite" },
+];
+
+export const GRILLE_COLOURS = [
+  { id: "white", label: "White" },
+  { id: "black", label: "Black / pewter" },
+  { id: "two-tone", label: "Two-tone (colour out, white in)" },
+  { id: "brass", label: "Solid brass" },
+];
+
+/** Colours the book does not list for a bar (SDL in black is priced at two-tone by the engine). */
+export const GRILLE_COLOURS_NOT_OFFERED: Record<string, string[]> = {
+  georgian: ["brass"],
+  pencil: ["two-tone"],
+  sdl: ["brass"],
+};
+
+/** The engine's `grilles` field for a finish choice, or null for none. */
+export function grillesSpec(options: Partial<FinishOptions>): Record<string, unknown> | null {
+  if (!options.grille_style) return null;
+  const across = Math.max(1, Math.round(options.grille_across || 2));
+  const down = Math.max(1, Math.round(options.grille_down || 2));
+  return { style: options.grille_style, colour: options.grille_colour || "white", across, down, squares: across * down };
+}
+
+/** Finish fields read back from a saved line's `grilles`. */
+export function grilleFields(grilles: unknown): Pick<FinishOptions, "grille_style" | "grille_colour" | "grille_across" | "grille_down"> {
+  const value = grilles && typeof grilles === "object" ? grilles as Record<string, unknown> : null;
+  if (!value || !value.squares) return { grille_style: "", grille_colour: "white", grille_across: 2, grille_down: 2 };
+  const style = String(value.style || "colonial").toLowerCase();
+  return {
+    grille_style: style.startsWith("sdl") ? "sdl" : style,
+    grille_colour: String(value.colour || "white"),
+    grille_across: Number(value.across) || Number(value.squares) || 2,
+    grille_down: Number(value.down) || 1,
+  };
+}
 
 export function defaultJamb(catalog?: QuoteCatalog | null, product: JambProduct = "window"): string {
   return product === "patio"

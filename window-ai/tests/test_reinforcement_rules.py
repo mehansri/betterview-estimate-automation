@@ -159,6 +159,33 @@ def test_grilles_price_per_square_from_the_book(style, colour, per_square) -> No
     assert grille and grille[0]["list"] == pytest.approx(6 * per_square)
 
 
+def test_sdl_follows_the_frame_series() -> None:
+    def grille_list(series: str) -> float:
+        line = {**_single("fixed", 36, 48), "series": series, "grilles": {"style": "sdl", "colour": "white", "squares": 4}}
+        return [c for c in price_quote({"lines": [line]})["lines"][0]["components"] if c["label"].startswith("Grilles")][0]["list"]
+    assert grille_list("classic") == pytest.approx(4 * 50.0)          # 1 1/4" classic SDL
+    assert grille_list("heritage_maximum") == pytest.approx(4 * 30.0)  # 3/4" heritage SDL
+
+
+def test_priced_grilles_do_not_send_the_quote_to_review() -> None:
+    from services.windowcity.engine import price_quote as api_price_quote
+    line = {**_single("fixed", 36, 48), "grilles": {"style": "colonial", "colour": "white", "squares": 4}}
+    quote = api_price_quote({"lines": [line]})
+    assert not any(w.get("code") == "unsupported_or_incomplete" for w in quote["warnings"])
+
+
+def test_unit_level_grilles_apply_to_every_section() -> None:
+    line = {**_mulled(72, 48, ["casement", "fixed"]), "grilles": {"style": "colonial", "colour": "white", "squares": 4}}
+    grilles = [c for c in price_quote({"lines": [line]})["lines"][0]["components"] if "Grilles" in c["label"]]
+    assert len(grilles) == 2
+
+
+def test_grilles_are_in_the_line_description() -> None:
+    from services.descriptions import grille_text
+    assert grille_text({"style": "colonial", "colour": "black", "across": 2, "down": 2, "squares": 4}) == "Colonial grilles 2 x 2, black"
+    assert grille_text(None) == ""
+
+
 def test_import_reads_grilles_per_section() -> None:
     text = CHECKLIST.replace(
         "Color: outside: Jet Black / inside: White jw\nright hinge cmr",
@@ -167,7 +194,7 @@ def test_import_reads_grilles_per_section() -> None:
     living = {line["details"]["tag"]: line["spec"] for line in lines_from_text(text)["windows"]}["1"]
     fixed, casement = living["layout"]["children"]
     assert "grilles" not in fixed
-    assert casement["grilles"] == {"style": "colonial", "colour": "two-tone", "squares": 6}
+    assert casement["grilles"] == {"style": "colonial", "colour": "two-tone", "squares": 6, "across": 2, "down": 3}
 
 
 def test_import_reads_lowe_180_neat_as_loe_180() -> None:

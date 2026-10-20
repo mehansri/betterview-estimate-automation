@@ -222,6 +222,7 @@ export default function WindowConfigurator({ catalog, value, onChange, colours, 
             </div>
           )}
           brickmould={{ title: "Brickmould", detail: `${catalog.accessories.brickmould?.[0]?.name || "Exterior brickmould"}${leafCount(value.layout) > 1 ? " — wraps the whole unit" : ""}` }}
+          grilles
         />
       ) : null}
     </ConfiguratorShell>

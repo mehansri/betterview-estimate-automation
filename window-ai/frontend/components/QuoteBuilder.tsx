@@ -51,6 +51,8 @@ import {
   defaultJamb,
   EXTERIOR_COLOURS,
   fmtJambLimit,
+  grilleFields,
+  grillesSpec,
   INTERIOR_COLOURS,
   jambAccessory,
   jambDepthIn,
@@ -97,6 +99,10 @@ type Draft = {
   jamb_depth: string;
   jamb_custom: NumericInputValue;
   jamb_primed: boolean;
+  grille_style: string;
+  grille_colour: string;
+  grille_across: number;
+  grille_down: number;
   sliding_ft: number;
   operation: string;
   swing_kind: string;
@@ -161,6 +167,10 @@ function emptyDraft(style = "WC-100", type: QuoteLineType = "unit"): Draft {
     jamb_depth: isPatio(type) ? DEFAULT_PATIO_JAMB_DEPTH : DEFAULT_JAMB_DEPTH,
     jamb_custom: "",
     jamb_primed: true,
+    grille_style: "",
+    grille_colour: "white",
+    grille_across: 2,
+    grille_down: 2,
     sliding_ft: 6,
     operation: "XO",
     swing_kind: "single",
@@ -326,6 +336,7 @@ function draftFromSpec(spec: QuoteLineInput, catalog: QuoteCatalog): Draft {
     frost_tint: Boolean(glazing.frost_tint),
     brickmould: accessories.some((item) => String(item.kind || "") === "brickmould"),
     ...jamb,
+    ...grilleFields(raw.grilles ?? source.grilles),
     sliding_ft: finiteNumber(raw.nominal_ft, defaultDraft.sliding_ft),
     operation: String(raw.operation || (finiteNumber(raw.nominal_ft, 6) >= 10 ? "OXXO" : "XO")),
     swing_kind: String(raw.kind || defaultDraft.swing_kind),
@@ -380,6 +391,12 @@ function colourOf(draft: Draft) {
   return { colour_ext: draft.colour_ext, ...(draft.colour_int && draft.colour_int !== "white" ? { colour_int: draft.colour_int } : {}) };
 }
 
+/** The draft's grilles as the engine's `grilles` field, or nothing (windows, units and bays). */
+function grillesOf(draft: Draft): { grilles?: Record<string, unknown> } {
+  const grilles = grillesSpec(draft);
+  return grilles ? { grilles } : {};
+}
+
 function windowLine(draft: Draft, qty: NumericInputValue = 1): QuoteLineInput {
   const accessories: Array<Record<string, unknown>> = [];
   return {
@@ -390,6 +407,7 @@ function windowLine(draft: Draft, qty: NumericInputValue = 1): QuoteLineInput {
     qty,
     ...colourOf(draft),
     glazing: glazingOf(draft),
+    ...grillesOf(draft),
     accessories,
   };
 }
@@ -427,6 +445,7 @@ function toQuoteLine(draft: Draft, catalog: QuoteCatalog | null): QuoteLineInput
       qty: draft.qty,
       ...colourOf(draft),
       glazing: glazingOf(draft),
+      ...grillesOf(draft),
       accessories: draftAccessories(draft, catalog),
       layout: draft.layout,
       ...(draft.preset ? { preset: draft.preset } : {}),
@@ -501,6 +520,7 @@ function toQuoteLine(draft: Draft, catalog: QuoteCatalog | null): QuoteLineInput
     qty: draft.qty,
     ...colourOf(draft),
     glazing: glazingOf(draft),
+    ...grillesOf(draft),
     layout: draft.layout,
     ...(draft.preset ? { preset: draft.preset } : {}),
     ...(draft.welded_bm
@@ -545,7 +565,9 @@ function applyDraftOptions(spec: QuoteLineInput, draft: Draft, catalog: QuoteCat
     (Array.isArray(items) ? items : []).filter((item) => !DRAFT_ACCESSORY_KINDS.has(String(recordValue(item).kind || "")));
   const applyToWindow = (value: unknown, withAccessories: boolean) => {
     const lite = recordValue(value);
-    const next: Record<string, unknown> = { ...lite, ...colours, glazing: { ...glazing } };
+    const { grilles: _previousGrilles, ...rest } = lite;
+    void _previousGrilles;
+    const next: Record<string, unknown> = { ...rest, ...colours, glazing: { ...glazing }, ...grillesOf(draft) };
     if (withAccessories) next.accessories = [...withoutDraftAccessories(lite.accessories), ...accessories.map((item) => ({ ...item }))];
     return next;
   };
@@ -566,7 +588,11 @@ function applyDraftOptions(spec: QuoteLineInput, draft: Draft, catalog: QuoteCat
       // Bays take the wood jamb only; bay brickmould is the welded option.
       const jamb = jambAccessory(draft, catalog);
       const bayAccessories = [...withoutDraftAccessories(raw.accessories), ...(jamb ? [jamb] : [])];
-      if (raw.layout) return { ...spec, ...colours, glazing: { ...glazing }, accessories: bayAccessories };
+      if (raw.layout) {
+        const { grilles: _previousGrilles, ...bay } = raw;
+        void _previousGrilles;
+        return { ...bay, type: "bay_bow", ...colours, glazing: { ...glazing }, ...grillesOf(draft), accessories: bayAccessories } as QuoteLineInput;
+      }
       return { ...spec, lites: Array.isArray(raw.lites) ? raw.lites.map((lite) => applyToWindow(lite, false)) : raw.lites };
     }
     case "patio_sliding":
