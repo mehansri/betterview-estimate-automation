@@ -79,6 +79,20 @@ def test_mullions_are_reinforced_past_66_tall_from_48_wide(w, h, ops, reinforced
     assert any("reinforcement mullion" in label for label in labels) is reinforced
 
 
+def test_a_4_1_2_inch_window_jamb_bills_at_the_stock_rate() -> None:
+    # Orders 125401074 (Frank Hanna) and 125401101 (Dorothy): 4 1/2" jambs at
+    # 4.00/lf, not the book's 10.00 custom row (>4 1/4" to 7 1/2").
+    line = {**_single("awning", 48, 42), "accessories": [
+        {"kind": "brickmould", "name": '1" brickmould (classic)'},
+        {"kind": "wood_jamb", "name": '4 1/2"', "depth_in": 4.5, "finish": "primed"}]}
+    jamb = [c for c in price_quote({"lines": [line]})["lines"][0]["components"] if "wood jamb" in c["label"]][0]
+    assert jamb["label"].startswith('4.5" stock wood jamb') and "@ 4.00" in jamb["label"]
+    # Other custom depths keep the book's custom rows.
+    custom = {**line, "accessories": [{"kind": "wood_jamb", "name": '4 3/4"', "depth_in": 4.75}]}
+    other = [c for c in price_quote({"lines": [custom]})["lines"][0]["components"] if "wood jamb" in c["label"]][0]
+    assert "@ 10.00" in other["label"]
+
+
 def test_triple_pane_past_35_sqft_carries_the_6mm_charge() -> None:
     q = price_quote({"lines": [_single("fixed", 84, 72)]})
     assert any(c["label"].startswith("Oversize glass 6mm") for c in q["lines"][0]["components"])
