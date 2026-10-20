@@ -201,6 +201,8 @@ def test_standing_defaults_ride_on_every_opening():
     brickmould = next(item for item in double["line_items"] if item["row"] == "Brickmould")
     assert hinges["list"] == 120.0
     assert '101"' in brickmould["description"]
+    # The customer line leaves the length off: 'Regular 2" or Flat 1-1/2" ... Brickmould'.
+    assert brickmould["customer_description"].startswith('Regular 2" or Flat 1-1/2"')
 
 
 def test_design_names_the_pattern_without_moving_the_price():

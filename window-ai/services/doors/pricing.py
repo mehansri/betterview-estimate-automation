@@ -322,6 +322,10 @@ class DoorQuote:
                     "qty": qty,
                 }
             )
+            # The customer reads 'Regular 2" or Flat 1-1/2" Stained Brickmould'; the
+            # 84"/101" length stays on the internal line for the order.
+            item = self.items[-1]
+            item["customer_description"] = re.sub(r'^\d+"\s*', "", item["customer_description"])
         except DoorLookupError:
             # Standard white brickmould is not a priced line — only painted,
             # stained and the 101" lengths are upcharges — so it ships
