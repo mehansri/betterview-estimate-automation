@@ -37,7 +37,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     "company": {
         "name": "Better View Solutions Inc.",
         "phone": "647-326-0613",
-        "email": "info@betterview.ca",
+        "email": "sales@betterview.ca",
         "address": "1 Greensboro Dr, Suite 308 · Etobicoke, ON M9W 1C8",
         "website": "",
         # Printed on every customer estimate, portal and PDF.

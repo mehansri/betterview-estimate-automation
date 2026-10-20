@@ -787,6 +787,12 @@ export function selectionSummary(catalog: PipelineCatalog, sel: PipelineSelectio
   ].filter(Boolean) as string[];
 }
 
+/** A door's labelled spec lines (none for doors priced before them, or classic price-book doors);
+ *  mirrors door_spec_lines in services/estimate_documents.py. */
+export function doorSpecLines(opening: { scope?: string; details?: string[] }): string[] {
+  return opening.scope ? opening.details ?? [] : [];
+}
+
 /** "Frame system: 6'8" - ..." -> ["Frame system", "6'8" - ..."]; null for a line without a label (as door_specs in estimate_documents.py). */
 export function specPair(line: string): [string, string] | null {
   const at = line.indexOf(": ");

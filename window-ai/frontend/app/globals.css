@@ -167,6 +167,7 @@ button, input, select, textarea { max-width: 100%; }
 .estimate-table-compact td:first-child { font-weight: 500; }
 /* A door may run onto the next page; its heading and spec lines stay with its first price lines. */
 .estimate-door-opening { margin-top: 0.9rem; }
+.estimate-door-opening + .estimate-door-opening { margin-top: 1.4rem; }
 /* Sketch | title | price, with the spec lines under the title across to the price (as the PDF). */
 .estimate-door-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; break-inside: avoid; break-after: avoid; }
 .estimate-door-heading .estimate-door-title { grid-column: 2; grid-row: 1; min-width: 0; }

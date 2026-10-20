@@ -907,6 +907,8 @@ export type EstimateCollectionCopy = { key: string; title: string; summary: stri
 /** Standing customer-document copy from Settings → Estimate document and the company GST/HST number. */
 export type EstimateDocumentCopy = {
   gst_number: string;
+  /** Company contact from Settings (absent from responses before 2026-10-20). */
+  company?: { name: string; phone: string; email: string; address: string; website: string };
   general_notes: string[];
   /** This estimate's terms of payment, else the company default. */
   payment_terms: string[];

@@ -177,8 +177,11 @@ def document_copy(row) -> dict[str, Any]:
     typed_terms = _copy_lines(getattr(row, "payment_terms", None))
     # The estimate's own schedule wins; then terms typed before schedules existed; then the company default.
     schedule = own_schedule or (None if typed_terms else default_schedule)
+    company = business_settings.get_group("company")
     return {
-        "gst_number": str(business_settings.get_group("company").get("gst_number") or "").strip(),
+        "gst_number": str(company.get("gst_number") or "").strip(),
+        # The builder's preview prints these in its contact bar and footer, as the PDF does.
+        "company": {key: str(company.get(key) or "") for key in ("name", "phone", "email", "address", "website")},
         "general_notes": _for_interior(
             _general_notes(settings, bool(items), bool(door_specs)), [spec for spec, _ in items], door_specs),
         "payment_terms": payment_schedule.terms_lines(schedule) if schedule else typed_terms,
@@ -188,6 +191,11 @@ def document_copy(row) -> dict[str, Any]:
         "default_payment_schedule": default_schedule,
         "collections": product_collections(items),
     }
+
+
+def door_spec_lines(opening: dict[str, Any]) -> list[str]:
+    """A door's labelled spec lines (none for doors priced before them, or classic price-book doors)."""
+    return list(opening.get("details") or []) if opening.get("scope") else []
 
 
 def _company_schedule(settings: dict[str, Any]) -> list[dict[str, Any]]:
@@ -448,7 +456,8 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
     from reportlab.lib.pagesizes import LETTER
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import inch
-    from reportlab.platypus import CondPageBreak, Image, Indenter, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (BaseDocTemplate, CondPageBreak, Frame, Image, Indenter, KeepTogether, NextPageTemplate,
+                                    PageTemplate, Paragraph, Spacer, Table, TableStyle)
 
     blue, navy, muted = (colors.HexColor(PDF_BRAND[key]) for key in ("blue", "navy", "muted"))
     line_colour, soft, text_colour, row_rule = (colors.HexColor(PDF_BRAND[key]) for key in ("line", "soft", "text", "row"))
@@ -487,7 +496,10 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
     buffer = io.BytesIO()
     margin = 0.5 * inch
     footer_height = 0.34 * inch
-    doc = SimpleDocTemplate(
+    # US Letter. Page 1 opens with the letterhead; later pages carry a running header (company,
+    # phone · email, website) above a shorter frame. Every page has the footer.
+    header_height = 0.42 * inch
+    doc = BaseDocTemplate(
         buffer, pagesize=LETTER, leftMargin=margin, rightMargin=margin,
         topMargin=0.4 * inch, bottomMargin=margin + footer_height + 4,
         title=f"Estimate {view.get('estimate_number') or ''}".strip(), author=company.get("name", ""),
@@ -699,27 +711,26 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
             rows: list[list[Any]] = [([sketch] if lead else []) + [title_cell, p(_money(_before_discount(opening)), h3_right)]]
             style = [("VALIGN", (0, 0), (-1, -1), "TOP"),
                      ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]
-            if opening.get("scope") and opening.get("details"):
-                # Spec lines one per row, label | value (as the QuickBooks estimates), under the title
-                # and across to the price column; the sketch spans both rows.
-                rows.append(([""] if lead else []) + [door_specs(opening["details"], inner - lead), ""])
+            specs = door_spec_lines(opening)
+            if specs:
+                # Label | value rows under the title, across to the price column; the sketch spans both rows.
+                rows.append(([""] if lead else []) + [door_specs(specs, inner - lead), ""])
                 first = 1 if lead else 0
                 style += [("SPAN", (first, 1), (-1, 1)), ("TOPPADDING", (first, 1), (-1, 1), 6)]
                 if lead:
                     style.append(("SPAN", (0, 0), (0, 1)))
             heading = Table(rows, colWidths=widths)
             heading.setStyle(TableStyle(style))
-            items = [[p(item.get("description"), cell), p(item.get("qty"), cell_right),
-                      p(_money(item.get("unit_price")), cell_right), p(_money(item.get("line_total")), cell_strong_right)]
-                     for item in opening.get("items") or []]
-            # The heading (with its spec lines) keeps its first price lines; the rest may run onto
-            # the next page, so a tall door no longer leaves the page before it empty.
-            item_widths = [inner - 2.85 * inch, 0.45 * inch, 1.2 * inch, 1.2 * inch]
-            block: list[Any] = [heading]
-            if items:
-                block += [Spacer(1, 8), product_table(items[:2], item_widths, header=False)]
-            story.extend(padded([KeepTogether(block),
-                                 *([product_table(items[2:], item_widths, header=False)] if items[2:] else [])], top=12))
+            # One price per door (as the QuickBooks estimates); its parts are listed, unpriced.
+            items = [[p(item.get("description"), cell), p(item.get("qty"), cell_right)]
+                     for item in opening.get("items") or [] if item.get("description")]
+            included = [heads("Includes", "Qty"), *items]
+            item_widths = [inner - 0.6 * inch, 0.6 * inch]
+            # The heading starts a page only with room for its first parts under it; the list
+            # may then run onto the next page, repeating its header there.
+            needed = heading.wrap(inner, doc.height)[1] + (6 + 3 * 22 if items else 0)
+            parts = [Spacer(1, 6), product_table(included, item_widths)] if items else []
+            story.extend(padded([CondPageBreak(needed), heading, *parts], top=12))
 
     adders = (sections.get("adders") or {}).get("lines") or []
     if adders:
@@ -859,5 +870,28 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         canvas.drawRightString(x + width - pad, baseline, right_text)
         canvas.restoreState()
 
-    doc.build(story, onFirstPage=footer, onLaterPages=footer)
+    def running_header(canvas, document) -> None:
+        """Company, phone · email and website across the top of every page after the letterhead."""
+        footer(canvas, document)
+        canvas.saveState()
+        x, top = document.leftMargin + 6, LETTER[1] - document.topMargin
+        baseline = top - 12
+        canvas.setFont("Helvetica-Bold", 9)
+        canvas.setFillColor(navy)
+        canvas.drawString(x + pad, baseline, footer_items[0] or "")
+        canvas.setFont("Helvetica", 8.5)
+        canvas.setFillColor(muted)
+        canvas.drawCentredString(x + width / 2, baseline, footer_items[1] or "")
+        canvas.drawRightString(x + width - pad, baseline, footer_items[2] or "")
+        canvas.setStrokeColor(blue)
+        canvas.setLineWidth(1.5)
+        canvas.line(x, top - 20, x + width, top - 20)
+        canvas.restoreState()
+
+    doc.addPageTemplates([
+        PageTemplate("letterhead", [Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="letterhead")], onPage=footer),
+        PageTemplate("continued", [Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height - header_height, id="continued")],
+                     onPage=running_header),
+    ])
+    doc.build([NextPageTemplate("continued"), *story])
     return buffer.getvalue()

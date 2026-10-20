@@ -9,7 +9,7 @@ import {
   type FinancingOptions,
   type PublicEstimate,
 } from "@/lib/api";
-import { specPair } from "@/lib/doorPipeline";
+import { doorSpecLines, specPair } from "@/lib/doorPipeline";
 import SignaturePad from "@/components/SignaturePad";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import { DoorGeometryDrawing } from "@/components/DoorDrawing";
@@ -602,12 +602,12 @@ export default function CustomerPortal({ token }: { token: string }) {
                         {details ? <p className="mt-0.5 text-xs text-slate-600">{details}</p> : null}
                       </div>
                       <p className="col-start-3 row-start-1 ml-3 text-sm font-semibold tabular-nums text-slate-900">{money(opening.base_subtotal ?? opening.subtotal)}</p>
-                      {opening.scope && opening.details?.length ? (
+                      {doorSpecLines(opening).length ? (
                         <dl className="col-span-3 row-start-2 mt-2 border-t border-slate-200 text-xs sm:col-span-2 sm:col-start-2">
-                          {opening.details.map((line) => {
+                          {doorSpecLines(opening).map((line, index) => {
                             const pair = specPair(line);
                             return (
-                              <div key={line} className="grid gap-0.5 border-b border-slate-200 py-1.5 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-3">
+                              <div key={index} className="grid gap-0.5 border-b border-slate-200 py-1.5 last:border-b-0 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-3">
                                 {pair ? <><dt className="font-semibold text-slate-900">{pair[0]}</dt><dd className="text-slate-700">{pair[1]}</dd></> : <dd className="text-slate-700 sm:col-span-2">{line}</dd>}
                               </div>
                             );
@@ -615,18 +615,26 @@ export default function CustomerPortal({ token }: { token: string }) {
                         </dl>
                       ) : null}
                     </div>
-                    <div className="mt-1 px-1">
-                      <LineTable
-                        caption={`Door item ${openingIndex + 1}: ${opening.scope || opening.label}`}
-                        rows={(opening.items ?? []).map((item, index) => ({
-                          key: `${opening.id}-${index}`,
-                          title: item.description,
-                          qty: item.qty,
-                          unit: item.unit_price,
-                          amount: item.line_total,
-                        }))}
-                      />
-                    </div>
+                    {/* One price per door (as the QuickBooks estimates); its parts are listed, unpriced. */}
+                    {opening.items?.length ? (
+                      <table className="mt-1 w-full text-left text-sm">
+                        <caption className="sr-only">{`Door item ${openingIndex + 1} includes`}</caption>
+                        <thead>
+                          <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                            <th scope="col" className="px-1 py-2 font-semibold">Includes</th>
+                            <th scope="col" className="px-1 py-2 text-right font-semibold">Qty</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {opening.items.map((item, index) => (
+                            <tr key={`${opening.id}-${index}`} className="align-top">
+                              <td className="px-1 py-2 text-slate-900">{item.description}</td>
+                              <td className="px-1 py-2 text-right tabular-nums text-slate-700">{item.qty}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : null}
                   </div>
                 );
               })}

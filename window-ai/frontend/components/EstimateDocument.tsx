@@ -8,7 +8,7 @@ import { DoorGeometryDrawing } from "@/components/DoorDrawing";
 import { layoutFromLegacySpec } from "@/lib/windowLayout";
 import { specExteriorColour } from "@/lib/productOptions";
 import { scheduleTermsLines } from "@/lib/paymentSchedule";
-import { specPair } from "@/lib/doorPipeline";
+import { doorSpecLines, specPair } from "@/lib/doorPipeline";
 
 const BRAND = {
   blue: "#248fd0",
@@ -119,6 +119,8 @@ export default function EstimateDocument({
   const sections = pricing?.sections;
   const totals = pricing?.totals;
   const copy = estimate.document;
+  // Settings → Company; the fallback covers responses from before the API sent it.
+  const company = copy?.company ?? { name: "Better View Solutions Inc.", phone: "647-326-0613", email: "sales@betterview.ca", address: "1 Greensboro Dr, Suite 308 · Etobicoke, ON M9W 1C8", website: "" };
   // As document_copy: the draft's schedule, then terms typed before schedules, then the company default.
   const defaultPaymentTerms = copy?.default_payment_terms ?? copy?.payment_terms ?? [];
   const paymentTerms = estimate.payment_schedule?.length
@@ -144,9 +146,9 @@ export default function EstimateDocument({
       </header>
 
       <div className="estimate-contact-bar">
-        <span>647-326-0613</span>
-        <span>info@betterview.ca</span>
-        <span>1 Greensboro Dr, Suite 308 · Etobicoke, ON M9W 1C8</span>
+        <span>{company.phone}</span>
+        <span>{company.email}</span>
+        <span>{company.address}</span>
         {copy?.gst_number ? <span>GST/HST No. {copy.gst_number}</span> : null}
       </div>
 
@@ -203,15 +205,18 @@ export default function EstimateDocument({
                   <span>Configure</span>
                 </button>
               ) : <span className="estimate-door-sketch"><DoorGeometryDrawing geometry={opening.drawing} size={96} /></span>) : null}<div className="estimate-door-title"><h3>{`Item ${openingIndex + 1} · ${opening.scope || opening.label}`}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p></div><strong className="estimate-door-price">{money(opening.base_subtotal ?? opening.subtotal)}</strong>
-                {opening.scope && opening.details?.length ? (
+                {doorSpecLines(opening).length ? (
                   <dl className="estimate-door-specs">
-                    {opening.details.map((line) => {
+                    {doorSpecLines(opening).map((line, index) => {
                       const pair = specPair(line);
-                      return pair ? <div key={line}><dt>{pair[0]}</dt><dd>{pair[1]}</dd></div> : <div key={line}><dd className="estimate-door-spec-note">{line}</dd></div>;
+                      return pair ? <div key={index}><dt>{pair[0]}</dt><dd>{pair[1]}</dd></div> : <div key={index}><dd className="estimate-door-spec-note">{line}</dd></div>;
                     })}
                   </dl>
                 ) : null}</div>
-              <table className="estimate-table estimate-table-compact"><tbody>{opening.items.map((item, index) => <tr key={`${opening.id}-${index}`}><td data-label="Description">{item.description}</td><td data-label="Qty" className="text-right">{item.qty}</td><td data-label="Unit" className="text-right">{money(item.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(item.line_total)}</td></tr>)}</tbody></table>
+              {/* One price per door (as the QuickBooks estimates); its parts are listed, unpriced. */}
+              {opening.items.length ? (
+                <table className="estimate-table estimate-table-compact"><thead><tr><th className="text-left">Includes</th><th className="text-right">Qty</th></tr></thead><tbody>{opening.items.map((item, index) => <tr key={`${opening.id}-${index}`}><td data-label="Includes">{item.description}</td><td data-label="Qty" className="text-right">{item.qty}</td></tr>)}</tbody></table>
+              ) : null}
             </div>
           ))}
         </section>
@@ -291,9 +296,9 @@ export default function EstimateDocument({
       ) : null}
 
       <footer className="estimate-footer">
-        <span>Better View Solutions Inc.</span>
-        <span>647-326-0613 · info@betterview.ca</span>
-        <span>betterview.ca</span>
+        <span>{company.name}</span>
+        <span>{[company.phone, company.email].filter(Boolean).join(" · ")}</span>
+        <span>{company.website || company.email.split("@")[1] || ""}</span>
       </footer>
     </article>
   );

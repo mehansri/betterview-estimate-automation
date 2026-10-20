@@ -199,7 +199,9 @@ export default function ProjectEstimateBuilder({ estimateId }: { estimateId?: st
     fetchCustomerEstimate(estimateId)
       .then((loaded) => {
         setEstimate(loaded);
-        setNeedsReprice(false);
+        // Saved without a price (say the door builder's pricing call failed after saving):
+        // price it now, as after an edit, so the totals and Draft PDF come back on their own.
+        setNeedsReprice(!loaded.pricing);
         setAgreedTotalText(loaded.commercial.agreed_customer_total == null ? "" : String(loaded.commercial.agreed_customer_total));
         setManagerReason(loaded.commercial.manager_override_reason || "");
         setManagerToken("");
