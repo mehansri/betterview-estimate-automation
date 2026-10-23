@@ -337,6 +337,19 @@ def test_crm_link_is_kept_filterable_and_carried_into_revisions(tmp_path, monkey
     assert duplicate["crm_opportunity_id"] is None
 
 
+def test_draft_and_priced_estimates_can_be_duplicated(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    estimate_id = client.post("/api/customer-estimates", json=_draft()).json()["id"]
+    draft_copy = client.post(f"/api/customer-estimates/{estimate_id}/duplicate")
+    assert draft_copy.status_code == 200, draft_copy.text
+    assert draft_copy.json()["status"] == "draft"
+    assert client.post(f"/api/customer-estimates/{estimate_id}/price").status_code == 200
+    priced_copy = client.post(f"/api/customer-estimates/{estimate_id}/duplicate").json()
+    assert priced_copy["status"] == "draft"
+    assert priced_copy["id"] != estimate_id
+    assert len(priced_copy["windows"]) == len(client.get(f"/api/customer-estimates/{estimate_id}").json()["windows"])
+
+
 def test_quote_first_project_can_be_linked_after_finalizing(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
     estimate_id = client.post("/api/customer-estimates", json=_draft()).json()["id"]

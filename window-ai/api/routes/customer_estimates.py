@@ -607,11 +607,9 @@ def apply_variation(estimate_id: str, body: ApplyVariationRequest) -> ApplyVaria
 
 @router.post("/{estimate_id}/duplicate", response_model=CustomerEstimateResponse)
 def duplicate_customer_estimate(estimate_id: str) -> CustomerEstimateResponse:
-    """An independent copy (e.g. a similar job for another customer)."""
+    """An independent copy (e.g. a similar job for another customer), from a draft or a finalized estimate."""
     with get_session() as session:
         source = _get_row(session, estimate_id)
-        if source.status not in LOCKED_STATUSES:
-            raise HTTPException(status_code=409, detail="Only finalized estimates can be duplicated")
         row = CustomerEstimate(**_copy_fields(source))
         session.add(row)
         session.flush()
