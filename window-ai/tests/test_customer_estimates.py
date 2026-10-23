@@ -350,6 +350,20 @@ def test_draft_and_priced_estimates_can_be_duplicated(tmp_path, monkeypatch):
     assert len(priced_copy["windows"]) == len(client.get(f"/api/customer-estimates/{estimate_id}").json()["windows"])
 
 
+def test_priced_estimate_can_be_revised_and_keeps_the_original(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    original = client.post("/api/customer-estimates", json=_draft()).json()
+    assert client.post(f"/api/customer-estimates/{original['id']}/price").status_code == 200
+    revision = client.post(f"/api/customer-estimates/{original['id']}/revise")
+    assert revision.status_code == 200, revision.text
+    assert revision.json()["revision_of"] == original["id"]
+    assert revision.json()["revision_number"] == 2
+    assert revision.json()["status"] == "draft"
+    assert client.get(f"/api/customer-estimates/{original['id']}").json()["status"] == "priced"
+    revisions = client.get(f"/api/customer-estimates/{original['id']}/revisions").json()
+    assert [row["revision_number"] for row in revisions] == [1, 2]
+
+
 def test_quote_first_project_can_be_linked_after_finalizing(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
     estimate_id = client.post("/api/customer-estimates", json=_draft()).json()["id"]

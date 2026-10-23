@@ -619,11 +619,13 @@ def duplicate_customer_estimate(estimate_id: str) -> CustomerEstimateResponse:
 
 @router.post("/{estimate_id}/revise", response_model=CustomerEstimateResponse)
 def revise_customer_estimate(estimate_id: str) -> CustomerEstimateResponse:
-    """A new editable revision of the same offer, linked to the original."""
+    """A new editable revision of the same offer, linked to the original.
+
+    Drafts and priced estimates can be revised too, so the CRM can keep the
+    version it imported unchanged while the rep edits a copy of it.
+    """
     with get_session() as session:
         source = _get_row(session, estimate_id)
-        if source.status not in LOCKED_STATUSES:
-            raise HTTPException(status_code=409, detail="Only finalized estimates need a revision; edit the draft directly")
         if source.status == "accepted":
             raise HTTPException(status_code=409, detail="Accepted estimates cannot be revised; duplicate it for new work")
         root_id = source.revision_of or source.id
