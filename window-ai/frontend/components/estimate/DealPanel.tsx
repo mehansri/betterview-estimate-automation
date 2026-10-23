@@ -87,6 +87,7 @@ export default function DealPanel({
   presetId,
   onPresetChange,
   discount,
+  maxDiscount,
   onDiscountChange,
   pricing,
   stale,
@@ -106,6 +107,8 @@ export default function DealPanel({
   presetId: string;
   onPresetChange: (presetId: string) => void;
   discount: number;
+  /** The limit known before a price lands (e.g. from a refused quote); the price's own limit wins. */
+  maxDiscount?: number;
   onDiscountChange: (percent: number) => void;
   pricing: boolean;
   stale: boolean;
@@ -129,7 +132,7 @@ export default function DealPanel({
   const hstRate = totals?.sell ? totals.hst / totals.sell : 0.13;
   const configuredCap = sp?.configured_max_discount_percent ?? preset?.max_discount_percent ?? 0;
   const floorCap = sp?.floor_derived_max_discount_percent ?? configuredCap;
-  const allowedMax = sp?.maximum_allowed_discount_percent ?? configuredCap;
+  const allowedMax = sp?.maximum_allowed_discount_percent ?? maxDiscount ?? configuredCap;
   const percent = Math.max(-MAX_PRICE_INCREASE_PERCENT, discount);
   const raising = percent < -1e-9;
   const overLimit = percent > allowedMax + 1e-9;
@@ -171,9 +174,18 @@ export default function DealPanel({
     else onDiscountChange(cap(((baseMerch + protectedInstall - value / (1 + hstRate)) / baseMerch) * 100));
   }
 
-  // Keep the field freely editable without repricing on each keystroke.
+  // A % applies as it is typed (the pages debounce the reprice), so the price
+  // never sits on a discount the box no longer shows. $ and Total apply on
+  // Enter or leaving the field, since they convert through the last price.
+  function edit(value: string) {
+    setText(value);
+    const parsed = parseFloat(value);
+    if (negotiationMode === "percent" && Number.isFinite(parsed)) onDiscountChange(Math.max(-MAX_PRICE_INCREASE_PERCENT, parsed));
+  }
+
   useEffect(() => {
-    if (negotiationMode === "percent") setText(String(discount));
+    // Keep a half-typed entry ("0.", "-") that already means this discount.
+    if (negotiationMode === "percent") setText((current) => (parseFloat(current) === discount ? current : String(discount)));
     else if (negotiationMode === "dollars") setText(String(Number(previewDiscount.toFixed(2))));
     else setText(String(Number(previewTotal.toFixed(2))));
   }, [negotiationMode, discount, previewDiscount, previewTotal]);
@@ -252,7 +264,7 @@ export default function DealPanel({
                 value={text}
                 disabled={negotiationMode !== "percent" && !priced}
                 aria-label={negotiationMode === "percent" ? "Discount percent (negative raises the price)" : negotiationMode === "dollars" ? "Discount dollars (negative raises the price)" : "Customer total including tax"}
-                onChange={(event) => setText(event.target.value)}
+                onChange={(event) => edit(event.target.value)}
                 onBlur={commit}
                 onKeyDown={(event) => { if (event.key === "Enter") (event.target as HTMLInputElement).blur(); }}
               />

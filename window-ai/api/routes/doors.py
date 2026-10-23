@@ -9,7 +9,7 @@ from api.security import manager_authorized
 from services.doors.catalog import catalog_payload
 from services.doors.presentation import customer_door_presentation
 from services.doors.pricing import DoorLookupError, DoorValidationError, load_config, project_cost, quote_project
-from services.windowcity.sales import SalesPricingError
+from services.windowcity.sales import NegotiationLimitError, SalesPricingError
 
 
 router = APIRouter(prefix="/api/doors", tags=["doors"])
@@ -50,6 +50,12 @@ def door_quote(
         result = quote_project(
             specs, commercial=commercial, allow_manager_override=has_manager_override, cost_basis=cost_basis
         )
+    except NegotiationLimitError as exc:
+        # The page needs the real limit to ask for (or auto-send) an approval reason.
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "negotiation_limit", "message": str(exc), **exc.details},
+        ) from exc
     except (DoorLookupError, DoorValidationError, SalesPricingError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     result["customer_presentation"] = customer_door_presentation(result, specs)

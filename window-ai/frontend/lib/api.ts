@@ -1290,9 +1290,27 @@ export async function quoteDoors(openings: DoorOpeningSpec[], commercial?: Comme
   });
   if (!res.ok) {
     const detail = await res.text();
-    throw new Error(formatApiError(res.status, detail));
+    throw new DiscountLimitError(formatApiError(res.status, detail), discountLimitFrom(detail));
   }
   return res.json();
+}
+
+/** A refused quote; `maximumAllowedDiscountPercent` is set when the discount was over the floor. */
+export class DiscountLimitError extends Error {
+  constructor(message: string, readonly maximumAllowedDiscountPercent: number | null) {
+    super(message);
+  }
+}
+
+function discountLimitFrom(body: string): number | null {
+  try {
+    const limit = (JSON.parse(body) as { detail?: { code?: string; maximum_allowed_discount_percent?: number } }).detail;
+    return limit?.code === "negotiation_limit" && typeof limit.maximum_allowed_discount_percent === "number"
+      ? limit.maximum_allowed_discount_percent
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function createCustomerEstimate(draft: CustomerEstimateDraft): Promise<CustomerEstimate> {
