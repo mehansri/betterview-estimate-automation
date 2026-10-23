@@ -231,6 +231,10 @@ def test_door_quote_over_the_discount_limit_needs_manager_approval(monkeypatch):
     monkeypatch.delenv("PRICING_ADMIN_TOKEN", raising=False)
     refused = client.post("/api/doors/quote", json=body)
     assert refused.status_code == 422, refused.text
+    # The refusal carries the limit, so the page can send the approval reason.
+    limit = refused.json()["detail"]
+    assert limit["code"] == "negotiation_limit"
+    assert limit["maximum_allowed_discount_percent"] < 7.5
 
     approved = {**body, "commercial": {**body["commercial"], "manager_override_reason": "Over the discount limit (manager token off)"}}
     priced = client.post("/api/doors/quote", json=approved)

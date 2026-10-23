@@ -13,6 +13,7 @@ import {
   CustomerEstimateDraft,
   CommercialSettings,
   CustomerDoorOpening,
+  DiscountLimitError,
   DoorCatalog,
   DoorCatalogRow,
   DoorOpeningSpec,
@@ -413,6 +414,8 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
   const [salesPresets, setSalesPresets] = useState<SalesPreset[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState("standard");
   const [negotiatedDiscount, setNegotiatedDiscount] = useState(0);
+  // The limit a refused quote reported, for the doors and preset it was refused for.
+  const [refusedLimit, setRefusedLimit] = useState<{ key: string; percent: number } | null>(null);
   const [favourites, setFavourites] = useState<SavedTemplate<DoorFavourite>[]>([]);
   const [selectedFavouriteId, setSelectedFavouriteId] = useState("");
   const [favouritesBusy, setFavouritesBusy] = useState(false);
@@ -509,8 +512,13 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
     [salesPresets, selectedPresetId],
   );
   // A discount over the limit needs a manager approval reason (automatic while
-  // the manager token is off), the same as window quotes.
-  const allowedMax = result?.sales_pricing.maximum_allowed_discount_percent ?? selectedPreset?.max_discount_percent ?? 0;
+  // the manager token is off), the same as window quotes. The floor depends on
+  // the project cost, so until a price lands the limit comes from the refusal
+  // (a smaller door can leave far less room than the preset cap).
+  const pricingKey = JSON.stringify([selectedPreset?.id || selectedPresetId, buildPayload()]);
+  const allowedMax = result?.sales_pricing.maximum_allowed_discount_percent
+    ?? (refusedLimit?.key === pricingKey ? refusedLimit.percent : null)
+    ?? selectedPreset?.max_discount_percent ?? 0;
   const needsOverride = Math.max(-MAX_PRICE_INCREASE_PERCENT, negotiatedDiscount) > allowedMax + 1e-9;
   const approvalReason = needsOverride ? overrideReasonFor(overrideReason, managerTokenRequired) : "";
   const approvalMissing = needsOverride && (!approvalReason || (managerTokenRequired && !managerToken.trim()));
@@ -518,9 +526,15 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
   const commercial: CommercialSettings = {
     preset_id: selectedPreset?.id || selectedPresetId,
     negotiated_discount_percent: negotiatedDiscount,
-    ...(approvalReason ? { manager_override_reason: approvalReason } : {}),
+    // Always set, so an approval saved with an earlier discount is not carried into the project.
+    manager_override_reason: approvalReason || undefined,
     presentation_mode: "internal",
   };
+  function rememberRefusedLimit(reason: unknown, key: string) {
+    if (reason instanceof DiscountLimitError && reason.maximumAllowedDiscountPercent != null) {
+      setRefusedLimit({ key, percent: reason.maximumAllowedDiscountPercent });
+    }
+  }
   const approvalMessage = `This discount (${negotiatedDiscount.toFixed(1)}%) is over your limit (${allowedMax.toFixed(1)}%). Enter a manager approval reason${managerTokenRequired ? " and authorization token" : ""}, or reduce the discount.`;
   // The sliding margin and profit floor are set on the whole project: price
   // these openings with the project's windows (and its other doors when adding).
@@ -543,6 +557,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
       setAutoPriceError(approvalMessage);
       return;
     }
+    const key = pricingKey;
     const timer = setTimeout(() => {
       quoteDoors(payload, commercial, costContext, approvalToken)
         .then((response) => {
@@ -553,12 +568,13 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
         })
         .catch((reason) => {
           if (autoPriceRequestRef.current !== requestId) return;
+          rememberRefusedLimit(reason, key);
           setAutoPriceError(reason instanceof Error ? reason.message : "The live price could not be updated.");
         });
     }, 600);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, pipe, openingLabel, editorMode, openings, catalog, selectedPresetId, negotiatedDiscount, approvalReason, approvalToken]);
+  }, [draft, pipe, openingLabel, editorMode, openings, catalog, selectedPresetId, negotiatedDiscount, allowedMax, approvalReason, approvalToken]);
 
   async function saveFavourite() {
     if (!activeSpec) return;
@@ -704,6 +720,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
       })));
       setResult(response);
     } catch (reason) {
+      rememberRefusedLimit(reason, pricingKey);
       setError(reason instanceof Error ? reason.message : "Could not price this door opening.");
     } finally {
       setLoading(false);
@@ -1027,6 +1044,7 @@ export default function DoorQuoteBuilder({ projectId, editDoors = false, editDoo
               setResult(null);
             }}
             discount={negotiatedDiscount}
+            maxDiscount={allowedMax}
             onDiscountChange={setNegotiatedDiscount}
             override={{ reason: overrideReason, token: managerToken, tokenRequired: managerTokenRequired, onReason: setOverrideReason, onToken: setManagerToken, applied: Boolean(result?.sales_pricing.override_applied) }}
             pricing={loading}
