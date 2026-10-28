@@ -6,7 +6,7 @@ import time
 from contextlib import contextmanager
 from typing import Generator, Iterator
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, make_url, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -23,15 +23,25 @@ def get_database_url() -> str:
     )
 
 
+def connect_args_for(url: str) -> dict:
+    connect_args: dict = {}
+    # SQLite needs check_same_thread=False for tests
+    if url.startswith("sqlite"):
+        connect_args["check_same_thread"] = False
+    # psycopg 3 prepares repeated queries on the server connection, but the
+    # production database sits behind a transaction pooler that hands each
+    # transaction to any server connection: "prepared statement _pg3_0 does
+    # not exist / already exists". None turns preparing off.
+    if make_url(url).get_driver_name() == "psycopg":
+        connect_args["prepare_threshold"] = None
+    return connect_args
+
+
 def get_engine(echo: bool = False) -> Engine:
     global _engine, _SessionLocal
     if _engine is None:
         url = get_database_url()
-        # SQLite needs check_same_thread=False for tests
-        connect_args = {}
-        if url.startswith("sqlite"):
-            connect_args["check_same_thread"] = False
-        _engine = create_engine(url, echo=echo, future=True, connect_args=connect_args)
+        _engine = create_engine(url, echo=echo, future=True, connect_args=connect_args_for(url))
         _SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
     return _engine
 

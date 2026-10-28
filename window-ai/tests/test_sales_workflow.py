@@ -468,6 +468,15 @@ def test_ensure_schema_runs_init_db_only_when_the_models_change(tmp_path, monkey
     reset_engine()
 
 
+def test_psycopg_connections_do_not_prepare_statements_behind_the_pooler():
+    from db.session import connect_args_for
+
+    assert connect_args_for("postgresql+psycopg://u:p@pooler.example.com:6543/postgres") == {"prepare_threshold": None}
+    # psycopg2 (plain postgresql://) has no such option.
+    assert connect_args_for("postgresql://u:p@localhost:5432/windowai") == {}
+    assert connect_args_for("sqlite:///local.db") == {"check_same_thread": False}
+
+
 def test_follow_up_draft_uses_template_without_ai(client, monkeypatch):
     monkeypatch.setenv("FOLLOW_UP_AI", "off")
     estimate = _finalized(client, _draft(mixed=False))
