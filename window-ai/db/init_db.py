@@ -1,12 +1,14 @@
 """Create tables if they do not exist and add columns introduced later."""
 from __future__ import annotations
 
+import hashlib
 import json
 
-from sqlalchemy import inspect, text
+from sqlalchemy import delete, inspect, insert, select, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.schema import CreateIndex, CreateTable
 
-from db.models import Base
+from db.models import Base, SchemaState
 from db.session import get_engine
 from utils.logging import get_logger
 
@@ -73,6 +75,43 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     _add_missing_columns(engine)
     logger.info("Database tables ensured at %s", engine.url.render_as_string(hide_password=True))
+
+
+_SCHEMA_KEY = "models"
+
+
+def schema_fingerprint(engine: Engine) -> str:
+    """Hash of the DDL init_db() would create, so any model change alters it."""
+    digest = hashlib.sha256()
+    for table in Base.metadata.sorted_tables:
+        digest.update(str(CreateTable(table).compile(dialect=engine.dialect)).encode())
+        for index in sorted(table.indexes, key=lambda index: index.name or ""):
+            digest.update(str(CreateIndex(index).compile(dialect=engine.dialect)).encode())
+    return digest.hexdigest()
+
+
+def ensure_schema() -> bool:
+    """Run init_db() only when the models changed since it last ran; True if it ran.
+
+    init_db() inspects every table (about a hundred queries), which serverless
+    API instances would otherwise repeat on every cold start.
+    """
+    engine = get_engine()
+    fingerprint = schema_fingerprint(engine)
+    try:
+        with engine.connect() as connection:
+            applied = connection.execute(
+                select(SchemaState.fingerprint).where(SchemaState.key == _SCHEMA_KEY)
+            ).scalar_one_or_none()
+    except Exception:  # databases from before schema_state existed
+        applied = None
+    if applied == fingerprint:
+        return False
+    init_db()
+    with engine.begin() as connection:
+        connection.execute(delete(SchemaState).where(SchemaState.key == _SCHEMA_KEY))
+        connection.execute(insert(SchemaState).values(key=_SCHEMA_KEY, fingerprint=fingerprint))
+    return True
 
 
 if __name__ == "__main__":

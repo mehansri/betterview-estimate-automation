@@ -455,3 +455,15 @@ class CustomerEstimateCounter(Base):
 
     year: Mapped[int] = mapped_column(Integer, primary_key=True)
     next_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+
+class SchemaState(Base):
+    """Fingerprint of the models last applied by db.init_db.ensure_schema()."""
+
+    __tablename__ = "schema_state"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    applied_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

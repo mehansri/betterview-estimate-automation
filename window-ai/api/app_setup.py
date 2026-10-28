@@ -29,8 +29,8 @@ def cors_options() -> dict:
 def ensure_database() -> None:
     """Create new tables/columns so upgrades need no manual migration step."""
     try:
-        from db.init_db import init_db
+        from db.init_db import ensure_schema
 
-        init_db()
+        ensure_schema()
     except Exception as exc:  # never block startup; requests will surface the error
         logger.warning("database initialization skipped: %s", exc)

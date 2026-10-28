@@ -432,6 +432,42 @@ def test_init_db_adds_new_columns_to_an_existing_database(tmp_path, monkeypatch)
     reset_engine()
 
 
+def test_ensure_schema_runs_init_db_only_when_the_models_change(tmp_path, monkeypatch):
+    url = f"sqlite:///{tmp_path / 'cold.db'}"
+    legacy = create_engine(url)
+    with legacy.begin() as connection:
+        connection.execute(text(
+            "CREATE TABLE customer_estimates (id CHAR(32) PRIMARY KEY, status VARCHAR(32) NOT NULL, "
+            "windows JSON NOT NULL, doors JSON NOT NULL, commercial JSON NOT NULL, "
+            "created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL)"
+        ))
+    legacy.dispose()
+
+    monkeypatch.setenv("DATABASE_URL", url)
+    import db.init_db as init_module
+    from db.session import reset_engine
+
+    calls = []
+    real_init_db = init_module.init_db
+    monkeypatch.setattr(init_module, "init_db", lambda: (calls.append(1), real_init_db())[1])
+    reset_engine()
+
+    # A database from before schema_state existed is migrated and fingerprinted.
+    assert init_module.ensure_schema() is True
+    engine = create_engine(url)
+    assert "province" in {column["name"] for column in inspect(engine).get_columns("customer_estimates")}
+    engine.dispose()
+    # Later cold starts skip the table inspection.
+    assert init_module.ensure_schema() is False
+    assert len(calls) == 1
+    # A changed model (here, a stale fingerprint) runs it again.
+    monkeypatch.setattr(init_module, "schema_fingerprint", lambda engine: "changed")
+    assert init_module.ensure_schema() is True
+    assert init_module.ensure_schema() is False
+    assert len(calls) == 2
+    reset_engine()
+
+
 def test_follow_up_draft_uses_template_without_ai(client, monkeypatch):
     monkeypatch.setenv("FOLLOW_UP_AI", "off")
     estimate = _finalized(client, _draft(mixed=False))
