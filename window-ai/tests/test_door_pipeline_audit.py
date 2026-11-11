@@ -123,6 +123,22 @@ def test_c15_seven_foot_doors():
                     glass={"door": {"glazed": False}, "sidelites": [{"model": "oak-flush", "glazed": True, "size": "7x64", "family": "clear"}]}))
 
 
+def test_x10_direct_set_sidelites_come_at_every_height():
+    """Direct-set sidelites are made to width, and their glass pages print the 8' system (X10/A12)."""
+    direct = {"model": "direct-glazed-full-lite", "glazed": True, "size": '5.5"-13.5"', "family": "sandblast", "series": "sandblast"}
+    model = CATALOG["materials"]["fiberglass"]["sidelite_models"]
+    offers = next(item for item in model if item["key"] == "direct-glazed-full-lite")["offers"]
+    assert {offer["height"] for offer in offers} == {'6\'8"', '8\'0"'}
+    tall = _quote(_sel("fiberglass", height='8\'0"', width=42, model="1-panel-true-plank-dratp80", configuration="single_2sl", sidelite_width_in=9.75,
+                       glass={"door": {"glazed": False}, "sidelites": [direct, direct]}))
+    short = _quote(_sel("fiberglass", configuration="single_2sl", sidelite_width_in=9.75,
+                        glass={"door": {"glazed": False}, "sidelites": [direct, direct]}))
+    assert [line["unit_list"] for line in _lines(tall, "Direct-glazed")] == [line["unit_list"] for line in _lines(short, "Direct-glazed")]
+    assert _lines(tall, "8' System")[0]["qty"] == 2  # the two sidelites; the solid fiberglass 8' base includes the door's
+    assert any("Direct-set sidelite at 8'0\"" in note for note in tall["notes"])
+    assert not any("Direct-set sidelite at" in note for note in short["notes"])
+
+
 def test_w2_panel_selector_widths_steer_but_still_price():
     tao = next(model for model in CATALOG["materials"]["steel"]["models"] if model["key"] == "tao")
     assert all(offer["widths"] == [34, 36] for offer in tao["offers"])

@@ -679,6 +679,17 @@ def build_index(material: str) -> dict[str, Any]:
             target["glazed"][("std", '7\'0"')] = {size: rows[size] for size in FIBERGLASS_7FT_GLAZED["sizes"] if size in rows}
             target["derived"]['7\'0"'] = source["label"]
 
+    # Direct-set sidelites are glass set straight into the frame, made to the
+    # sidelite's width, so they also come on 8' doors: the glass pages that price
+    # them print "8'0" System +$375/box" (audit X10/A12), charged in step 2 like
+    # any sidelite. (Steel 7'0" already copies every 6'8" sidelite above.)
+    for entry in sidelites.values():
+        if not entry["direct_glazed"]:
+            continue
+        for (height, size), series_rows in list(entry["glazed"].items()):
+            if height == '6\'8"':
+                entry["glazed"].setdefault(('8\'0"', size), series_rows)
+
     # Offers per model.
     for model in doors.values():
         offers = []
@@ -1544,6 +1555,11 @@ def quote_pipeline(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, An
         quote.notes.append(
             "Direct-set sidelite: Palma prices the size bracket by the sidelite's overall width (frame width minus "
             "slab width), not the glass width — e.g. a 69\" frame with a 42\" slab is \"up to 27.5\"\"."
+        )
+    if height != '6\'8"' and any(part["kind"] == "glazed" and part["model"]["direct_glazed"] for part in plan["sidelites"]):
+        quote.notes.append(
+            f"Direct-set sidelite at {height}: priced from the 6'8\" direct-set table plus the {height} system, as the glass "
+            "pages print it. Confirm the tallest direct-set glass and the frame size with Palma."
         )
     for number, part in enumerate(plan["sidelites"], start=1):
         row_name = "Sidelite" if number == 1 else "Sidelite 2"
