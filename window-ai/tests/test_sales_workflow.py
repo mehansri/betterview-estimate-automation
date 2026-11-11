@@ -175,6 +175,57 @@ def test_apply_variation_rewrites_windows_it_fits(client):
     assert again.status_code == 422 and "already like this" in again.json()["detail"]
 
 
+def test_apply_variation_rewrites_descriptions_and_drops_a_lone_as_quoted_option(client):
+    from services.descriptions import window_description
+
+    draft = _draft(mixed=False)
+    first = draft["windows"][0]
+    # As the browser saves it: the generated text (lower-case gas) plus a hinge note.
+    generated = window_description({"spec": first["spec"]}).replace("Argon gas", "argon gas")
+    first["description"] = f"{generated} - Right hinge"
+    custom = copy.deepcopy(first)
+    custom.update(id="w2", location="Den", description="Picture window to match the neighbours")
+    slider = copy.deepcopy(first)
+    slider.update(id="w3", location="Kitchen")
+    slider["spec"].update(style="WC-200", width=48, height=36)
+    slider["description"] = window_description({"spec": slider["spec"]})
+    draft["windows"] += [custom, slider]
+    draft["tiers"] = [
+        {"id": "base", "name": "As quoted", "window_overrides": {"series": None, "glazing": {}, "colour_ext": None, "colour_int": None}, "line_groups": []},
+        {"id": "heritage", "name": "Heritage", "window_overrides": {"series": "heritage"}},
+    ]
+    estimate = _create(client, draft)
+    _price(client, estimate["id"])
+
+    body = client.post(f"/api/customer-estimates/{estimate['id']}/apply-variation", json={"tier_id": "heritage"}).json()
+    lines = {line["id"]: line for line in body["estimate"]["windows"]}
+    rewritten = lines[first["id"]]["description"]
+    assert rewritten.startswith("HC-101") and "WC-100" not in rewritten
+    assert rewritten.endswith(" - Right hinge")
+    assert lines["w2"]["description"] == "Picture window to match the neighbours"
+    assert lines["w3"]["description"] == slider["description"]  # sliders aren't made in Heritage: unchanged
+    # "As quoted" alone would only repeat the new quote.
+    assert body["estimate"]["tiers"] == []
+
+    priced = _price(client, estimate["id"])
+    customer_lines = priced["pricing"]["sections"]["windows"]["lines"]
+    assert customer_lines[0]["description"].startswith("HC-101")
+    assert not any("WC-100" in line["description"] for line in customer_lines)
+
+
+def test_apply_variation_keeps_as_quoted_beside_other_options(client):
+    draft = _draft(mixed=False)
+    draft["tiers"] = [
+        {"id": "base", "name": "As quoted", "window_overrides": {"series": None, "glazing": {}, "colour_ext": None, "colour_int": None}, "line_groups": []},
+        {"id": "heritage", "name": "Heritage", "window_overrides": {"series": "heritage"}},
+        {"id": "triple", "name": "Triple", "window_overrides": {"glazing": {"triple": True}}},
+    ]
+    estimate = _create(client, draft)
+    _price(client, estimate["id"])
+    body = client.post(f"/api/customer-estimates/{estimate['id']}/apply-variation", json={"tier_id": "heritage"}).json()
+    assert [tier["id"] for tier in body["estimate"]["tiers"]] == ["base", "triple"]
+
+
 def test_customer_portal_send_view_accept(client):
     draft = _draft()
     draft["tiers"] = [

@@ -284,6 +284,33 @@ def window_description(project_line: dict[str, Any]) -> str:
     return _with_custom_prefix(project_line.get("description"), generated)
 
 
+def refresh_window_description(description: Any, old_spec: dict[str, Any], new_spec: dict[str, Any]) -> str:
+    """A stored description after the line's product changed (e.g. a variation made the quote).
+
+    The stored text wins over the generated one when it contains it (see
+    _with_custom_prefix), so a description written for the old product would
+    keep naming it. Auto-generated text, which starts with what the old spec
+    generates (case aside; the frontend may add hinge notes after it), is
+    rewritten for the new spec, keeping those notes. Text that merely contains
+    the old generated text has that part replaced. Anything else is the rep's
+    own wording and stays.
+    """
+    stored = _text(description)
+    if not stored:
+        return stored
+    old = window_description({"spec": old_spec})
+    new = window_description({"spec": new_spec})
+    if not old or old == new:
+        return stored
+    folded, old_folded = stored.casefold(), old.casefold()
+    if folded.startswith(old_folded):
+        return new + stored[len(old):]
+    index = folded.find(old_folded)
+    if index >= 0:
+        return stored[:index] + new + stored[index + len(old):]
+    return stored
+
+
 OPENING_TYPE_LABELS = {
     "single_door": "Single door",
     "single_1_sidelite": "Single + 1 sidelite",

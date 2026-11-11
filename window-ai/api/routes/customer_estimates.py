@@ -37,6 +37,7 @@ from services.customer_estimates import (
     pricing_hash,
 )
 from services.address_key import address_key
+from services.descriptions import refresh_window_description
 from services.estimate_documents import customer_view, document_copy, render_pdf
 from services.payment_schedule import normalize as normalize_payment_schedule
 
@@ -568,6 +569,21 @@ def _copy_fields(source: CustomerEstimate) -> dict:
     )
 
 
+def _refreshed_description(before: dict | None, after: dict) -> dict:
+    if not before or (before.get("spec") or {}) == (after.get("spec") or {}):
+        return after
+    description = refresh_window_description(after.get("description"), before.get("spec") or {}, after.get("spec") or {})
+    return after if description == (after.get("description") or "") else {**after, "description": description}
+
+
+def _is_as_quoted_tier(tier: dict) -> bool:
+    """A variation that changes nothing: the estimate exactly as quoted."""
+    if tier.get("line_groups"):
+        return False
+    overrides = tier.get("window_overrides") or {}
+    return not any(value not in (None, "", {}, []) for value in overrides.values())
+
+
 @router.post("/{estimate_id}/apply-variation", response_model=ApplyVariationResponse)
 def apply_variation(estimate_id: str, body: ApplyVariationRequest) -> ApplyVariationResponse:
     """Make a variation the quoted product: rewrite every window line it fits.
@@ -584,11 +600,16 @@ def apply_variation(estimate_id: str, body: ApplyVariationRequest) -> ApplyVaria
         tier = next((item for item in tiers if str(item.get("id")) == body.tier_id), None)
         if tier is None:
             raise HTTPException(status_code=404, detail="That variation no longer exists")
+        before = {str(line.get("id")): line for line in row.windows or []}
         windows, report = apply_tier_checked(row.windows or [], tier)
         if not report["applied_lines"]:
             raise HTTPException(status_code=422, detail=nothing_applied_reason(report))
+        # The product changed, so a description generated for the old one would keep naming it.
+        windows = [_refreshed_description(before.get(str(line.get("id"))), line) for line in windows]
         row.windows = windows
-        row.tiers = [item for item in tiers if item is not tier]
+        remaining = [item for item in tiers if item is not tier]
+        # "As quoted" was there so the customer could pick the old product; alone it only repeats the new quote.
+        row.tiers = [] if remaining and all(_is_as_quoted_tier(item) for item in remaining) else remaining
         row.selected_tier = None
         row.status = "draft"
         row.pricing_snapshot = None
