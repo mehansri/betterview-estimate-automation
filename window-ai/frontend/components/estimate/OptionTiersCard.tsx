@@ -487,6 +487,8 @@ export default function OptionTiersCard({
 
   async function bake(tier: EstimateTier) {
     setConfirmingBake(null);
+    // "Added, along with As quoted…" no longer applies once the windows themselves change.
+    setNotice(null);
     if (!onBake) return;
     const result = await onBake(tier.id);
     if (result) setBaked({ name: tier.name, result });
