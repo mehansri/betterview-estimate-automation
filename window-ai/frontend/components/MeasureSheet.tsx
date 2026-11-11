@@ -520,6 +520,8 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
   const fieldRefs = useRef(new Map<string, HTMLElement>());
   const pendingFocus = useRef<{ rowKey: string; field: RowField } | null>(null);
   const leavingRef = useRef(false);
+  /** Claude's rows arrived on an otherwise empty sheet: add them by themselves and open the window configurator. */
+  const claudeAutoAdd = useRef<string[] | null>(null);
 
   // Load the estimate, catalog and measurement settings.
   useEffect(() => {
@@ -597,6 +599,7 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
     } catch {
       // storage unavailable: add them; the sheet warns that it isn't saved
     }
+    const otherRows = rows.filter((row) => !isBlankRow(row)).length;
     const added: MeasureRow[] = handoff.windows.map((item) => {
       const style = claudeStyleFor(item.type, catalog.layout);
       // A single casement or slider takes its hinge side on the line itself.
@@ -628,13 +631,21 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
     }
     const unmatched = handoff.windows.filter((item) => !claudeStyleFor(item.type, catalog.layout)).length;
     const count = added.reduce((total, row) => total + Number(row.qty), 0);
+    // Straight to the configurator when nothing needs a person first: every type matched, every
+    // window has a room, and no other rows were waiting on this sheet (they'd be added too).
+    if (!unmatched && !otherRows && handoff.windows.every((item) => item.location)) {
+      claudeAutoAdd.current = added.map((row) => row.key);
+      setClaudeNotice({ tone: "info", text: `Adding ${count} window${count === 1 ? "" : "s"} Claude drafted from the CRM, then opening the window configurator to check each one…` });
+      return;
+    }
+    const noRoom = handoff.windows.filter((item) => !item.location).length;
     const hingesOnLines = added.filter((row) => row.hinge).length;
     const extrasInRoom = added.some((row, index) => row.location !== handoff.windows[index].location);
     setClaudeNotice({
       tone: unmatched ? "warn" : "info",
-      text: `Added ${count} window${count === 1 ? "" : "s"} Claude drafted from the CRM. Check each row's room, style and size${extrasInRoom ? " (Claude's notes are in the room column: tidy them before adding, the room prints on the estimate)" : ""}, then press Add to estimate.${hingesOnLines ? ` Hinge sides go on the line${hingesOnLines === 1 ? "" : "s"} (check them on the project afterwards).` : ""}${unmatched ? ` ${unmatched} row${unmatched === 1 ? " has a type" : "s have types"} the sheet doesn't offer: choose the style (marked with ?).` : ""}`,
+      text: `Added ${count} window${count === 1 ? "" : "s"} Claude drafted from the CRM. Check each row's room, style and size${extrasInRoom ? " (Claude's notes are in the room column: tidy them before adding, the room prints on the estimate)" : ""}, then press Add to estimate.${hingesOnLines ? ` Hinge sides go on the line${hingesOnLines === 1 ? "" : "s"} (check them on the project afterwards).` : ""}${unmatched ? ` ${unmatched} row${unmatched === 1 ? " has a type" : "s have types"} the sheet doesn't offer: choose the style (marked with ?).` : ""}${noRoom ? ` ${noRoom} window${noRoom === 1 ? " has" : "s have"} no room: add ${noRoom === 1 ? "it" : "them"} before adding.` : ""}${otherRows ? " Rows already waiting on this sheet stay too, so check those before adding." : ""}`,
     });
-  }, [catalog, estimateId, hydrated, project, submission]);
+  }, [catalog, estimateId, hydrated, project, rows, submission]);
 
   // Rows created before the catalog arrived get the first catalog style.
   useEffect(() => {
@@ -686,6 +697,26 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
     () => rows.map((row) => analyseRow(row, defaults, catalog, deduction)),
     [catalog, deduction, defaults, rows]
   );
+
+  // Claude's rows, once they've rendered and been checked: add them when every one is ready,
+  // otherwise stay on the sheet with the problems shown.
+  useEffect(() => {
+    const waiting = claudeAutoAdd.current;
+    if (!waiting || busy || submission) return;
+    // Effects run in one pass: wait until Claude's rows are actually in state.
+    if (!waiting.every((key) => rows.some((row) => row.key === key))) return;
+    // Rough openings need the deduction from the settings first.
+    if (rows.some((row) => row.roughOpening && !isBlankRow(row)) && deduction === null && !settingsError) return;
+    claudeAutoAdd.current = null;
+    const ready = analyses.every((analysis) => analysis.blank || (!analysis.errors.length && analysis.unitWidth !== null && analysis.unitHeight !== null && analysis.qty !== null));
+    if (!ready) {
+      setAttempted(true);
+      setClaudeNotice({ tone: "warn", text: "Claude's windows are on the sheet, but some rows need fixing first (marked below). Fix them, then press Add to estimate." });
+      return;
+    }
+    void addToEstimate("configurator");
+    // addToEstimate reads this render's rows and analyses.
+  }, [analyses, busy, deduction, rows, settingsError, submission]);
   const styleGroups = useMemo(() => (catalog ? groupWindowStyles(catalog.styles) : []), [catalog]);
   const brickmouldName = catalog?.accessories.brickmould?.[0]?.name || null;
   const measured = analyses.filter((analysis) => !analysis.blank);
@@ -828,13 +859,16 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
     setLastDeleted(null);
   }
 
-  function leaveForProject() {
+  /** After adding: the project page, or the window configurator with every line loaded to check and change. */
+  type AfterAdd = "project" | "configurator";
+
+  function leaveForProject(next: AfterAdd = "project") {
     leavingRef.current = true;
     clearSavedSheet(estimateId);
-    router.push(`/projects/${estimateId}`);
+    router.push(next === "configurator" ? `/?projectId=${encodeURIComponent(estimateId)}&editWindows=1` : `/projects/${estimateId}`);
   }
 
-  async function uploadPhotosAndPrice(current: Submission) {
+  async function uploadPhotosAndPrice(current: Submission, next: AfterAdd = "project") {
     setBusy(true);
     setError(null);
     const failed: string[] = [];
@@ -868,11 +902,11 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
       setError(`The windows were added, but ${failed.length} photo${failed.length === 1 ? "" : "s"} did not upload. ${failures.join(" · ")}`);
       return;
     }
-    setProgress("Opening the project…");
-    leaveForProject();
+    setProgress(next === "configurator" ? "Opening the window configurator…" : "Opening the project…");
+    leaveForProject(next);
   }
 
-  async function addToEstimate() {
+  async function addToEstimate(next: AfterAdd = "project") {
     if (!catalog || !project || busy || submission || locked) return;
     setAttempted(true);
     setError(null);
@@ -898,6 +932,7 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
     const withoutLocation = candidates.filter((candidate) => !candidate.row.location.trim());
     if (
       withoutLocation.length &&
+      next === "project" &&
       !window.confirm(`${withoutLocation.length} window${withoutLocation.length === 1 ? " has" : "s have"} no room / location (row ${withoutLocation.map((candidate) => candidate.index + 1).join(", ")}). Add anyway?`)
     ) {
       focusField(withoutLocation[0].row.key, "location");
@@ -934,12 +969,12 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
       setError(errorMessage(reason, "Could not add the windows to the estimate."));
       return;
     }
-    const next: Submission = {
+    const submitted: Submission = {
       lineIds: Object.fromEntries(candidates.map((candidate, index) => [candidate.row.key, windows[index].id])),
       pendingPhotos: candidates.filter((candidate) => candidate.row.photo).map((candidate) => candidate.row.key),
     };
-    setSubmission(next);
-    await uploadPhotosAndPrice(next);
+    setSubmission(submitted);
+    await uploadPhotosAndPrice(submitted, next);
   }
 
   // ---------------------------------------------------------------- render
@@ -1278,7 +1313,7 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
                 Retry photo upload
               </button>
             ) : null}
-            <button type="button" className="min-h-[44px] rounded-lg border border-amber-300 bg-white px-4 font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60" onClick={leaveForProject} disabled={busy}>
+            <button type="button" className="min-h-[44px] rounded-lg border border-amber-300 bg-white px-4 font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60" onClick={() => leaveForProject()} disabled={busy}>
               {submission.pendingPhotos.length ? "Continue without these photos" : "Open project"}
             </button>
           </div>
