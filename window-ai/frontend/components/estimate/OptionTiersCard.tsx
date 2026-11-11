@@ -390,6 +390,8 @@ export default function OptionTiersCard({
   const [draftPicked, setDraftPicked] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [baked, setBaked] = useState<{ name: string; result: ApplyVariationResult } | null>(null);
+  /** The variation whose "Make this the quoted estimate" is waiting for Yes / Cancel. */
+  const [confirmingBake, setConfirmingBake] = useState<string | null>(null);
 
   const asQuotedTier = tiers.find(tierIsAsQuoted);
   const baseTotal = asQuotedTier ? summaries.get(asQuotedTier.id)?.total : !selected ? estimate.pricing?.totals?.total : undefined;
@@ -470,18 +472,22 @@ export default function OptionTiersCard({
     }
   }
 
-  async function bake(tier: EstimateTier, summary: TierSummary | undefined) {
-    if (!onBake) return;
+  /**
+   * Asked on the card itself, not in a browser dialog: some browsers (embedded
+   * views, blocked pop-ups) cancel window.confirm silently, so the button did nothing.
+   */
+  function bakeWarning(summary: TierSummary | undefined) {
     const kept = summary?.kept_as_quoted?.length || 0;
     const adjusted = summary?.adjusted?.length || 0;
-    const ok = window.confirm(
-      `Make “${tier.name}” the quoted estimate?\n\n`
-      + "This changes the windows themselves (not just an option)."
-      + (kept ? ` ${plural(kept, "change")} can't be made and will stay as quoted, as listed on the card.` : " Every window it covers can take it.")
+    return "This changes the windows themselves (not just an option)."
+      + (kept ? ` ${plural(kept, "change")} can't be made and will stay as quoted, as listed above.` : " Every window it covers can take it.")
       + (adjusted ? ` ${plural(adjusted, "window")} will get a white interior so ${adjusted === 1 ? "it fits" : "they fit"}.` : "")
-      + "\n\nThe current version won't be offered anymore. To keep it as a choice for the customer, add it back as a variation afterwards.",
-    );
-    if (!ok) return;
+      + " The current version won't be offered anymore. To keep it as a choice for the customer, add it back as a variation afterwards.";
+  }
+
+  async function bake(tier: EstimateTier) {
+    setConfirmingBake(null);
+    if (!onBake) return;
     const result = await onBake(tier.id);
     if (result) setBaked({ name: tier.name, result });
   }
@@ -679,12 +685,22 @@ export default function OptionTiersCard({
                       className="button secondary"
                       disabled={updating || !summary || Boolean(summary.error)}
                       title="Change the windows themselves to this variation, instead of offering it as an option"
-                      onClick={() => bake(tier, summary)}
+                      onClick={() => setConfirmingBake(confirmingBake === tier.id ? null : tier.id)}
                     >
                       Make this the quoted estimate
                     </button>
                   ) : null}
                   <button type="button" className="button secondary" onClick={() => onChange(tiers.filter((entry) => entry.id !== tier.id), isSelected ? null : selected)}>Remove</button>
+                </div>
+              ) : null}
+              {editable && onBake && confirmingBake === tier.id ? (
+                <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
+                  <p className="font-semibold">Make “{tier.name}” the quoted estimate?</p>
+                  <p className="mt-1">{bakeWarning(summary)}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button type="button" className="button primary" disabled={updating} onClick={() => void bake(tier)}>Yes, make it the quote</button>
+                    <button type="button" className="button secondary" onClick={() => setConfirmingBake(null)}>Cancel</button>
+                  </div>
                 </div>
               ) : null}
             </div>
