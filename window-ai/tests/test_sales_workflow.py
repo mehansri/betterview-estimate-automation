@@ -472,8 +472,9 @@ def test_psycopg_connections_do_not_prepare_statements_behind_the_pooler():
     from db.session import connect_args_for
 
     assert connect_args_for("postgresql+psycopg://u:p@pooler.example.com:6543/postgres") == {"prepare_threshold": None}
-    # psycopg2 (plain postgresql://) has no such option.
-    assert connect_args_for("postgresql://u:p@localhost:5432/windowai") == {}
+    # psycopg2 has no such option. Named explicitly: a plain postgresql:// URL is
+    # psycopg2 on SQLAlchemy 2.0 but psycopg 3 on 2.1 (which CI installs).
+    assert connect_args_for("postgresql+psycopg2://u:p@localhost:5432/windowai") == {}
     assert connect_args_for("sqlite:///local.db") == {"check_same_thread": False}
 
 
