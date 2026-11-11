@@ -21,7 +21,9 @@ import { describeWindowSpec } from "@/lib/productDescriptions";
 import { groupWindowStyles, windowStyleLabel } from "@/lib/styleOptions";
 import { LayoutPreset, OPERATION_LABELS, sectionSizeProblem, tryResolveLayout } from "@/lib/windowLayout";
 import LocationInput from "@/components/LocationInput";
+import { claudeHandoffSeenKey, claudeInches, claudeRowLocation, claudeStyleFor, readClaudeHandoff } from "@/lib/claudeHandoff";
 import { CUSTOM_JAMB, DEFAULT_JAMB_DEPTH, INTERIOR_COLOURS, jambAccessory, withColourRules } from "@/lib/productOptions";
+import { defaultHardware, defaultScreen, hasSideHanding, operationForStyle } from "@/lib/windowDetails";
 
 const COLOURS = ["white", "black", "dark bronze", "charcoal", "sandstone"];
 const GAS = ["argon", "50/50", "krypton"];
@@ -56,6 +58,8 @@ type MeasureRow = {
   qty: string;
   roughOpening: boolean;
   photo: RowPhoto | null;
+  /** Hinge / operating side (from outside) a single casement or slider was given, e.g. by Claude; set on the line's order details. */
+  hinge?: "left" | "right" | null;
 };
 
 /** Lines already appended to the estimate; photos still waiting to upload. */
@@ -427,6 +431,7 @@ function readSavedSheet(estimateId: string): SavedSheet | null {
         qty: String(row.qty ?? "1"),
         roughOpening: Boolean(row.roughOpening),
         photo: row.photo && typeof row.photo.dataUrl === "string" ? { dataUrl: row.photo.dataUrl, name: String(row.photo.name || "photo.jpg") } : null,
+        hinge: row.hinge === "left" || row.hinge === "right" ? row.hinge : null,
       }));
     if (!rows.length) return null;
     const submission = parsed.submission && typeof parsed.submission === "object" && parsed.submission.lineIds
@@ -502,6 +507,7 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
   const [restoredAt, setRestoredAt] = useState<string | null>(null);
   const [photosNotSaved, setPhotosNotSaved] = useState(false);
   const [storageUnavailable, setStorageUnavailable] = useState(false);
+  const [claudeNotice, setClaudeNotice] = useState<{ tone: "info" | "warn"; text: string } | null>(null);
 
   const [attempted, setAttempted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -567,6 +573,68 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
     }
     setHydrated(true);
   }, [estimateId]);
+
+  // Windows Claude drafted in the CRM arrive in the link (#claude=...): add them as rows to check, once per device.
+  useEffect(() => {
+    if (!hydrated || !catalog || !project) return;
+    const handoff = readClaudeHandoff(window.location.hash);
+    if (!handoff) return;
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    if (isLockedStatus(project.status)) {
+      setClaudeNotice({ tone: "warn", text: "Claude's windows weren't added: this project is finalized. Open the estimate from the CRM again to start a new revision." });
+      return;
+    }
+    if (submission) {
+      setClaudeNotice({ tone: "warn", text: "Claude's windows weren't added because this sheet was already added to the estimate. Open the link from the CRM again once you've left this page." });
+      return;
+    }
+    const seenKey = claudeHandoffSeenKey(estimateId, handoff.id);
+    try {
+      if (window.localStorage.getItem(seenKey)) {
+        setClaudeNotice({ tone: "info", text: "Claude's windows were already added to this sheet on this device." });
+        return;
+      }
+    } catch {
+      // storage unavailable: add them; the sheet warns that it isn't saved
+    }
+    const added: MeasureRow[] = handoff.windows.map((item) => {
+      const style = claudeStyleFor(item.type, catalog.layout);
+      // A single casement or slider takes its hinge side on the line itself.
+      const hingeOnLine = Boolean(item.hinge && style && !style.startsWith(PRESET_PREFIX) && hasSideHanding(operationForStyle(style, catalog)));
+      return {
+        key: newEstimateLineId("row"),
+        location: claudeRowLocation(item, style, hingeOnLine),
+        hinge: hingeOnLine ? item.hinge : null,
+        style: style || catalog.styles[0]?.code || "",
+        width: claudeInches(item.width),
+        height: claudeInches(item.height),
+        qty: String(item.qty),
+        roughOpening: item.roughOpening,
+        photo: null,
+      };
+    });
+    setRows((current) => [...current.filter((row) => !isBlankRow(row)), ...added]);
+    setDefaults((current) => {
+      let next = { ...current };
+      if (handoff.colourExt) next = { ...next, ...withColourRules(next, { colour_ext: handoff.colourExt }) };
+      if (handoff.colourInt) next = { ...next, ...withColourRules(next, { colour_int: handoff.colourInt }) };
+      if (handoff.triple !== null) next = { ...next, triple: handoff.triple };
+      return next;
+    });
+    try {
+      window.localStorage.setItem(seenKey, new Date().toISOString());
+    } catch {
+      // storage unavailable
+    }
+    const unmatched = handoff.windows.filter((item) => !claudeStyleFor(item.type, catalog.layout)).length;
+    const count = added.reduce((total, row) => total + Number(row.qty), 0);
+    const hingesOnLines = added.filter((row) => row.hinge).length;
+    const extrasInRoom = added.some((row, index) => row.location !== handoff.windows[index].location);
+    setClaudeNotice({
+      tone: unmatched ? "warn" : "info",
+      text: `Added ${count} window${count === 1 ? "" : "s"} Claude drafted from the CRM. Check each row's room, style and size${extrasInRoom ? " (Claude's notes are in the room column: tidy them before adding, the room prints on the estimate)" : ""}, then press Add to estimate.${hingesOnLines ? ` Hinge sides go on the line${hingesOnLines === 1 ? "" : "s"} (check them on the project afterwards).` : ""}${unmatched ? ` ${unmatched} row${unmatched === 1 ? " has a type" : "s have types"} the sheet doesn't offer: choose the style (marked with ?).` : ""}`,
+    });
+  }, [catalog, estimateId, hydrated, project, submission]);
 
   // Rows created before the catalog arrived get the first catalog style.
   useEffect(() => {
@@ -838,11 +906,21 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
 
     const windows: CustomerWindowLine[] = candidates.map(({ row, analysis }) => {
       const spec = buildWindowSpec(row, analysis, defaults, catalog);
+      const operation = rowPreset(row, catalog) ? null : operationForStyle(row.style, catalog);
+      // Shaped like QuoteBuilder's order details for the same window: the hinge plus its default screen and handle.
+      const details = row.hinge && operation && hasSideHanding(operation)
+        ? {
+            sections: [{ operation, handing: row.hinge }],
+            screen: defaultScreen([operation]) ? { frame_colour: null, mesh_colour: null } : null,
+            hardware: defaultHardware([operation]) || null,
+          }
+        : null;
       return {
         id: newEstimateLineId("window"),
         location: row.location.trim(),
-        description: describeWindowSpec(spec, catalog),
+        description: describeWindowSpec(spec, catalog, details),
         spec,
+        ...(details ? { details } : {}),
       };
     });
 
@@ -921,6 +999,13 @@ export default function MeasureSheet({ estimateId }: { estimateId: string }) {
   return (
     <div className="space-y-4 pb-28">
       {header}
+
+      {claudeNotice ? (
+        <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${claudeNotice.tone === "warn" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-violet-200 bg-violet-50 text-violet-900"}`} role="status">
+          <p>{claudeNotice.text}</p>
+          <button type="button" className="min-h-[44px] rounded-lg px-3 font-semibold hover:bg-white/60" onClick={() => setClaudeNotice(null)}>OK</button>
+        </div>
+      ) : null}
 
       {restoredAt ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900" role="status">
