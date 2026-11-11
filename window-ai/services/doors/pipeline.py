@@ -28,7 +28,7 @@ import re
 from collections import defaultdict
 from typing import Any
 
-from . import book_warnings, catalog, colours
+from . import book_warnings, catalog, colours, faces
 
 
 class PipelineError(Exception):
@@ -908,7 +908,14 @@ def pipeline_catalog(config: dict[str, Any]) -> dict[str, Any]:
         for model in sorted(index["doors"].values(), key=lambda item: item["label"]):
             offers = [_public_offer(offer) for offer in model["offers"] if offer.get("widths")]
             if offers:
-                models.append({"key": model["key"], "label": model["label"], "smooth": model["smooth"], "offers": offers})
+                models.append({
+                    "key": model["key"],
+                    "label": model["label"],
+                    "smooth": model["smooth"],
+                    "offers": offers,
+                    # Grooved / Stainless Steel Oak patterns a rep picks for the drawing (one price).
+                    "slab_designs": faces.slab_designs(material, model["key"]),
+                })
         sidelite_models = [
             {"key": model["key"], "label": model["label"], "direct_glazed": model["direct_glazed"], "offers": model["offers"]}
             for model in sorted(index["sidelites"].values(), key=lambda item: (item["direct_glazed"], item["label"]))
@@ -1134,6 +1141,10 @@ def resolve(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
     index = build_index(material)
     model = index["doors"].get(spec.get("model") or "")
     _require(model and _accepts(model, height, width), "Step 4: choose a slab model offered in this size.")
+    design = spec.get("slab_design")
+    designs = faces.patterns_for(material, model["key"])
+    if design:
+        _require(designs and design in designs["items"], f"Step 4: {model['label']} has no slab design {design}.")
 
     colours_ = spec.get("colours") or {}
     finish = finish_for(material, colours_)
@@ -1177,6 +1188,13 @@ def resolve(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
         offer, shown = _find_offer(model, "solid", height, width)
         _require(offer, "Step 6: this slab is only offered glazed in this size.")
         plan["door"] = {"kind": "solid", "entry": offer["entry"]}
+    if designs:
+        picked = design or designs["default"]
+        notes.append(
+            f"{designs['label']} {picked} ({designs['items'][picked]['label']})"
+            + ("" if design else ", drawn by default: pick the customer's pattern")
+            + f". {designs['note']}"
+        )
     if not shown:
         listed = ", ".join(f'{value}"' for value in offer["widths"]) or "other sizes"
         notes.append(
@@ -1987,6 +2005,9 @@ def pipeline_spec_lines(pipe: dict[str, Any]) -> list[str]:
     slab = [f"{_inches(pipe['width'])} {material.title()}" if pipe.get("width") else material.title()]
     if model:
         slab.append((index["doors"].get(model) or {}).get("label") or str(model).replace("-", " ").title())
+        design = faces.door_face(material, model, pipe.get("slab_design")) if pipe.get("slab_design") else None
+        if design and design["pattern"]:
+            slab.append(design["label"])  # "Groove pattern WC07 (Vertical lines)": Palma needs the pattern on the order
     if door_glass.get("glazed") is False:
         slab.append("Solid")
     elif door_glass.get("glazed"):
@@ -2250,6 +2271,12 @@ def door_drawing(spec: dict[str, Any] | None) -> dict[str, Any] | None:
             except (KeyError, catalog.DoorLookupError):
                 model_label = str(pipe["model"]).replace("-", " ").title()
         glass = pipe.get("glass") or {}
+        face = faces.door_face(pipe["material"], pipe.get("model"), pipe.get("slab_design"))
+        if face:
+            door_glass = _glass_ref(glass.get("door"))
+            face["elements"] = faces.without_glass(
+                face["elements"], door_lites(door_glass["size"], width, height) if door_glass else [], width, height
+            )
         if exterior.get("type") in (None, "white"):
             exterior_name = "White"
         else:
@@ -2262,6 +2289,8 @@ def door_drawing(spec: dict[str, Any] | None) -> dict[str, Any] | None:
             "height": height,
             "height_label": pipe["height"],
             "model": model_label,
+            # Panels, planks, grooves, inlays and slots in slab fractions (services/doors/faces.py).
+            "face": face,
             "door_glass": _glass_ref(glass.get("door")),
             "sidelite_glass": [_glass_ref(part) for part in (glass.get("sidelites") or [])[: layout["sidelites"]]],
             "transom_glass": (glass.get("transom") or {}).get("glass") if layout["transom"] else None,

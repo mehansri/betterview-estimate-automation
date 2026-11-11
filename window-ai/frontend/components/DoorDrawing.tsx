@@ -3,6 +3,7 @@
 import { useId } from "react";
 import type { DoorDrawingGeometry } from "@/lib/api";
 import { palmaHex } from "@/lib/palmaColours";
+import { brightness, GROOVE_IN, INLAY_IN, insetPanel, panelOutline, panelTop, SLOT_IN, TAPER_IN, withoutGlass, type FaceElement } from "@/lib/doorFaces";
 
 /**
  * Elevation drawing of an entrance door opening, viewed from outside: frame,
@@ -165,6 +166,8 @@ export type DoorDrawingProps = {
   width: number;
   heightIn: number;
   model?: string;
+  /** The slab's face from lib/doorFaces.ts (doorFace(...).elements); without it the drawing guesses generic panels from the model name. */
+  face?: FaceElement[] | null;
   doorGlass?: GlassSpec;
   sideliteGlass?: Array<GlassSpec | null>;
   transomGlass?: string;
@@ -178,7 +181,7 @@ export type DoorDrawingProps = {
   heightLabel?: string;
 };
 
-export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, size = 360, showDimensions = true, heightLabel }: DoorDrawingProps) {
+export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", face, doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, size = 360, showDimensions = true, heightLabel }: DoorDrawingProps) {
   const frame = 2;
   const mull = 1.5;
   const sideW = 14;
@@ -238,7 +241,7 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
           );
         }
         const lites = doorGlass ? glassLites(doorGlass.size, part.w, heightIn) : [];
-        const panels = panelRects(model, part.w, heightIn, lites);
+        const panels = face ? [] : panelRects(model, part.w, heightIn, lites);
         const hingeLeft = doors === 2 ? part.index === 0 : true;
         const handleX = hingeLeft ? part.x + part.w - 3.2 : part.x + 3.2;
         const hingeX = hingeLeft ? part.x + 0.2 : part.x + part.w - 1.2;
@@ -251,6 +254,7 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
                 <rect x={part.x + panel.x + 1.2} y={doorTop + panel.y + 1.2} width={panel.w - 2.4} height={panel.h - 2.4} fill={shade(slabColour, 8)} rx={0.4} />
               </g>
             ))}
+            {face ? <FaceShapes elements={withoutGlass(face, lites, part.w, heightIn)} ox={part.x} oy={doorTop} slabW={part.w} slabH={heightIn} slabColour={slabColour} /> : null}
             {lites.map((lite, i) => <LiteShape key={i} lite={lite} id={id} family={doorGlass?.family} ox={part.x} oy={doorTop} />)}
             {[0.15, 0.5, 0.85].map((f) => <rect key={f} x={hingeX} y={doorTop + heightIn * f - 2} width={1} height={4} fill="#111827" />)}
             {lock === "pull_bar" && pullBarIn ? (
@@ -285,6 +289,81 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
   );
 }
 
+/**
+ * A slab face (lib/doorFaces.ts) in slab inches: raised panels (bevel + field),
+ * flat Shaker panels, planks, grooves (recess + highlight), stainless inlays and
+ * slots. Edges are lighter than a dark slab and darker than a light one so a
+ * black door still shows its design. Mirrors _draw_face() in services/estimate_documents.py.
+ */
+export function FaceShapes({ elements, ox, oy, slabW, slabH, slabColour }: { elements: FaceElement[]; ox: number; oy: number; slabW: number; slabH: number; slabColour: string }) {
+  const dark = brightness(slabColour) < 0.35;
+  const edge = shade(slabColour, dark ? 45 : -45);
+  const bevel = shade(slabColour, dark ? 18 : -14);
+  const recess = shade(slabColour, dark ? 8 : -6);
+  const ink = shade(slabColour, dark ? 55 : -55);
+  const shine = shade(slabColour, dark ? 22 : 30);
+  const points = (outline: Array<[number, number]>) => outline.map(([x, y]) => `${ox + x},${oy + y}`).join(" ");
+  return (
+    <g>
+      {elements.map((element, i) => {
+        if (element.t === "p") {
+          const raised = element.s !== "shaker";
+          const inner = insetPanel(element, raised ? 1.4 : 0.6, slabW, slabH);
+          const bottom = oy + (inner.y + inner.h) * slabH;
+          return (
+            <g key={i}>
+              {raised ? (
+                <>
+                  <polygon points={points(panelOutline(element, slabW, slabH))} fill={bevel} stroke={edge} strokeWidth={0.25} />
+                  <polygon points={points(panelOutline(inner, slabW, slabH))} fill={slabColour} stroke={edge} strokeWidth={0.12} />
+                </>
+              ) : (
+                <>
+                  <polygon points={points(panelOutline(element, slabW, slabH))} fill={slabColour} stroke={edge} strokeWidth={0.3} />
+                  <polygon points={points(panelOutline(inner, slabW, slabH))} fill={recess} />
+                </>
+              )}
+              {(element.planks ?? []).map((x) => {
+                const top = oy + panelTop(inner, x) * slabH;
+                return (
+                  <g key={x}>
+                    <line x1={ox + x * slabW} y1={top} x2={ox + x * slabW} y2={bottom} stroke={edge} strokeWidth={0.25} />
+                    <line x1={ox + x * slabW + 0.3} y1={top} x2={ox + x * slabW + 0.3} y2={bottom} stroke={shine} strokeWidth={0.12} />
+                  </g>
+                );
+              })}
+            </g>
+          );
+        }
+        if (element.t === "slot") {
+          return <rect key={i} x={ox + element.x * slabW} y={oy + element.y * slabH - SLOT_IN / 2} width={element.w * slabW} height={SLOT_IN} rx={SLOT_IN / 2} fill={ink} stroke={edge} strokeWidth={0.1} />;
+        }
+        const x1 = ox + element.x1 * slabW, x2 = ox + element.x2 * slabW;
+        const y1 = oy + element.y1 * slabH, y2 = oy + element.y2 * slabH;
+        if (element.t === "i") {
+          return (
+            <g key={i}>
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#64748b" strokeWidth={INLAY_IN + 0.15} />
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#e2e8f0" strokeWidth={INLAY_IN} />
+            </g>
+          );
+        }
+        if (element.taper) {
+          const [thick, thin] = TAPER_IN;
+          return <polygon key={i} points={`${x1},${y1 - thick / 2} ${x2},${y2 - thin / 2} ${x2},${y2 + thin / 2} ${x1},${y1 + thick / 2}`} fill={ink} />;
+        }
+        const across = Math.abs(y2 - y1) < Math.abs(x2 - x1);
+        return (
+          <g key={i}>
+            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={ink} strokeWidth={GROOVE_IN} />
+            <line x1={x1 + (across ? 0 : 0.45)} y1={y1 + (across ? 0.45 : 0)} x2={x2 + (across ? 0 : 0.45)} y2={y2 + (across ? 0.45 : 0)} stroke={shine} strokeWidth={0.15} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 /** Top of a pull bar, inches below the slab top: centred ~42" off the floor, kept 4" inside the slab. */
 export function pullBarTop(length: number, slabHeight: number) {
   const bar = Math.min(length, slabHeight - 8);
@@ -315,6 +394,7 @@ export function DoorGeometryDrawing({ geometry, size = 110, title }: { geometry:
         heightIn={geometry.slab_height ?? geometry.height}
         heightLabel={geometry.height_label}
         model={geometry.model}
+        face={geometry.face?.elements}
         doorGlass={geometry.door_glass || null}
         sideliteGlass={geometry.sidelite_glass || []}
         transomGlass={geometry.transom_glass || undefined}

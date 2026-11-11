@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from services import business_settings, payment_schedule
+from services.doors import faces as door_faces
 from services.doors.pipeline import door_lites
 from services.windowcity.layout import exterior_colour
 
@@ -426,7 +427,11 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
             continue
         rect(cursor, door_top, slab_w, slab_h, slab_colour, width=0.5)
         door_glass = geometry.get("door_glass") or {}
-        for px, py, pw, ph in _door_panels(str(geometry.get("model") or ""), slab_w, slab_h, door_lites(door_glass.get("size"), slab_w, slab_h) if door_glass else []):
+        face = geometry.get("face") if isinstance(geometry.get("face"), dict) else None
+        if face is not None:
+            # Glass already removed the elements it covers (pipeline.door_drawing).
+            _draw_face(d, face.get("elements") or [], lambda x, y, ox=cursor: ((ox + x + 1.5) * scale, (total_h - door_top - y) * scale), scale, slab_w, slab_h, slab_hex)
+        for px, py, pw, ph in [] if face is not None else _door_panels(str(geometry.get("model") or ""), slab_w, slab_h, door_lites(door_glass.get("size"), slab_w, slab_h) if door_glass else []):
             rect(cursor + px, door_top + py, pw, ph, _hex_colour(slab_hex, -12), stroke=None)
             rect(cursor + px + 1.2, door_top + py + 1.2, pw - 2.4, ph - 2.4, _hex_colour(slab_hex, 8), stroke=None)
         lites(cursor, door_top, slab_w, slab_h, door_glass or None)
@@ -474,6 +479,78 @@ def _hex_colour(hex_value: str, amount: int = 0):
     value = int(hex_value[1:], 16)
     channel = lambda shift: max(0, min(255, ((value >> shift) & 255) + amount)) / 255  # noqa: E731
     return colors.Color(channel(16), channel(8), channel(0))
+
+
+def _slab_is_dark(hex_value: str) -> bool:
+    """Luminance below 35%: grooves and panel edges are drawn lighter than the slab (brightness() in doorFaces.ts)."""
+    if not str(hex_value).startswith("#") or len(hex_value) != 7:
+        return False
+    value = int(hex_value[1:], 16)
+    r, g, b = (value >> 16) & 255, (value >> 8) & 255, value & 255
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.35
+
+
+def _draw_face(d, elements: list[dict[str, Any]], to_pt, scale: float, slab_w: float, slab_h: float, slab_hex: str) -> None:
+    """Draw a slab face (services/doors/faces.py) on a reportlab drawing; mirrors FaceShapes in DoorDrawing.tsx.
+
+    ``to_pt(x, y)`` maps slab inches (top-down) to drawing points.
+    """
+    from reportlab.graphics.shapes import Line, Polygon, Rect
+    from reportlab.lib import colors
+
+    dark = _slab_is_dark(slab_hex)
+    edge = _hex_colour(slab_hex, 45 if dark else -45)
+    bevel = _hex_colour(slab_hex, 18 if dark else -14)
+    recess = _hex_colour(slab_hex, 8 if dark else -6)
+    ink = _hex_colour(slab_hex, 55 if dark else -55)
+    shine = _hex_colour(slab_hex, 22 if dark else 30)
+
+    def polygon(element: dict[str, Any], fill, stroke, width: float) -> None:
+        points = [value for x, y in door_faces.panel_outline(element, slab_w, slab_h) for value in to_pt(x, y)]
+        d.add(Polygon(points, fillColor=fill, strokeColor=stroke, strokeWidth=width * scale if stroke else 0))
+
+    def line(x1: float, y1: float, x2: float, y2: float, stroke, width: float) -> None:
+        (ax, ay), (bx, by) = to_pt(x1, y1), to_pt(x2, y2)
+        d.add(Line(ax, ay, bx, by, strokeColor=stroke, strokeWidth=width * scale))
+
+    for element in elements:
+        kind = element.get("t")
+        if kind == "p":
+            raised = element.get("s") != "shaker"
+            inset = 1.4 if raised else 0.6
+            inner = dict(element, x=element["x"] + inset / slab_w, y=element["y"] + inset / slab_h,
+                         w=max(element["w"] - 2 * inset / slab_w, 0.01), h=max(element["h"] - 2 * inset / slab_h, 0.01))
+            if raised:
+                polygon(element, bevel, edge, 0.25)
+                polygon(inner, _hex_colour(slab_hex), edge, 0.12)
+            else:
+                polygon(element, _hex_colour(slab_hex), edge, 0.3)
+                polygon(inner, recess, None, 0)
+            bottom = (inner["y"] + inner["h"]) * slab_h
+            for x in element.get("planks") or []:
+                top = door_faces.panel_top(inner, x) * slab_h
+                line(x * slab_w, top, x * slab_w, bottom, edge, 0.25)
+                line(x * slab_w + 0.3, top, x * slab_w + 0.3, bottom, shine, 0.12)
+        elif kind == "g":
+            x1, y1, x2, y2 = element["x1"] * slab_w, element["y1"] * slab_h, element["x2"] * slab_w, element["y2"] * slab_h
+            if element.get("taper"):
+                thick, thin = door_faces.TAPER_IN
+                points = [to_pt(x1, y1 - thick / 2), to_pt(x2, y2 - thin / 2), to_pt(x2, y2 + thin / 2), to_pt(x1, y1 + thick / 2)]
+                d.add(Polygon([v for point in points for v in point], fillColor=ink, strokeColor=None, strokeWidth=0))
+                continue
+            across = abs(y2 - y1) < abs(x2 - x1)
+            line(x1, y1, x2, y2, ink, door_faces.GROOVE_IN)
+            dx, dy = (0.0, 0.45) if across else (0.45, 0.0)
+            line(x1 + dx, y1 + dy, x2 + dx, y2 + dy, shine, 0.15)
+        elif kind == "i":
+            x1, y1, x2, y2 = element["x1"] * slab_w, element["y1"] * slab_h, element["x2"] * slab_w, element["y2"] * slab_h
+            line(x1, y1, x2, y2, colors.HexColor("#64748b"), door_faces.INLAY_IN + 0.15)
+            line(x1, y1, x2, y2, colors.HexColor("#e2e8f0"), door_faces.INLAY_IN)
+        elif kind == "slot":
+            x, y = to_pt(element["x"] * slab_w, element["y"] * slab_h + door_faces.SLOT_IN / 2)
+            radius = door_faces.SLOT_IN / 2 * scale
+            d.add(Rect(x, y, element["w"] * slab_w * scale, door_faces.SLOT_IN * scale, rx=radius, ry=radius,
+                       fillColor=ink, strokeColor=edge, strokeWidth=0.1 * scale))
 
 
 def _door_panels(model: str, slab_w: float, slab_h: float, lites: list[tuple[float, float, float, float, str]]) -> list[tuple[float, float, float, float]]:

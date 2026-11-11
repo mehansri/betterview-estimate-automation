@@ -1,0 +1,3177 @@
+{
+"fiberglass/1-panel-arch-top-plank-dra1a80/": {
+"elements": [
+{
+"h": 0.852,
+"planks": [
+0.296,
+0.426,
+0.556,
+0.69
+],
+"s": "raised",
+"t": "p",
+"top": "arch",
+"w": 0.744,
+"x": 0.112,
+"y": 0.05
+}
+],
+"key": "plank_panel_arch",
+"label": "1 arch-top planked panel",
+"pattern": null
+},
+"fiberglass/1-panel-shaker-fir01/": {
+"elements": [
+{
+"h": 0.822,
+"s": "shaker",
+"t": "p",
+"w": 0.64,
+"x": 0.18,
+"y": 0.06
+}
+],
+"key": "shaker_1",
+"label": "1 Shaker panel",
+"pattern": null
+},
+"fiberglass/1-panel-shaker-smo01-80/": {
+"elements": [
+{
+"h": 0.822,
+"s": "shaker",
+"t": "p",
+"w": 0.64,
+"x": 0.18,
+"y": 0.06
+}
+],
+"key": "shaker_1",
+"label": "1 Shaker panel",
+"pattern": null
+},
+"fiberglass/1-panel-sq-top-plank-dra1p/": {
+"elements": [
+{
+"h": 0.852,
+"planks": [
+0.296,
+0.426,
+0.556,
+0.69
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.112,
+"y": 0.05
+}
+],
+"key": "plank_panel_square",
+"label": "1 square-top planked panel",
+"pattern": null
+},
+"fiberglass/1-panel-sq-top-plank-rg21/": {
+"elements": [
+{
+"h": 0.852,
+"planks": [
+0.296,
+0.426,
+0.556,
+0.69
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.112,
+"y": 0.05
+}
+],
+"key": "plank_panel_square",
+"label": "1 square-top planked panel",
+"pattern": null
+},
+"fiberglass/1-panel-square-top-plank-dra1p80/": {
+"elements": [
+{
+"h": 0.852,
+"planks": [
+0.296,
+0.426,
+0.556,
+0.69
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.112,
+"y": 0.05
+}
+],
+"key": "plank_panel_square",
+"label": "1 square-top planked panel",
+"pattern": null
+},
+"fiberglass/1-panel-true-plank-dratp/": {
+"elements": [
+{
+"t": "g",
+"x1": 0.128,
+"x2": 0.128,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.272,
+"x2": 0.272,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.421,
+"x2": 0.421,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.565,
+"x2": 0.565,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.714,
+"x2": 0.714,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.858,
+"x2": 0.858,
+"y1": 0,
+"y2": 1
+}
+],
+"key": "true_plank",
+"label": "True plank (7 boards)",
+"pattern": null
+},
+"fiberglass/1-panel-true-plank-dratp80/": {
+"elements": [
+{
+"t": "g",
+"x1": 0.128,
+"x2": 0.128,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.272,
+"x2": 0.272,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.421,
+"x2": 0.421,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.565,
+"x2": 0.565,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.714,
+"x2": 0.714,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.858,
+"x2": 0.858,
+"y1": 0,
+"y2": 1
+}
+],
+"key": "true_plank",
+"label": "True plank (7 boards)",
+"pattern": null
+},
+"fiberglass/2-panel-1-2-lite-smo22-80/": {
+"elements": [
+{
+"h": 0.487,
+"s": "shaker",
+"t": "p",
+"w": 0.623,
+"x": 0.191,
+"y": 0.052
+},
+{
+"h": 0.259,
+"s": "shaker",
+"t": "p",
+"w": 0.623,
+"x": 0.191,
+"y": 0.628
+}
+],
+"key": "shaker_2_half",
+"label": "2 Shaker panels (half)",
+"pattern": null
+},
+"fiberglass/2-panel-3-4-bw28/": {
+"elements": [
+{
+"h": 0.604,
+"s": "raised",
+"t": "p",
+"w": 0.679,
+"x": 0.158,
+"y": 0.054
+},
+{
+"h": 0.2,
+"s": "raised",
+"t": "p",
+"w": 0.666,
+"x": 0.167,
+"y": 0.712
+}
+],
+"key": "raised_2_threequarter",
+"label": "2 raised panels (three-quarter)",
+"pattern": null
+},
+"fiberglass/2-panel-3-4-lite-smo24-80/": {
+"elements": [
+{
+"h": 0.589,
+"s": "shaker",
+"t": "p",
+"w": 0.628,
+"x": 0.191,
+"y": 0.064
+},
+{
+"h": 0.146,
+"s": "shaker",
+"t": "p",
+"w": 0.628,
+"x": 0.191,
+"y": 0.728
+}
+],
+"key": "shaker_2_threequarter",
+"label": "2 Shaker panels (three-quarter)",
+"pattern": null
+},
+"fiberglass/2-panel-3-4-wg25/": {
+"elements": [
+{
+"h": 0.604,
+"s": "raised",
+"t": "p",
+"w": 0.679,
+"x": 0.158,
+"y": 0.054
+},
+{
+"h": 0.2,
+"s": "raised",
+"t": "p",
+"w": 0.666,
+"x": 0.167,
+"y": 0.712
+}
+],
+"key": "raised_2_threequarter",
+"label": "2 raised panels (three-quarter)",
+"pattern": null
+},
+"fiberglass/2-panel-arch-top-dra2d/": {
+"elements": [
+{
+"h": 0.51,
+"s": "raised",
+"t": "p",
+"top": "arch",
+"w": 0.744,
+"x": 0.116,
+"y": 0.046
+},
+{
+"h": 0.246,
+"s": "raised",
+"t": "p",
+"w": 0.734,
+"x": 0.126,
+"y": 0.634
+}
+],
+"key": "two_panel_arch",
+"label": "2 panels, arch top",
+"pattern": null
+},
+"fiberglass/2-panel-arch-top-plank-dra2a/": {
+"elements": [
+{
+"h": 0.511,
+"planks": [
+0.296,
+0.43,
+0.561,
+0.696
+],
+"s": "raised",
+"t": "p",
+"top": "arch",
+"w": 0.744,
+"x": 0.121,
+"y": 0.045
+},
+{
+"h": 0.246,
+"planks": [
+0.43,
+0.565,
+0.696
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.121,
+"y": 0.634
+}
+],
+"key": "plank_2_arch",
+"label": "2 planked panels, arch top",
+"pattern": null
+},
+"fiberglass/2-panel-arch-top-plank-dra2a80/": {
+"elements": [
+{
+"h": 0.511,
+"planks": [
+0.296,
+0.43,
+0.561,
+0.696
+],
+"s": "raised",
+"t": "p",
+"top": "arch",
+"w": 0.744,
+"x": 0.121,
+"y": 0.045
+},
+{
+"h": 0.246,
+"planks": [
+0.43,
+0.565,
+0.696
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.121,
+"y": 0.634
+}
+],
+"key": "plank_2_arch",
+"label": "2 planked panels, arch top",
+"pattern": null
+},
+"fiberglass/2-panel-arch-top-plank-rg22/": {
+"elements": [
+{
+"h": 0.511,
+"planks": [
+0.296,
+0.43,
+0.561,
+0.696
+],
+"s": "raised",
+"t": "p",
+"top": "arch",
+"w": 0.744,
+"x": 0.121,
+"y": 0.045
+},
+{
+"h": 0.246,
+"planks": [
+0.43,
+0.565,
+0.696
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.121,
+"y": 0.634
+}
+],
+"key": "plank_2_arch",
+"label": "2 planked panels, arch top",
+"pattern": null
+},
+"fiberglass/2-panel-arch-top-plank-rg26/": {
+"elements": [
+{
+"h": 0.511,
+"planks": [
+0.296,
+0.43,
+0.561,
+0.696
+],
+"s": "raised",
+"t": "p",
+"top": "arch",
+"w": 0.744,
+"x": 0.121,
+"y": 0.045
+},
+{
+"h": 0.246,
+"planks": [
+0.43,
+0.565,
+0.696
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.121,
+"y": 0.634
+}
+],
+"key": "plank_2_arch",
+"label": "2 planked panels, arch top",
+"pattern": null
+},
+"fiberglass/2-panel-shaker-1-2-lite-fir02/": {
+"elements": [
+{
+"h": 0.487,
+"s": "shaker",
+"t": "p",
+"w": 0.623,
+"x": 0.191,
+"y": 0.052
+},
+{
+"h": 0.259,
+"s": "shaker",
+"t": "p",
+"w": 0.623,
+"x": 0.191,
+"y": 0.628
+}
+],
+"key": "shaker_2_half",
+"label": "2 Shaker panels (half)",
+"pattern": null
+},
+"fiberglass/2-panel-shaker-3-4-lite-fir25/": {
+"elements": [
+{
+"h": 0.589,
+"s": "shaker",
+"t": "p",
+"w": 0.628,
+"x": 0.191,
+"y": 0.064
+},
+{
+"h": 0.146,
+"s": "shaker",
+"t": "p",
+"w": 0.628,
+"x": 0.191,
+"y": 0.728
+}
+],
+"key": "shaker_2_threequarter",
+"label": "2 Shaker panels (three-quarter)",
+"pattern": null
+},
+"fiberglass/2-panel-shaker-smo02-80/": {
+"elements": [
+{
+"h": 0.487,
+"s": "shaker",
+"t": "p",
+"w": 0.623,
+"x": 0.191,
+"y": 0.052
+},
+{
+"h": 0.259,
+"s": "shaker",
+"t": "p",
+"w": 0.623,
+"x": 0.191,
+"y": 0.628
+}
+],
+"key": "shaker_2_half",
+"label": "2 Shaker panels (half)",
+"pattern": null
+},
+"fiberglass/2-panel-sq-top-dra2b/": {
+"elements": [
+{
+"h": 0.49,
+"s": "raised",
+"t": "p",
+"w": 0.721,
+"x": 0.135,
+"y": 0.06
+},
+{
+"h": 0.248,
+"s": "raised",
+"t": "p",
+"w": 0.712,
+"x": 0.144,
+"y": 0.63
+}
+],
+"key": "two_panel_square",
+"label": "2 panels, square top",
+"pattern": null
+},
+"fiberglass/2-panel-square-top-plank-dra2p80/": {
+"elements": [
+{
+"h": 0.508,
+"planks": [
+0.296,
+0.43,
+0.561,
+0.696
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.121,
+"y": 0.048
+},
+{
+"h": 0.246,
+"planks": [
+0.43,
+0.565,
+0.696
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.121,
+"y": 0.634
+}
+],
+"key": "plank_2_square",
+"label": "2 planked panels, square top",
+"pattern": null
+},
+"fiberglass/3-4-o-b-wg27/": {
+"elements": [
+{
+"h": 0.166,
+"s": "raised",
+"t": "p",
+"w": 0.66,
+"x": 0.163,
+"y": 0.728
+}
+],
+"key": "lower_panel_only",
+"label": "1 low panel (glass above)",
+"pattern": null
+},
+"fiberglass/3-panel-craftsman-drf3f80/": {
+"elements": [
+{
+"h": 0.226,
+"s": "shaker",
+"t": "p",
+"w": 0.684,
+"x": 0.153,
+"y": 0.064
+},
+{
+"h": 0.588,
+"s": "shaker",
+"t": "p",
+"w": 0.27,
+"x": 0.153,
+"y": 0.3
+},
+{
+"h": 0.588,
+"s": "shaker",
+"t": "p",
+"w": 0.281,
+"x": 0.556,
+"y": 0.3
+}
+],
+"key": "craftsman_2_below",
+"label": "Craftsman: top panel over 2 tall panels",
+"pattern": null
+},
+"fiberglass/3-panel-craftsman-shaker-smo03-80/": {
+"elements": [
+{
+"h": 0.226,
+"s": "shaker",
+"t": "p",
+"w": 0.684,
+"x": 0.153,
+"y": 0.064
+},
+{
+"h": 0.588,
+"s": "shaker",
+"t": "p",
+"w": 0.27,
+"x": 0.153,
+"y": 0.3
+},
+{
+"h": 0.588,
+"s": "shaker",
+"t": "p",
+"w": 0.281,
+"x": 0.556,
+"y": 0.3
+}
+],
+"key": "craftsman_2_below",
+"label": "Craftsman: top panel over 2 tall panels",
+"pattern": null
+},
+"fiberglass/3-panel-shaker-fg3j/": {
+"elements": [
+{
+"h": 0.194,
+"s": "shaker",
+"t": "p",
+"w": 0.62,
+"x": 0.19,
+"y": 0.082
+},
+{
+"h": 0.194,
+"s": "shaker",
+"t": "p",
+"w": 0.62,
+"x": 0.19,
+"y": 0.376
+},
+{
+"h": 0.192,
+"s": "shaker",
+"t": "p",
+"w": 0.62,
+"x": 0.19,
+"y": 0.67
+}
+],
+"key": "shaker_3_stacked",
+"label": "3 stacked Shaker panels",
+"pattern": null
+},
+"fiberglass/3-panel-wg37/": {
+"elements": [
+{
+"h": 0.65,
+"s": "raised",
+"t": "p",
+"top": "scroll",
+"w": 0.693,
+"x": 0.149,
+"y": 0.07
+},
+{
+"h": 0.13,
+"s": "raised",
+"t": "p",
+"w": 0.26,
+"x": 0.15,
+"y": 0.782
+},
+{
+"h": 0.13,
+"s": "raised",
+"t": "p",
+"w": 0.25,
+"x": 0.59,
+"y": 0.782
+}
+],
+"key": "arch_tall_2_small",
+"label": "Tall arch-top panel over 2 small panels",
+"pattern": null
+},
+"fiberglass/6-panel-wg68/": {
+"elements": [
+{
+"h": 0.1,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.06
+},
+{
+"h": 0.1,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.06
+},
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.21
+},
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.21
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.61
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.61
+}
+],
+"key": "six_panel",
+"label": "6 panels",
+"pattern": null
+},
+"fiberglass/contemporary-grooved-og-8-gr/WC01": {
+"elements": [
+{
+"t": "g",
+"x1": 0,
+"x2": 0.777,
+"y1": 0.2,
+"y2": 0.2
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.777,
+"y1": 0.4,
+"y2": 0.4
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.777,
+"y1": 0.6,
+"y2": 0.6
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.777,
+"y1": 0.8,
+"y2": 0.8
+},
+{
+"t": "g",
+"x1": 0.777,
+"x2": 0.777,
+"y1": 0,
+"y2": 1
+}
+],
+"key": "grooved:WC01",
+"label": "Groove pattern WC01 (Lines & side groove)",
+"pattern": {
+"chosen": true,
+"code": "WC01",
+"label": "Lines & side groove"
+}
+},
+"fiberglass/contemporary-grooved-og-8-gr/WC02": {
+"elements": [
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.777,
+"y1": 0.2,
+"y2": 0.2
+},
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.777,
+"y1": 0.4,
+"y2": 0.4
+},
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.777,
+"y1": 0.6,
+"y2": 0.6
+},
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.777,
+"y1": 0.8,
+"y2": 0.8
+},
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.228,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.777,
+"x2": 0.777,
+"y1": 0,
+"y2": 1
+}
+],
+"key": "grooved:WC02",
+"label": "Groove pattern WC02 (Framed lines)",
+"pattern": {
+"chosen": true,
+"code": "WC02",
+"label": "Framed lines"
+}
+},
+"fiberglass/contemporary-grooved-og-8-gr/WC03": {
+"elements": [
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.2,
+"y2": 0.2
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.4,
+"y2": 0.4
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.6,
+"y2": 0.6
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.8,
+"y2": 0.8
+}
+],
+"key": "grooved:WC03",
+"label": "Groove pattern WC03 (Four lines)",
+"pattern": {
+"chosen": true,
+"code": "WC03",
+"label": "Four lines"
+}
+},
+"fiberglass/contemporary-grooved-og-8-gr/WC04": {
+"elements": [
+{
+"t": "g",
+"x1": 0,
+"x2": 0.77,
+"y1": 0.2,
+"y2": 0.2
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.77,
+"y1": 0.4,
+"y2": 0.4
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.77,
+"y1": 0.6,
+"y2": 0.6
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.77,
+"y1": 0.8,
+"y2": 0.8
+}
+],
+"key": "grooved:WC04",
+"label": "Groove pattern WC04 (Short lines)",
+"pattern": {
+"chosen": true,
+"code": "WC04",
+"label": "Short lines"
+}
+},
+"fiberglass/contemporary-grooved-og-8-gr/WC05": {
+"elements": [
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.045,
+"y2": 0.045
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.1206,
+"y2": 0.1206
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.1962,
+"y2": 0.1962
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.2718,
+"y2": 0.2718
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.3474,
+"y2": 0.3474
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.423,
+"y2": 0.423
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.4986,
+"y2": 0.4986
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.5742,
+"y2": 0.5742
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.6498,
+"y2": 0.6498
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.7254,
+"y2": 0.7254
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.801,
+"y2": 0.801
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.8766,
+"y2": 0.8766
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.9522,
+"y2": 0.9522
+}
+],
+"key": "grooved:WC05",
+"label": "Groove pattern WC05 (Close lines)",
+"pattern": {
+"chosen": true,
+"code": "WC05",
+"label": "Close lines"
+}
+},
+"fiberglass/contemporary-grooved-og-8-gr/WC06": {
+"elements": [
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.042,
+"y2": 0.042
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.1173,
+"y2": 0.1173
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.1926,
+"y2": 0.1926
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.2679,
+"y2": 0.2679
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.3432,
+"y2": 0.3432
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.4185,
+"y2": 0.4185
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.4938,
+"y2": 0.4938
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.5691,
+"y2": 0.5691
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.6444,
+"y2": 0.6444
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.7197,
+"y2": 0.7197
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.795,
+"y2": 0.795
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.8703,
+"y2": 0.8703
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.9456,
+"y2": 0.9456
+},
+{
+"t": "g",
+"x1": 0.767,
+"x2": 0.767,
+"y1": 0,
+"y2": 1
+}
+],
+"key": "grooved:WC06",
+"label": "Groove pattern WC06 (Close lines & side groove)",
+"pattern": {
+"chosen": true,
+"code": "WC06",
+"label": "Close lines & side groove"
+}
+},
+"fiberglass/contemporary-grooved-og-8-gr/WC07": {
+"elements": [
+{
+"t": "g",
+"x1": 0.26,
+"x2": 0.26,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.3025,
+"x2": 0.3025,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.345,
+"x2": 0.345,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.3875,
+"x2": 0.3875,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.43,
+"x2": 0.43,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.4725,
+"x2": 0.4725,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.515,
+"x2": 0.515,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.5575,
+"x2": 0.5575,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.6,
+"x2": 0.6,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.6425,
+"x2": 0.6425,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.685,
+"x2": 0.685,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.7275,
+"x2": 0.7275,
+"y1": 0.015,
+"y2": 0.985
+}
+],
+"key": "grooved:WC07",
+"label": "Groove pattern WC07 (Vertical lines)",
+"pattern": {
+"chosen": true,
+"code": "WC07",
+"label": "Vertical lines"
+}
+},
+"fiberglass/contemporary-grooved-og-gr/WC01": {
+"elements": [
+{
+"t": "g",
+"x1": 0,
+"x2": 0.777,
+"y1": 0.2,
+"y2": 0.2
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.777,
+"y1": 0.4,
+"y2": 0.4
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.777,
+"y1": 0.6,
+"y2": 0.6
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.777,
+"y1": 0.8,
+"y2": 0.8
+},
+{
+"t": "g",
+"x1": 0.777,
+"x2": 0.777,
+"y1": 0,
+"y2": 1
+}
+],
+"key": "grooved:WC01",
+"label": "Groove pattern WC01 (Lines & side groove)",
+"pattern": {
+"chosen": true,
+"code": "WC01",
+"label": "Lines & side groove"
+}
+},
+"fiberglass/contemporary-grooved-og-gr/WC02": {
+"elements": [
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.777,
+"y1": 0.2,
+"y2": 0.2
+},
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.777,
+"y1": 0.4,
+"y2": 0.4
+},
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.777,
+"y1": 0.6,
+"y2": 0.6
+},
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.777,
+"y1": 0.8,
+"y2": 0.8
+},
+{
+"t": "g",
+"x1": 0.228,
+"x2": 0.228,
+"y1": 0,
+"y2": 1
+},
+{
+"t": "g",
+"x1": 0.777,
+"x2": 0.777,
+"y1": 0,
+"y2": 1
+}
+],
+"key": "grooved:WC02",
+"label": "Groove pattern WC02 (Framed lines)",
+"pattern": {
+"chosen": true,
+"code": "WC02",
+"label": "Framed lines"
+}
+},
+"fiberglass/contemporary-grooved-og-gr/WC03": {
+"elements": [
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.2,
+"y2": 0.2
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.4,
+"y2": 0.4
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.6,
+"y2": 0.6
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.8,
+"y2": 0.8
+}
+],
+"key": "grooved:WC03",
+"label": "Groove pattern WC03 (Four lines)",
+"pattern": {
+"chosen": true,
+"code": "WC03",
+"label": "Four lines"
+}
+},
+"fiberglass/contemporary-grooved-og-gr/WC04": {
+"elements": [
+{
+"t": "g",
+"x1": 0,
+"x2": 0.77,
+"y1": 0.2,
+"y2": 0.2
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.77,
+"y1": 0.4,
+"y2": 0.4
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.77,
+"y1": 0.6,
+"y2": 0.6
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.77,
+"y1": 0.8,
+"y2": 0.8
+}
+],
+"key": "grooved:WC04",
+"label": "Groove pattern WC04 (Short lines)",
+"pattern": {
+"chosen": true,
+"code": "WC04",
+"label": "Short lines"
+}
+},
+"fiberglass/contemporary-grooved-og-gr/WC05": {
+"elements": [
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.045,
+"y2": 0.045
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.1206,
+"y2": 0.1206
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.1962,
+"y2": 0.1962
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.2718,
+"y2": 0.2718
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.3474,
+"y2": 0.3474
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.423,
+"y2": 0.423
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.4986,
+"y2": 0.4986
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.5742,
+"y2": 0.5742
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.6498,
+"y2": 0.6498
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.7254,
+"y2": 0.7254
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.801,
+"y2": 0.801
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.8766,
+"y2": 0.8766
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 1,
+"y1": 0.9522,
+"y2": 0.9522
+}
+],
+"key": "grooved:WC05",
+"label": "Groove pattern WC05 (Close lines)",
+"pattern": {
+"chosen": true,
+"code": "WC05",
+"label": "Close lines"
+}
+},
+"fiberglass/contemporary-grooved-og-gr/WC06": {
+"elements": [
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.042,
+"y2": 0.042
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.1173,
+"y2": 0.1173
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.1926,
+"y2": 0.1926
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.2679,
+"y2": 0.2679
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.3432,
+"y2": 0.3432
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.4185,
+"y2": 0.4185
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.4938,
+"y2": 0.4938
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.5691,
+"y2": 0.5691
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.6444,
+"y2": 0.6444
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.7197,
+"y2": 0.7197
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.795,
+"y2": 0.795
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.8703,
+"y2": 0.8703
+},
+{
+"t": "g",
+"x1": 0.03,
+"x2": 0.767,
+"y1": 0.9456,
+"y2": 0.9456
+},
+{
+"t": "g",
+"x1": 0.767,
+"x2": 0.767,
+"y1": 0,
+"y2": 1
+}
+],
+"key": "grooved:WC06",
+"label": "Groove pattern WC06 (Close lines & side groove)",
+"pattern": {
+"chosen": true,
+"code": "WC06",
+"label": "Close lines & side groove"
+}
+},
+"fiberglass/contemporary-grooved-og-gr/WC07": {
+"elements": [
+{
+"t": "g",
+"x1": 0.26,
+"x2": 0.26,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.3025,
+"x2": 0.3025,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.345,
+"x2": 0.345,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.3875,
+"x2": 0.3875,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.43,
+"x2": 0.43,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.4725,
+"x2": 0.4725,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.515,
+"x2": 0.515,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.5575,
+"x2": 0.5575,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.6,
+"x2": 0.6,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.6425,
+"x2": 0.6425,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.685,
+"x2": 0.685,
+"y1": 0.015,
+"y2": 0.985
+},
+{
+"t": "g",
+"x1": 0.7275,
+"x2": 0.7275,
+"y1": 0.015,
+"y2": 0.985
+}
+],
+"key": "grooved:WC07",
+"label": "Groove pattern WC07 (Vertical lines)",
+"pattern": {
+"chosen": true,
+"code": "WC07",
+"label": "Vertical lines"
+}
+},
+"fiberglass/contemporary-stainless-steel-og-8-ss/WGSS01": {
+"elements": [
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.112,
+"y2": 0.112
+},
+{
+"t": "i",
+"x1": 0.31,
+"x2": 1,
+"y1": 0.369,
+"y2": 0.369
+},
+{
+"t": "i",
+"x1": 0.3,
+"x2": 1,
+"y1": 0.625,
+"y2": 0.625
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.882,
+"y2": 0.882
+}
+],
+"key": "stainless:WGSS01",
+"label": "Inlay pattern WGSS01 (Offset inlays)",
+"pattern": {
+"chosen": true,
+"code": "WGSS01",
+"label": "Offset inlays"
+}
+},
+"fiberglass/contemporary-stainless-steel-og-8-ss/WGSS02": {
+"elements": [
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.105,
+"y2": 0.105
+},
+{
+"t": "i",
+"x1": 0.5,
+"x2": 1,
+"y1": 0.151,
+"y2": 0.151
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 0.5,
+"y1": 0.833,
+"y2": 0.833
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.879,
+"y2": 0.879
+}
+],
+"key": "stainless:WGSS02",
+"label": "Inlay pattern WGSS02 (Staggered inlays)",
+"pattern": {
+"chosen": true,
+"code": "WGSS02",
+"label": "Staggered inlays"
+}
+},
+"fiberglass/contemporary-stainless-steel-og-8-ss/WGSS03": {
+"elements": [
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.112,
+"y2": 0.112
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.369,
+"y2": 0.369
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.625,
+"y2": 0.625
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.882,
+"y2": 0.882
+}
+],
+"key": "stainless:WGSS03",
+"label": "Inlay pattern WGSS03 (Full-width inlays)",
+"pattern": {
+"chosen": true,
+"code": "WGSS03",
+"label": "Full-width inlays"
+}
+},
+"fiberglass/contemporary-stainless-steel-og-8-ss/WGSS04": {
+"elements": [
+{
+"t": "i",
+"x1": 0.184,
+"x2": 0.184,
+"y1": 0.01,
+"y2": 0.99
+},
+{
+"t": "i",
+"x1": 0.24,
+"x2": 0.95,
+"y1": 0.189,
+"y2": 0.189
+},
+{
+"t": "i",
+"x1": 0.24,
+"x2": 0.95,
+"y1": 0.397,
+"y2": 0.397
+},
+{
+"t": "i",
+"x1": 0.24,
+"x2": 0.95,
+"y1": 0.605,
+"y2": 0.605
+},
+{
+"t": "i",
+"x1": 0.24,
+"x2": 0.95,
+"y1": 0.813,
+"y2": 0.813
+}
+],
+"key": "stainless:WGSS04",
+"label": "Inlay pattern WGSS04 (Inlays & bar)",
+"pattern": {
+"chosen": true,
+"code": "WGSS04",
+"label": "Inlays & bar"
+}
+},
+"fiberglass/contemporary-stainless-steel-og-ss/WGSS01": {
+"elements": [
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.112,
+"y2": 0.112
+},
+{
+"t": "i",
+"x1": 0.31,
+"x2": 1,
+"y1": 0.369,
+"y2": 0.369
+},
+{
+"t": "i",
+"x1": 0.3,
+"x2": 1,
+"y1": 0.625,
+"y2": 0.625
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.882,
+"y2": 0.882
+}
+],
+"key": "stainless:WGSS01",
+"label": "Inlay pattern WGSS01 (Offset inlays)",
+"pattern": {
+"chosen": true,
+"code": "WGSS01",
+"label": "Offset inlays"
+}
+},
+"fiberglass/contemporary-stainless-steel-og-ss/WGSS02": {
+"elements": [
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.105,
+"y2": 0.105
+},
+{
+"t": "i",
+"x1": 0.5,
+"x2": 1,
+"y1": 0.151,
+"y2": 0.151
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 0.5,
+"y1": 0.833,
+"y2": 0.833
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.879,
+"y2": 0.879
+}
+],
+"key": "stainless:WGSS02",
+"label": "Inlay pattern WGSS02 (Staggered inlays)",
+"pattern": {
+"chosen": true,
+"code": "WGSS02",
+"label": "Staggered inlays"
+}
+},
+"fiberglass/contemporary-stainless-steel-og-ss/WGSS03": {
+"elements": [
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.112,
+"y2": 0.112
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.369,
+"y2": 0.369
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.625,
+"y2": 0.625
+},
+{
+"t": "i",
+"x1": 0,
+"x2": 1,
+"y1": 0.882,
+"y2": 0.882
+}
+],
+"key": "stainless:WGSS03",
+"label": "Inlay pattern WGSS03 (Full-width inlays)",
+"pattern": {
+"chosen": true,
+"code": "WGSS03",
+"label": "Full-width inlays"
+}
+},
+"fiberglass/contemporary-stainless-steel-og-ss/WGSS04": {
+"elements": [
+{
+"t": "i",
+"x1": 0.184,
+"x2": 0.184,
+"y1": 0.01,
+"y2": 0.99
+},
+{
+"t": "i",
+"x1": 0.24,
+"x2": 0.95,
+"y1": 0.189,
+"y2": 0.189
+},
+{
+"t": "i",
+"x1": 0.24,
+"x2": 0.95,
+"y1": 0.397,
+"y2": 0.397
+},
+{
+"t": "i",
+"x1": 0.24,
+"x2": 0.95,
+"y1": 0.605,
+"y2": 0.605
+},
+{
+"t": "i",
+"x1": 0.24,
+"x2": 0.95,
+"y1": 0.813,
+"y2": 0.813
+}
+],
+"key": "stainless:WGSS04",
+"label": "Inlay pattern WGSS04 (Inlays & bar)",
+"pattern": {
+"chosen": true,
+"code": "WGSS04",
+"label": "Inlays & bar"
+}
+},
+"fiberglass/craftsman-3dp/": {
+"elements": [
+{
+"h": 0.214,
+"s": "shaker",
+"t": "p",
+"w": 0.572,
+"x": 0.209,
+"y": 0.066
+},
+{
+"h": 0.536,
+"s": "shaker",
+"t": "p",
+"w": 0.256,
+"x": 0.181,
+"y": 0.344
+},
+{
+"h": 0.536,
+"s": "shaker",
+"t": "p",
+"w": 0.256,
+"x": 0.553,
+"y": 0.344
+}
+],
+"key": "craftsman_3dp",
+"label": "Craftsman 3DP: lite over 2 tall Shaker panels",
+"pattern": null
+},
+"fiberglass/craftsman-3p-below-glass-fg4h/": {
+"elements": [
+{
+"h": 0.204,
+"s": "shaker",
+"t": "p",
+"w": 0.619,
+"x": 0.186,
+"y": 0.078
+},
+{
+"h": 0.534,
+"s": "shaker",
+"t": "p",
+"w": 0.167,
+"x": 0.186,
+"y": 0.358
+},
+{
+"h": 0.534,
+"s": "shaker",
+"t": "p",
+"w": 0.163,
+"x": 0.414,
+"y": 0.358
+},
+{
+"h": 0.534,
+"s": "shaker",
+"t": "p",
+"w": 0.163,
+"x": 0.642,
+"y": 0.358
+}
+],
+"key": "craftsman_3_below",
+"label": "Craftsman: top panel over 3 tall panels",
+"pattern": null
+},
+"fiberglass/craftsman-fir03/": {
+"elements": [
+{
+"h": 0.202,
+"s": "shaker",
+"t": "p",
+"w": 0.62,
+"x": 0.19,
+"y": 0.072
+},
+{
+"h": 0.532,
+"s": "shaker",
+"t": "p",
+"w": 0.26,
+"x": 0.19,
+"y": 0.35
+},
+{
+"h": 0.532,
+"s": "shaker",
+"t": "p",
+"w": 0.26,
+"x": 0.555,
+"y": 0.35
+}
+],
+"key": "craftsman_fir03",
+"label": "Craftsman FIR03: top panel over 2 tall panels",
+"pattern": null
+},
+"fiberglass/flush-tg07/": {
+"elements": [],
+"key": "flush",
+"label": "Flush",
+"pattern": null
+},
+"fiberglass/flush-wg00/": {
+"elements": [],
+"key": "flush",
+"label": "Flush",
+"pattern": null
+},
+"fiberglass/flush-wg01/": {
+"elements": [],
+"key": "flush",
+"label": "Flush",
+"pattern": null
+},
+"fiberglass/full-o-b-wg12/": {
+"elements": [],
+"key": "flush",
+"label": "Flush",
+"pattern": null
+},
+"fiberglass/full-o-b-wg18/": {
+"elements": [],
+"key": "flush",
+"label": "Flush",
+"pattern": null
+},
+"fiberglass/modern-teak-tg71/": {
+"elements": [
+{
+"t": "g",
+"x1": 0,
+"x2": 0.735,
+"y1": 0.162,
+"y2": 0.162
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.735,
+"y1": 0.322,
+"y2": 0.322
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.735,
+"y1": 0.5,
+"y2": 0.5
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.735,
+"y1": 0.672,
+"y2": 0.672
+},
+{
+"t": "g",
+"x1": 0,
+"x2": 0.735,
+"y1": 0.846,
+"y2": 0.846
+},
+{
+"t": "g",
+"x1": 0.735,
+"x2": 0.735,
+"y1": 0,
+"y2": 1
+}
+],
+"key": "modern_teak",
+"label": "Modern teak: 5 grooves and a side groove",
+"pattern": null
+},
+"fiberglass/narrow-o-b-wgnl/": {
+"elements": [],
+"key": "flush",
+"label": "Flush",
+"pattern": null
+},
+"fiberglass/oak-1-panel-planks-wg6fp/": {
+"elements": [
+{
+"h": 0.852,
+"planks": [
+0.296,
+0.426,
+0.556,
+0.69
+],
+"s": "raised",
+"t": "p",
+"w": 0.744,
+"x": 0.112,
+"y": 0.05
+}
+],
+"key": "plank_panel_square",
+"label": "1 square-top planked panel",
+"pattern": null
+},
+"fiberglass/oak-3-4-2-panel/": {
+"elements": [
+{
+"h": 0.604,
+"s": "raised",
+"t": "p",
+"w": 0.679,
+"x": 0.158,
+"y": 0.054
+},
+{
+"h": 0.2,
+"s": "raised",
+"t": "p",
+"w": 0.666,
+"x": 0.167,
+"y": 0.712
+}
+],
+"key": "raised_2_threequarter",
+"label": "2 raised panels (three-quarter)",
+"pattern": null
+},
+"fiberglass/oak-3-4-4-panel/": {
+"elements": [
+{
+"h": 0.604,
+"s": "raised",
+"t": "p",
+"w": 0.679,
+"x": 0.158,
+"y": 0.054
+},
+{
+"h": 0.2,
+"s": "raised",
+"t": "p",
+"w": 0.666,
+"x": 0.167,
+"y": 0.712
+}
+],
+"key": "raised_2_threequarter",
+"label": "2 raised panels (three-quarter)",
+"pattern": null
+},
+"fiberglass/oak-3-4-panel/": {
+"elements": [
+{
+"h": 0.604,
+"s": "raised",
+"t": "p",
+"w": 0.679,
+"x": 0.158,
+"y": 0.054
+},
+{
+"h": 0.2,
+"s": "raised",
+"t": "p",
+"w": 0.666,
+"x": 0.167,
+"y": 0.712
+}
+],
+"key": "raised_2_threequarter",
+"label": "2 raised panels (three-quarter)",
+"pattern": null
+},
+"fiberglass/oak-4-panel-bt/": {
+"elements": [
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.21
+},
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.21
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.61
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.61
+}
+],
+"key": "four_panel_blank_top",
+"label": "4 panels, blank top",
+"pattern": null
+},
+"fiberglass/oak-6-lite-wg66/": {
+"elements": [],
+"key": "flush",
+"label": "Flush",
+"pattern": null
+},
+"fiberglass/oak-6-panel/": {
+"elements": [
+{
+"h": 0.1,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.06
+},
+{
+"h": 0.1,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.06
+},
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.21
+},
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.21
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.61
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.61
+}
+],
+"key": "six_panel",
+"label": "6 panels",
+"pattern": null
+},
+"fiberglass/oak-flush/": {
+"elements": [],
+"key": "flush",
+"label": "Flush",
+"pattern": null
+},
+"fiberglass/oak-wg34/": {
+"elements": [
+{
+"h": 0.56,
+"s": "raised",
+"t": "p",
+"top": "scroll",
+"w": 0.688,
+"x": 0.135,
+"y": 0.068
+},
+{
+"h": 0.158,
+"s": "raised",
+"t": "p",
+"w": 0.279,
+"x": 0.135,
+"y": 0.74
+},
+{
+"h": 0.158,
+"s": "raised",
+"t": "p",
+"w": 0.27,
+"x": 0.553,
+"y": 0.74
+}
+],
+"key": "oak_wg34",
+"label": "Oak WG34: tall scroll-top panel over 2 small panels",
+"pattern": null
+},
+"steel/2-panel-bt/": {
+"elements": [
+{
+"h": 0.17,
+"s": "raised",
+"t": "p",
+"w": 0.27,
+"x": 0.15,
+"y": 0.72
+},
+{
+"h": 0.17,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.72
+}
+],
+"key": "two_panel_blank_top",
+"label": "2 small panels, blank top",
+"pattern": null
+},
+"steel/2p-camber-top/": {
+"elements": [
+{
+"h": 0.464,
+"s": "raised",
+"t": "p",
+"top": "camber",
+"w": 0.689,
+"x": 0.153,
+"y": 0.06
+},
+{
+"h": 0.27,
+"s": "raised",
+"t": "p",
+"w": 0.689,
+"x": 0.153,
+"y": 0.61
+}
+],
+"key": "camber_2",
+"label": "2 panels, camber top",
+"pattern": null
+},
+"steel/2p-planked-cam-top/": {
+"elements": [
+{
+"h": 0.468,
+"planks": [
+0.316,
+0.433,
+0.544,
+0.66
+],
+"s": "raised",
+"t": "p",
+"top": "camber",
+"w": 0.689,
+"x": 0.153,
+"y": 0.06
+},
+{
+"h": 0.28,
+"planks": [
+0.316,
+0.433,
+0.544,
+0.66
+],
+"s": "raised",
+"t": "p",
+"w": 0.689,
+"x": 0.153,
+"y": 0.61
+}
+],
+"key": "planked_camber_2",
+"label": "2 planked panels, camber top",
+"pattern": null
+},
+"steel/3-panel-st/": {
+"elements": [
+{
+"h": 0.615,
+"s": "raised",
+"t": "p",
+"top": "scroll",
+"w": 0.69,
+"x": 0.15,
+"y": 0.065
+},
+{
+"h": 0.17,
+"s": "raised",
+"t": "p",
+"w": 0.27,
+"x": 0.15,
+"y": 0.72
+},
+{
+"h": 0.17,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.72
+}
+],
+"key": "scroll_tall_2_small",
+"label": "Tall scroll-top panel over 2 small panels",
+"pattern": null
+},
+"steel/3-panel/": {
+"elements": [
+{
+"h": 0.615,
+"s": "raised",
+"t": "p",
+"w": 0.69,
+"x": 0.15,
+"y": 0.065
+},
+{
+"h": 0.17,
+"s": "raised",
+"t": "p",
+"w": 0.27,
+"x": 0.15,
+"y": 0.72
+},
+{
+"h": 0.17,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.72
+}
+],
+"key": "square_tall_2_small",
+"label": "Tall panel over 2 small panels",
+"pattern": null
+},
+"steel/4-panel-bt/": {
+"elements": [
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.21
+},
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.21
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.61
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.61
+}
+],
+"key": "four_panel_blank_top",
+"label": "4 panels, blank top",
+"pattern": null
+},
+"steel/6-panel/": {
+"elements": [
+{
+"h": 0.1,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.06
+},
+{
+"h": 0.1,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.06
+},
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.21
+},
+{
+"h": 0.33,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.21
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.14,
+"y": 0.61
+},
+{
+"h": 0.28,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.56,
+"y": 0.61
+}
+],
+"key": "six_panel",
+"label": "6 panels",
+"pattern": null
+},
+"steel/era/": {
+"elements": [
+{
+"t": "g",
+"x1": 0.6,
+"x2": 0.83,
+"y1": 0.151,
+"y2": 0.151
+},
+{
+"t": "g",
+"x1": 0.6,
+"x2": 0.83,
+"y1": 0.265,
+"y2": 0.265
+},
+{
+"t": "g",
+"x1": 0.6,
+"x2": 0.83,
+"y1": 0.381,
+"y2": 0.381
+},
+{
+"t": "g",
+"x1": 0.6,
+"x2": 0.83,
+"y1": 0.495,
+"y2": 0.495
+},
+{
+"t": "g",
+"x1": 0.6,
+"x2": 0.83,
+"y1": 0.609,
+"y2": 0.609
+},
+{
+"t": "g",
+"x1": 0.6,
+"x2": 0.83,
+"y1": 0.723,
+"y2": 0.723
+},
+{
+"t": "g",
+"x1": 0.6,
+"x2": 0.83,
+"y1": 0.834,
+"y2": 0.834
+}
+],
+"key": "era",
+"label": "Era: 7 short grooves",
+"pattern": null
+},
+"steel/flush/": {
+"elements": [],
+"key": "flush",
+"label": "Flush",
+"pattern": null
+},
+"steel/linea/": {
+"elements": [
+{
+"t": "slot",
+"w": 0.36,
+"x": 0.13,
+"y": 0.087
+},
+{
+"t": "slot",
+"w": 0.36,
+"x": 0.13,
+"y": 0.291
+},
+{
+"t": "slot",
+"w": 0.36,
+"x": 0.13,
+"y": 0.497
+},
+{
+"t": "slot",
+"w": 0.36,
+"x": 0.13,
+"y": 0.701
+},
+{
+"t": "slot",
+"w": 0.36,
+"x": 0.13,
+"y": 0.905
+}
+],
+"key": "linea",
+"label": "Linea: 5 rounded slots",
+"pattern": null
+},
+"steel/london/": {
+"elements": [
+{
+"h": 0.472,
+"s": "raised",
+"t": "p",
+"w": 0.694,
+"x": 0.153,
+"y": 0.058
+},
+{
+"h": 0.276,
+"s": "raised",
+"t": "p",
+"w": 0.694,
+"x": 0.153,
+"y": 0.608
+}
+],
+"key": "london",
+"label": "London: 2 raised panels",
+"pattern": null
+},
+"steel/orleans/": {
+"elements": [
+{
+"h": 0.624,
+"s": "raised",
+"t": "p",
+"w": 0.689,
+"x": 0.158,
+"y": 0.058
+},
+{
+"h": 0.168,
+"s": "raised",
+"t": "p",
+"w": 0.689,
+"x": 0.158,
+"y": 0.716
+}
+],
+"key": "orleans",
+"label": "Orleans: tall panel over low panel",
+"pattern": null
+},
+"steel/oso/": {
+"elements": [
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.144,
+"y2": 0.144
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.1505,
+"y2": 0.1505
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.157,
+"y2": 0.157
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.1635,
+"y2": 0.1635
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.37,
+"y2": 0.37
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.3765,
+"y2": 0.3765
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.383,
+"y2": 0.383
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.3895,
+"y2": 0.3895
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.596,
+"y2": 0.596
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.6025,
+"y2": 0.6025
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.609,
+"y2": 0.609
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.6155,
+"y2": 0.6155
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.824,
+"y2": 0.824
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.8305,
+"y2": 0.8305
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.837,
+"y2": 0.837
+},
+{
+"t": "g",
+"x1": 0.5,
+"x2": 0.88,
+"y1": 0.8435,
+"y2": 0.8435
+}
+],
+"key": "oso",
+"label": "Oso: 4 accents of fine grooves",
+"pattern": null
+},
+"steel/soho/": {
+"elements": [
+{
+"h": 0.168,
+"s": "raised",
+"t": "p",
+"w": 0.694,
+"x": 0.153,
+"y": 0.06
+},
+{
+"h": 0.17,
+"s": "raised",
+"t": "p",
+"w": 0.694,
+"x": 0.153,
+"y": 0.278
+},
+{
+"h": 0.17,
+"s": "raised",
+"t": "p",
+"w": 0.694,
+"x": 0.153,
+"y": 0.498
+},
+{
+"h": 0.168,
+"s": "raised",
+"t": "p",
+"w": 0.694,
+"x": 0.153,
+"y": 0.718
+}
+],
+"key": "soho",
+"label": "Soho: 4 stacked panels",
+"pattern": null
+},
+"steel/sydney/": {
+"elements": [
+{
+"h": 0.232,
+"s": "raised",
+"t": "p",
+"w": 0.689,
+"x": 0.158,
+"y": 0.058
+},
+{
+"h": 0.232,
+"s": "raised",
+"t": "p",
+"w": 0.689,
+"x": 0.158,
+"y": 0.356
+},
+{
+"h": 0.23,
+"s": "raised",
+"t": "p",
+"w": 0.689,
+"x": 0.158,
+"y": 0.654
+}
+],
+"key": "sydney",
+"label": "Sydney: 3 stacked panels",
+"pattern": null
+},
+"steel/tao/": {
+"elements": [
+{
+"t": "g",
+"taper": true,
+"x1": 0.13,
+"x2": 0.87,
+"y1": 0.155,
+"y2": 0.155
+},
+{
+"t": "g",
+"taper": true,
+"x1": 0.13,
+"x2": 0.87,
+"y1": 0.383,
+"y2": 0.383
+},
+{
+"t": "g",
+"taper": true,
+"x1": 0.13,
+"x2": 0.87,
+"y1": 0.613,
+"y2": 0.613
+},
+{
+"t": "g",
+"taper": true,
+"x1": 0.13,
+"x2": 0.87,
+"y1": 0.843,
+"y2": 0.843
+}
+],
+"key": "tao",
+"label": "Tao: 4 tapered grooves",
+"pattern": null
+},
+"steel/victoria/": {
+"elements": [
+{
+"h": 0.198,
+"s": "raised",
+"t": "p",
+"w": 0.694,
+"x": 0.153,
+"y": 0.06
+},
+{
+"h": 0.568,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.153,
+"y": 0.318
+},
+{
+"h": 0.568,
+"s": "raised",
+"t": "p",
+"w": 0.28,
+"x": 0.567,
+"y": 0.318
+}
+],
+"key": "victoria",
+"label": "Victoria: top panel over 2 tall panels",
+"pattern": null
+},
+"steel/vog/": {
+"elements": [
+{
+"t": "g",
+"x1": 0.18,
+"x2": 0.97,
+"y1": 0.155,
+"y2": 0.155
+},
+{
+"t": "g",
+"x1": 0.18,
+"x2": 0.97,
+"y1": 0.385,
+"y2": 0.385
+},
+{
+"t": "g",
+"x1": 0.18,
+"x2": 0.97,
+"y1": 0.615,
+"y2": 0.615
+},
+{
+"t": "g",
+"x1": 0.18,
+"x2": 0.97,
+"y1": 0.845,
+"y2": 0.845
+}
+],
+"key": "vog",
+"label": "Vog: 4 full-width grooves",
+"pattern": null
+}
+}

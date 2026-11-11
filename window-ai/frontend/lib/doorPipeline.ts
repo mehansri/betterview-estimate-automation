@@ -102,6 +102,8 @@ export type PipelineSelection = {
   configuration?: string;
   frame_depth?: string;
   model?: string;
+  /** Grooved / Stainless Steel Oak pattern (WC01–WC07, WGSS01–04): drawn on the door, one Palma price. */
+  slab_design?: string;
   colours: {
     exterior?: PipelineSide;
     interior?: PipelineSide;
@@ -791,7 +793,7 @@ export function selectionSummary(catalog: PipelineCatalog, sel: PipelineSelectio
     material?.label,
     sel.width && sel.height ? `${sel.width}" x ${sel.height}${sel.custom_size.enabled ? " (cut down)" : ""}` : null,
     layout?.label,
-    model ? `${model.label} slab` : null,
+    model ? `${model.label}${sel.slab_design ? ` ${sel.slab_design}` : ""} slab` : null,
     glass,
     finish ? FINISH_LABELS[finish] : null,
   ].filter(Boolean) as string[];

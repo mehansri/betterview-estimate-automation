@@ -1,0 +1,406 @@
+{
+  "version": 1,
+  "about": "Door slab faces as fractions of the slab (x across from the left, y down from the top), measured from Palma's panel selector photos (palmadoor.com/panel-selector, Nov 2026). Elements: p = panel (s raised|shaker, top square|arch|camber|scroll, planks = groove x positions inside it), g = groove line (taper = tapered steel groove), i = stainless inlay strip, slot = rounded slot (x, y, w). A door with glass drops every element its glass covers. Read by services/doors/faces.py and frontend/lib/doorFaces.ts (a test keeps frontend/lib/doorFaces.data.json identical).",
+  "faces": {
+    "flush": { "label": "Flush", "elements": [] },
+    "true_plank": {
+      "label": "True plank (7 boards)",
+      "elements": [
+        { "t": "g", "x1": 0.128, "y1": 0, "x2": 0.128, "y2": 1 }, { "t": "g", "x1": 0.272, "y1": 0, "x2": 0.272, "y2": 1 },
+        { "t": "g", "x1": 0.421, "y1": 0, "x2": 0.421, "y2": 1 }, { "t": "g", "x1": 0.565, "y1": 0, "x2": 0.565, "y2": 1 },
+        { "t": "g", "x1": 0.714, "y1": 0, "x2": 0.714, "y2": 1 }, { "t": "g", "x1": 0.858, "y1": 0, "x2": 0.858, "y2": 1 }
+      ]
+    },
+    "plank_panel_square": {
+      "label": "1 square-top planked panel",
+      "elements": [{ "t": "p", "x": 0.112, "y": 0.05, "w": 0.744, "h": 0.852, "s": "raised", "planks": [0.296, 0.426, 0.556, 0.69] }]
+    },
+    "plank_panel_arch": {
+      "label": "1 arch-top planked panel",
+      "elements": [{ "t": "p", "x": 0.112, "y": 0.05, "w": 0.744, "h": 0.852, "s": "raised", "top": "arch", "planks": [0.296, 0.426, 0.556, 0.69] }]
+    },
+    "plank_2_arch": {
+      "label": "2 planked panels, arch top",
+      "elements": [
+        { "t": "p", "x": 0.121, "y": 0.045, "w": 0.744, "h": 0.511, "s": "raised", "top": "arch", "planks": [0.296, 0.43, 0.561, 0.696] },
+        { "t": "p", "x": 0.121, "y": 0.634, "w": 0.744, "h": 0.246, "s": "raised", "planks": [0.43, 0.565, 0.696] }
+      ]
+    },
+    "plank_2_square": {
+      "label": "2 planked panels, square top",
+      "elements": [
+        { "t": "p", "x": 0.121, "y": 0.048, "w": 0.744, "h": 0.508, "s": "raised", "planks": [0.296, 0.43, 0.561, 0.696] },
+        { "t": "p", "x": 0.121, "y": 0.634, "w": 0.744, "h": 0.246, "s": "raised", "planks": [0.43, 0.565, 0.696] }
+      ]
+    },
+    "two_panel_arch": {
+      "label": "2 panels, arch top",
+      "elements": [
+        { "t": "p", "x": 0.116, "y": 0.046, "w": 0.744, "h": 0.51, "s": "raised", "top": "arch" },
+        { "t": "p", "x": 0.126, "y": 0.634, "w": 0.734, "h": 0.246, "s": "raised" }
+      ]
+    },
+    "two_panel_square": {
+      "label": "2 panels, square top",
+      "elements": [
+        { "t": "p", "x": 0.135, "y": 0.06, "w": 0.721, "h": 0.49, "s": "raised" },
+        { "t": "p", "x": 0.144, "y": 0.63, "w": 0.712, "h": 0.248, "s": "raised" }
+      ]
+    },
+    "shaker_1": {
+      "label": "1 Shaker panel",
+      "elements": [{ "t": "p", "x": 0.18, "y": 0.06, "w": 0.64, "h": 0.822, "s": "shaker" }]
+    },
+    "shaker_2_half": {
+      "label": "2 Shaker panels (half)",
+      "elements": [
+        { "t": "p", "x": 0.191, "y": 0.052, "w": 0.623, "h": 0.487, "s": "shaker" },
+        { "t": "p", "x": 0.191, "y": 0.628, "w": 0.623, "h": 0.259, "s": "shaker" }
+      ]
+    },
+    "shaker_2_threequarter": {
+      "label": "2 Shaker panels (three-quarter)",
+      "elements": [
+        { "t": "p", "x": 0.191, "y": 0.064, "w": 0.628, "h": 0.589, "s": "shaker" },
+        { "t": "p", "x": 0.191, "y": 0.728, "w": 0.628, "h": 0.146, "s": "shaker" }
+      ]
+    },
+    "raised_2_threequarter": {
+      "label": "2 raised panels (three-quarter)",
+      "elements": [
+        { "t": "p", "x": 0.158, "y": 0.054, "w": 0.679, "h": 0.604, "s": "raised" },
+        { "t": "p", "x": 0.167, "y": 0.712, "w": 0.666, "h": 0.2, "s": "raised" }
+      ]
+    },
+    "craftsman_2_below": {
+      "label": "Craftsman: top panel over 2 tall panels",
+      "elements": [
+        { "t": "p", "x": 0.153, "y": 0.064, "w": 0.684, "h": 0.226, "s": "shaker" },
+        { "t": "p", "x": 0.153, "y": 0.3, "w": 0.27, "h": 0.588, "s": "shaker" },
+        { "t": "p", "x": 0.556, "y": 0.3, "w": 0.281, "h": 0.588, "s": "shaker" }
+      ]
+    },
+    "craftsman_3dp": {
+      "label": "Craftsman 3DP: lite over 2 tall Shaker panels",
+      "elements": [
+        {"t": "p", "x": 0.209, "y": 0.066, "w": 0.572, "h": 0.214, "s": "shaker"},
+        {"t": "p", "x": 0.181, "y": 0.344, "w": 0.256, "h": 0.536, "s": "shaker"},
+        {"t": "p", "x": 0.553, "y": 0.344, "w": 0.256, "h": 0.536, "s": "shaker"}
+      ]
+    },
+    "craftsman_fir03": {
+      "label": "Craftsman FIR03: top panel over 2 tall panels",
+      "elements": [
+        {"t": "p", "x": 0.19, "y": 0.072, "w": 0.62, "h": 0.202, "s": "shaker"},
+        {"t": "p", "x": 0.19, "y": 0.35, "w": 0.26, "h": 0.532, "s": "shaker"},
+        {"t": "p", "x": 0.555, "y": 0.35, "w": 0.26, "h": 0.532, "s": "shaker"}
+      ]
+    },
+    "oak_wg34": {
+      "label": "Oak WG34: tall scroll-top panel over 2 small panels",
+      "elements": [
+        {"t": "p", "x": 0.135, "y": 0.068, "w": 0.688, "h": 0.56, "s": "raised", "top": "scroll"},
+        {"t": "p", "x": 0.135, "y": 0.74, "w": 0.279, "h": 0.158, "s": "raised"},
+        {"t": "p", "x": 0.553, "y": 0.74, "w": 0.27, "h": 0.158, "s": "raised"}
+      ]
+    },
+    "craftsman_3_below": {
+      "label": "Craftsman: top panel over 3 tall panels",
+      "elements": [
+        { "t": "p", "x": 0.186, "y": 0.078, "w": 0.619, "h": 0.204, "s": "shaker" },
+        { "t": "p", "x": 0.186, "y": 0.358, "w": 0.167, "h": 0.534, "s": "shaker" },
+        { "t": "p", "x": 0.414, "y": 0.358, "w": 0.163, "h": 0.534, "s": "shaker" },
+        { "t": "p", "x": 0.642, "y": 0.358, "w": 0.163, "h": 0.534, "s": "shaker" }
+      ]
+    },
+    "shaker_3_stacked": {
+      "label": "3 stacked Shaker panels",
+      "elements": [
+        { "t": "p", "x": 0.19, "y": 0.082, "w": 0.62, "h": 0.194, "s": "shaker" },
+        { "t": "p", "x": 0.19, "y": 0.376, "w": 0.62, "h": 0.194, "s": "shaker" },
+        { "t": "p", "x": 0.19, "y": 0.67, "w": 0.62, "h": 0.192, "s": "shaker" }
+      ]
+    },
+    "arch_tall_2_small": {
+      "label": "Tall arch-top panel over 2 small panels",
+      "elements": [
+        { "t": "p", "x": 0.149, "y": 0.07, "w": 0.693, "h": 0.65, "s": "raised", "top": "scroll" },
+        { "t": "p", "x": 0.15, "y": 0.782, "w": 0.26, "h": 0.13, "s": "raised" },
+        { "t": "p", "x": 0.59, "y": 0.782, "w": 0.25, "h": 0.13, "s": "raised" }
+      ]
+    },
+    "scroll_tall_2_small": {
+      "label": "Tall scroll-top panel over 2 small panels",
+      "elements": [
+        { "t": "p", "x": 0.15, "y": 0.065, "w": 0.69, "h": 0.615, "s": "raised", "top": "scroll" },
+        { "t": "p", "x": 0.15, "y": 0.72, "w": 0.27, "h": 0.17, "s": "raised" },
+        { "t": "p", "x": 0.56, "y": 0.72, "w": 0.28, "h": 0.17, "s": "raised" }
+      ]
+    },
+    "square_tall_2_small": {
+      "label": "Tall panel over 2 small panels",
+      "elements": [
+        { "t": "p", "x": 0.15, "y": 0.065, "w": 0.69, "h": 0.615, "s": "raised" },
+        { "t": "p", "x": 0.15, "y": 0.72, "w": 0.27, "h": 0.17, "s": "raised" },
+        { "t": "p", "x": 0.56, "y": 0.72, "w": 0.28, "h": 0.17, "s": "raised" }
+      ]
+    },
+    "six_panel": {
+      "label": "6 panels",
+      "elements": [
+        { "t": "p", "x": 0.14, "y": 0.06, "w": 0.28, "h": 0.1, "s": "raised" }, { "t": "p", "x": 0.56, "y": 0.06, "w": 0.28, "h": 0.1, "s": "raised" },
+        { "t": "p", "x": 0.14, "y": 0.21, "w": 0.28, "h": 0.33, "s": "raised" }, { "t": "p", "x": 0.56, "y": 0.21, "w": 0.28, "h": 0.33, "s": "raised" },
+        { "t": "p", "x": 0.14, "y": 0.61, "w": 0.28, "h": 0.28, "s": "raised" }, { "t": "p", "x": 0.56, "y": 0.61, "w": 0.28, "h": 0.28, "s": "raised" }
+      ]
+    },
+    "four_panel_blank_top": {
+      "label": "4 panels, blank top",
+      "elements": [
+        { "t": "p", "x": 0.14, "y": 0.21, "w": 0.28, "h": 0.33, "s": "raised" }, { "t": "p", "x": 0.56, "y": 0.21, "w": 0.28, "h": 0.33, "s": "raised" },
+        { "t": "p", "x": 0.14, "y": 0.61, "w": 0.28, "h": 0.28, "s": "raised" }, { "t": "p", "x": 0.56, "y": 0.61, "w": 0.28, "h": 0.28, "s": "raised" }
+      ]
+    },
+    "two_panel_blank_top": {
+      "label": "2 small panels, blank top",
+      "elements": [
+        { "t": "p", "x": 0.15, "y": 0.72, "w": 0.27, "h": 0.17, "s": "raised" }, { "t": "p", "x": 0.56, "y": 0.72, "w": 0.28, "h": 0.17, "s": "raised" }
+      ]
+    },
+    "lower_panel_only": {
+      "label": "1 low panel (glass above)",
+      "elements": [{ "t": "p", "x": 0.163, "y": 0.728, "w": 0.66, "h": 0.166, "s": "raised" }]
+    },
+    "camber_2": {
+      "label": "2 panels, camber top",
+      "elements": [
+        { "t": "p", "x": 0.153, "y": 0.06, "w": 0.689, "h": 0.464, "s": "raised", "top": "camber" },
+        { "t": "p", "x": 0.153, "y": 0.61, "w": 0.689, "h": 0.27, "s": "raised" }
+      ]
+    },
+    "planked_camber_2": {
+      "label": "2 planked panels, camber top",
+      "elements": [
+        { "t": "p", "x": 0.153, "y": 0.06, "w": 0.689, "h": 0.468, "s": "raised", "top": "camber", "planks": [0.316, 0.433, 0.544, 0.66] },
+        { "t": "p", "x": 0.153, "y": 0.61, "w": 0.689, "h": 0.28, "s": "raised", "planks": [0.316, 0.433, 0.544, 0.66] }
+      ]
+    },
+    "london": {
+      "label": "London: 2 raised panels",
+      "elements": [
+        { "t": "p", "x": 0.153, "y": 0.058, "w": 0.694, "h": 0.472, "s": "raised" },
+        { "t": "p", "x": 0.153, "y": 0.608, "w": 0.694, "h": 0.276, "s": "raised" }
+      ]
+    },
+    "orleans": {
+      "label": "Orleans: tall panel over low panel",
+      "elements": [
+        { "t": "p", "x": 0.158, "y": 0.058, "w": 0.689, "h": 0.624, "s": "raised" },
+        { "t": "p", "x": 0.158, "y": 0.716, "w": 0.689, "h": 0.168, "s": "raised" }
+      ]
+    },
+    "sydney": {
+      "label": "Sydney: 3 stacked panels",
+      "elements": [
+        { "t": "p", "x": 0.158, "y": 0.058, "w": 0.689, "h": 0.232, "s": "raised" },
+        { "t": "p", "x": 0.158, "y": 0.356, "w": 0.689, "h": 0.232, "s": "raised" },
+        { "t": "p", "x": 0.158, "y": 0.654, "w": 0.689, "h": 0.23, "s": "raised" }
+      ]
+    },
+    "soho": {
+      "label": "Soho: 4 stacked panels",
+      "elements": [
+        { "t": "p", "x": 0.153, "y": 0.06, "w": 0.694, "h": 0.168, "s": "raised" }, { "t": "p", "x": 0.153, "y": 0.278, "w": 0.694, "h": 0.17, "s": "raised" },
+        { "t": "p", "x": 0.153, "y": 0.498, "w": 0.694, "h": 0.17, "s": "raised" }, { "t": "p", "x": 0.153, "y": 0.718, "w": 0.694, "h": 0.168, "s": "raised" }
+      ]
+    },
+    "victoria": {
+      "label": "Victoria: top panel over 2 tall panels",
+      "elements": [
+        { "t": "p", "x": 0.153, "y": 0.06, "w": 0.694, "h": 0.198, "s": "raised" },
+        { "t": "p", "x": 0.153, "y": 0.318, "w": 0.28, "h": 0.568, "s": "raised" },
+        { "t": "p", "x": 0.567, "y": 0.318, "w": 0.28, "h": 0.568, "s": "raised" }
+      ]
+    },
+    "linea": {
+      "label": "Linea: 5 rounded slots",
+      "elements": [
+        { "t": "slot", "x": 0.13, "y": 0.087, "w": 0.36 }, { "t": "slot", "x": 0.13, "y": 0.291, "w": 0.36 }, { "t": "slot", "x": 0.13, "y": 0.497, "w": 0.36 },
+        { "t": "slot", "x": 0.13, "y": 0.701, "w": 0.36 }, { "t": "slot", "x": 0.13, "y": 0.905, "w": 0.36 }
+      ]
+    },
+    "tao": {
+      "label": "Tao: 4 tapered grooves",
+      "elements": [
+        { "t": "g", "x1": 0.13, "y1": 0.155, "x2": 0.87, "y2": 0.155, "taper": true }, { "t": "g", "x1": 0.13, "y1": 0.383, "x2": 0.87, "y2": 0.383, "taper": true },
+        { "t": "g", "x1": 0.13, "y1": 0.613, "x2": 0.87, "y2": 0.613, "taper": true }, { "t": "g", "x1": 0.13, "y1": 0.843, "x2": 0.87, "y2": 0.843, "taper": true }
+      ]
+    },
+    "era": {
+      "label": "Era: 7 short grooves",
+      "elements": [
+        { "t": "g", "x1": 0.6, "y1": 0.151, "x2": 0.83, "y2": 0.151 }, { "t": "g", "x1": 0.6, "y1": 0.265, "x2": 0.83, "y2": 0.265 },
+        { "t": "g", "x1": 0.6, "y1": 0.381, "x2": 0.83, "y2": 0.381 }, { "t": "g", "x1": 0.6, "y1": 0.495, "x2": 0.83, "y2": 0.495 },
+        { "t": "g", "x1": 0.6, "y1": 0.609, "x2": 0.83, "y2": 0.609 }, { "t": "g", "x1": 0.6, "y1": 0.723, "x2": 0.83, "y2": 0.723 },
+        { "t": "g", "x1": 0.6, "y1": 0.834, "x2": 0.83, "y2": 0.834 }
+      ]
+    },
+    "oso": {
+      "label": "Oso: 4 accents of fine grooves",
+      "elements": [
+        {"t": "g", "x1": 0.5, "y1": 0.144, "x2": 0.88, "y2": 0.144},
+        {"t": "g", "x1": 0.5, "y1": 0.1505, "x2": 0.88, "y2": 0.1505},
+        {"t": "g", "x1": 0.5, "y1": 0.157, "x2": 0.88, "y2": 0.157},
+        {"t": "g", "x1": 0.5, "y1": 0.1635, "x2": 0.88, "y2": 0.1635},
+        {"t": "g", "x1": 0.5, "y1": 0.37, "x2": 0.88, "y2": 0.37},
+        {"t": "g", "x1": 0.5, "y1": 0.3765, "x2": 0.88, "y2": 0.3765},
+        {"t": "g", "x1": 0.5, "y1": 0.383, "x2": 0.88, "y2": 0.383},
+        {"t": "g", "x1": 0.5, "y1": 0.3895, "x2": 0.88, "y2": 0.3895},
+        {"t": "g", "x1": 0.5, "y1": 0.596, "x2": 0.88, "y2": 0.596},
+        {"t": "g", "x1": 0.5, "y1": 0.6025, "x2": 0.88, "y2": 0.6025},
+        {"t": "g", "x1": 0.5, "y1": 0.609, "x2": 0.88, "y2": 0.609},
+        {"t": "g", "x1": 0.5, "y1": 0.6155, "x2": 0.88, "y2": 0.6155},
+        {"t": "g", "x1": 0.5, "y1": 0.824, "x2": 0.88, "y2": 0.824},
+        {"t": "g", "x1": 0.5, "y1": 0.8305, "x2": 0.88, "y2": 0.8305},
+        {"t": "g", "x1": 0.5, "y1": 0.837, "x2": 0.88, "y2": 0.837},
+        {"t": "g", "x1": 0.5, "y1": 0.8435, "x2": 0.88, "y2": 0.8435}
+      ]
+    },
+    "vog": {
+      "label": "Vog: 4 full-width grooves",
+      "elements": [
+        { "t": "g", "x1": 0.18, "y1": 0.155, "x2": 0.97, "y2": 0.155 }, { "t": "g", "x1": 0.18, "y1": 0.385, "x2": 0.97, "y2": 0.385 },
+        { "t": "g", "x1": 0.18, "y1": 0.615, "x2": 0.97, "y2": 0.615 }, { "t": "g", "x1": 0.18, "y1": 0.845, "x2": 0.97, "y2": 0.845 }
+      ]
+    },
+    "modern_teak": {
+      "label": "Modern teak: 5 grooves and a side groove",
+      "elements": [
+        { "t": "g", "x1": 0, "y1": 0.162, "x2": 0.735, "y2": 0.162 }, { "t": "g", "x1": 0, "y1": 0.322, "x2": 0.735, "y2": 0.322 },
+        { "t": "g", "x1": 0, "y1": 0.5, "x2": 0.735, "y2": 0.5 }, { "t": "g", "x1": 0, "y1": 0.672, "x2": 0.735, "y2": 0.672 },
+        { "t": "g", "x1": 0, "y1": 0.846, "x2": 0.735, "y2": 0.846 }, { "t": "g", "x1": 0.735, "y1": 0, "x2": 0.735, "y2": 1 }
+      ]
+    }
+  },
+  "patterns": {
+    "grooved": {
+      "label": "Groove pattern",
+      "default": "WC03",
+      "note": "Palma prices every Grooved Oak pattern under one Contemporary Grooved row; confirm the pattern with Palma.",
+      "items": {
+        "WC01": { "label": "Lines & side groove", "elements": [
+          { "t": "g", "x1": 0, "y1": 0.2, "x2": 0.777, "y2": 0.2 }, { "t": "g", "x1": 0, "y1": 0.4, "x2": 0.777, "y2": 0.4 },
+          { "t": "g", "x1": 0, "y1": 0.6, "x2": 0.777, "y2": 0.6 }, { "t": "g", "x1": 0, "y1": 0.8, "x2": 0.777, "y2": 0.8 },
+          { "t": "g", "x1": 0.777, "y1": 0, "x2": 0.777, "y2": 1 } ] },
+        "WC02": { "label": "Framed lines", "elements": [
+          { "t": "g", "x1": 0.228, "y1": 0.2, "x2": 0.777, "y2": 0.2 }, { "t": "g", "x1": 0.228, "y1": 0.4, "x2": 0.777, "y2": 0.4 },
+          { "t": "g", "x1": 0.228, "y1": 0.6, "x2": 0.777, "y2": 0.6 }, { "t": "g", "x1": 0.228, "y1": 0.8, "x2": 0.777, "y2": 0.8 },
+          { "t": "g", "x1": 0.228, "y1": 0, "x2": 0.228, "y2": 1 }, { "t": "g", "x1": 0.777, "y1": 0, "x2": 0.777, "y2": 1 } ] },
+        "WC03": { "label": "Four lines", "elements": [
+          { "t": "g", "x1": 0, "y1": 0.2, "x2": 1, "y2": 0.2 }, { "t": "g", "x1": 0, "y1": 0.4, "x2": 1, "y2": 0.4 },
+          { "t": "g", "x1": 0, "y1": 0.6, "x2": 1, "y2": 0.6 }, { "t": "g", "x1": 0, "y1": 0.8, "x2": 1, "y2": 0.8 } ] },
+        "WC04": { "label": "Short lines", "elements": [
+          { "t": "g", "x1": 0, "y1": 0.2, "x2": 0.77, "y2": 0.2 }, { "t": "g", "x1": 0, "y1": 0.4, "x2": 0.77, "y2": 0.4 },
+          { "t": "g", "x1": 0, "y1": 0.6, "x2": 0.77, "y2": 0.6 }, { "t": "g", "x1": 0, "y1": 0.8, "x2": 0.77, "y2": 0.8 } ] },
+        "WC05": { "label": "Close lines", "rows": { "count": 13, "from": 0.045, "step": 0.0756, "x1": 0, "x2": 1 } },
+        "WC06": { "label": "Close lines & side groove", "rows": { "count": 13, "from": 0.042, "step": 0.0753, "x1": 0.03, "x2": 0.767 },
+          "elements": [{ "t": "g", "x1": 0.767, "y1": 0, "x2": 0.767, "y2": 1 }] },
+        "WC07": { "label": "Vertical lines", "columns": { "count": 12, "from": 0.26, "step": 0.0425, "y1": 0.015, "y2": 0.985 } }
+      }
+    },
+    "stainless": {
+      "label": "Inlay pattern",
+      "default": "WGSS03",
+      "note": "Palma prices every Stainless Steel Oak pattern under one Contemporary Stainless Steel row; confirm the pattern with Palma.",
+      "items": {
+        "WGSS01": { "label": "Offset inlays", "elements": [
+          { "t": "i", "x1": 0, "y1": 0.112, "x2": 1, "y2": 0.112 }, { "t": "i", "x1": 0.31, "y1": 0.369, "x2": 1, "y2": 0.369 },
+          { "t": "i", "x1": 0.3, "y1": 0.625, "x2": 1, "y2": 0.625 }, { "t": "i", "x1": 0, "y1": 0.882, "x2": 1, "y2": 0.882 } ] },
+        "WGSS02": { "label": "Staggered inlays", "elements": [
+          { "t": "i", "x1": 0, "y1": 0.105, "x2": 1, "y2": 0.105 }, { "t": "i", "x1": 0.5, "y1": 0.151, "x2": 1, "y2": 0.151 },
+          { "t": "i", "x1": 0, "y1": 0.833, "x2": 0.5, "y2": 0.833 }, { "t": "i", "x1": 0, "y1": 0.879, "x2": 1, "y2": 0.879 } ] },
+        "WGSS03": { "label": "Full-width inlays", "elements": [
+          { "t": "i", "x1": 0, "y1": 0.112, "x2": 1, "y2": 0.112 }, { "t": "i", "x1": 0, "y1": 0.369, "x2": 1, "y2": 0.369 },
+          { "t": "i", "x1": 0, "y1": 0.625, "x2": 1, "y2": 0.625 }, { "t": "i", "x1": 0, "y1": 0.882, "x2": 1, "y2": 0.882 } ] },
+        "WGSS04": { "label": "Inlays & bar", "elements": [
+          { "t": "i", "x1": 0.184, "y1": 0.01, "x2": 0.184, "y2": 0.99 },
+          { "t": "i", "x1": 0.24, "y1": 0.189, "x2": 0.95, "y2": 0.189 }, { "t": "i", "x1": 0.24, "y1": 0.397, "x2": 0.95, "y2": 0.397 },
+          { "t": "i", "x1": 0.24, "y1": 0.605, "x2": 0.95, "y2": 0.605 }, { "t": "i", "x1": 0.24, "y1": 0.813, "x2": 0.95, "y2": 0.813 } ] }
+      }
+    }
+  },
+  "models": {
+    "fiberglass": {
+      "1-panel-arch-top-plank-dra1a80": "plank_panel_arch",
+      "1-panel-sq-top-plank-dra1p": "plank_panel_square",
+      "1-panel-sq-top-plank-rg21": "plank_panel_square",
+      "1-panel-square-top-plank-dra1p80": "plank_panel_square",
+      "1-panel-true-plank-dratp": "true_plank",
+      "1-panel-true-plank-dratp80": "true_plank",
+      "1-panel-shaker-fir01": "shaker_1",
+      "1-panel-shaker-smo01-80": "shaker_1",
+      "2-panel-arch-top-plank-dra2a": "plank_2_arch",
+      "2-panel-arch-top-plank-dra2a80": "plank_2_arch",
+      "2-panel-arch-top-plank-rg22": "plank_2_arch",
+      "2-panel-arch-top-plank-rg26": "plank_2_arch",
+      "2-panel-arch-top-dra2d": "two_panel_arch",
+      "2-panel-sq-top-dra2b": "two_panel_square",
+      "2-panel-square-top-plank-dra2p80": "plank_2_square",
+      "2-panel-1-2-lite-smo22-80": "shaker_2_half",
+      "2-panel-3-4-lite-smo24-80": "shaker_2_threequarter",
+      "2-panel-3-4-bw28": "raised_2_threequarter",
+      "2-panel-3-4-wg25": "raised_2_threequarter",
+      "2-panel-shaker-1-2-lite-fir02": "shaker_2_half",
+      "2-panel-shaker-3-4-lite-fir25": "shaker_2_threequarter",
+      "2-panel-shaker-smo02-80": "shaker_2_half",
+      "3-panel-craftsman-drf3f80": "craftsman_2_below",
+      "3-panel-shaker-fg3j": "shaker_3_stacked",
+      "3-panel-wg37": "arch_tall_2_small",
+      "3-panel-craftsman-shaker-smo03-80": "craftsman_2_below",
+      "3-4-o-b-wg27": "lower_panel_only",
+      "6-panel-wg68": "six_panel",
+      "contemporary-grooved-og-8-gr": { "pattern": "grooved" },
+      "contemporary-grooved-og-gr": { "pattern": "grooved" },
+      "contemporary-stainless-steel-og-8-ss": { "pattern": "stainless" },
+      "contemporary-stainless-steel-og-ss": { "pattern": "stainless" },
+      "craftsman-3p-below-glass-fg4h": "craftsman_3_below",
+      "craftsman-3dp": "craftsman_3dp",
+      "craftsman-fir03": "craftsman_fir03",
+      "flush-tg07": "flush",
+      "flush-wg00": "flush",
+      "flush-wg01": "flush",
+      "full-o-b-wg12": "flush",
+      "full-o-b-wg18": "flush",
+      "modern-teak-tg71": "modern_teak",
+      "narrow-o-b-wgnl": "flush",
+      "oak-1-panel-planks-wg6fp": "plank_panel_square",
+      "oak-3-4-2-panel": "raised_2_threequarter",
+      "oak-3-4-4-panel": "raised_2_threequarter",
+      "oak-3-4-panel": "raised_2_threequarter",
+      "oak-4-panel-bt": "four_panel_blank_top",
+      "oak-6-lite-wg66": "flush",
+      "oak-6-panel": "six_panel",
+      "oak-flush": "flush",
+      "oak-wg34": "oak_wg34"
+    },
+    "steel": {
+      "2-panel-bt": "two_panel_blank_top",
+      "2p-camber-top": "camber_2",
+      "2p-planked-cam-top": "planked_camber_2",
+      "3-panel": "square_tall_2_small",
+      "3-panel-st": "scroll_tall_2_small",
+      "4-panel-bt": "four_panel_blank_top",
+      "6-panel": "six_panel",
+      "era": "era",
+      "flush": "flush",
+      "linea": "linea",
+      "london": "london",
+      "orleans": "orleans",
+      "oso": "oso",
+      "soho": "soho",
+      "sydney": "sydney",
+      "tao": "tao",
+      "victoria": "victoria",
+      "vog": "vog"
+    }
+  }
+}

@@ -542,6 +542,8 @@ export type DoorDrawingGeometry = {
   slab_height?: number;
   height_label?: string;
   model?: string;
+  /** The slab's face (services/doors/faces.py, lib/doorFaces.ts), with glass-covered elements already removed. */
+  face?: import("@/lib/doorFaces").DoorFace | null;
   door_glass?: { size: string; family: string } | null;
   sidelite_glass?: Array<{ size: string; family: string } | null>;
   transom_glass?: string | null;

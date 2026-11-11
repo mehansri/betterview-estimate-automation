@@ -4,6 +4,7 @@ import { ReactNode, useMemo, useState } from "react";
 import ConfiguratorShell, { ConfiguratorPrice } from "@/components/configurator/ConfiguratorShell";
 import { ChipGroup, InchInput, OptionCard, SectionTitle, Stepper } from "@/components/configurator/parts";
 import DoorDrawing, { finishHex } from "@/components/DoorDrawing";
+import { doorFace, slabDesignGroup, slabDesigns } from "@/lib/doorFaces";
 import { useViewMode } from "@/lib/viewMode";
 import { isCustomColour, PALMA_PAINTS, PALMA_STAINS, standardColourName } from "@/lib/palmaColours";
 import {
@@ -293,6 +294,8 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
   const frameSide = value.colours.frame.mode === "split" ? value.colours.frame.exterior : value.colours.exterior;
   const frameColour = value.material === "steel" && value.colours.frame.mode === "match" && value.colours.exterior?.type !== "painted" ? "#f8fafc" : finishHex(frameSide?.type, frameSide?.colour);
   const modelLabel = model?.label || material?.models.find((item) => item.key === value.model)?.label || "";
+  const designs = slabDesigns(value.material, value.model);
+  const designGroup = designs.length ? slabDesignGroup(value.material, value.model) : null;
   const sideliteGlass = (value.glass.sidelites || []).map((part) => (part.glazed ? { size: part.size, family: part.family } : null));
   const drawing = (
     <DoorDrawing
@@ -303,6 +306,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
       heightIn={value.custom_size.enabled && value.custom_size.height_in ? value.custom_size.height_in : heightInches(catalog, value.height)}
       heightLabel={value.height}
       model={modelLabel}
+      face={doorFace(value.material, value.model, value.slab_design)?.elements}
       doorGlass={value.glass.door.glazed ? { size: value.glass.door.size, family: value.glass.door.family } : null}
       sideliteGlass={sideliteGlass}
       transomGlass={value.glass.transom?.glass}
@@ -471,14 +475,29 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
               const itemOffers = doorOffers(item, value);
               const sizes = itemOffers.glazed ? Object.keys(itemOffers.glazed.glass).length : 0;
               return (
-                <OptionCard key={item.key} active={value.model === item.key} onClick={() => update((draft) => { draft.model = item.key; })} className="flex flex-col items-center p-2.5">
-                  <DoorDrawing doors={1} sidelites={0} transom={false} width={value.width || 36} heightIn={heightInches(catalog, value.height)} model={item.label} doorGlass={!itemOffers.solid && itemOffers.glazed ? { size: Object.keys(itemOffers.glazed.glass)[0], family: "clear" } : null} slabColour={value.material === "fiberglass" && !item.smooth ? "#c8a165" : "#f1f5f9"} frameColour="#f8fafc" size={90} showDimensions={false} />
+                <OptionCard key={item.key} active={value.model === item.key} onClick={() => update((draft) => { if (draft.model !== item.key) draft.slab_design = undefined; draft.model = item.key; })} className="flex flex-col items-center p-2.5">
+                  <DoorDrawing doors={1} sidelites={0} transom={false} width={value.width || 36} heightIn={heightInches(catalog, value.height)} model={item.label} face={doorFace(value.material, item.key)?.elements} doorGlass={!itemOffers.solid && itemOffers.glazed ? { size: Object.keys(itemOffers.glazed.glass)[0], family: "clear" } : null} slabColour={value.material === "fiberglass" && !item.smooth ? "#c8a165" : "#f1f5f9"} frameColour="#f8fafc" size={90} showDimensions={false} />
                   <p className="mt-1 text-center text-xs font-semibold text-slate-900">{item.label}</p>
                   <p className="text-center text-[10px] text-slate-500">{[itemOffers.solid ? "Solid" : null, sizes ? `${sizes} glass size${sizes === 1 ? "" : "s"}` : null, item.smooth ? "smooth skin" : null].filter(Boolean).join(" · ")}</p>
                 </OptionCard>
               );
             })}
           </div>
+          {designGroup ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <SectionTitle>{designGroup.label}</SectionTitle>
+              <p className="mb-3 text-[11px] text-slate-500">{designGroup.note} Shown on the drawing, estimate and PDF{value.slab_design ? "" : `; ${designGroup.default} until you pick one`}.</p>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+                {designs.map((design) => (
+                  <OptionCard key={design.code} active={(value.slab_design || "") === design.code} onClick={() => update((draft) => { draft.slab_design = draft.slab_design === design.code ? undefined : design.code; })} className="flex flex-col items-center p-2">
+                    <DoorDrawing doors={1} sidelites={0} transom={false} width={value.width || 36} heightIn={heightInches(catalog, value.height)} model={modelLabel} face={doorFace(value.material, value.model, design.code)?.elements} slabColour={value.colours.exterior?.type ? slabColour : "#c8a165"} frameColour="#f8fafc" size={80} showDimensions={false} />
+                    <p className="mt-1 text-center text-[11px] font-semibold text-slate-900">{design.code}</p>
+                    <p className="text-center text-[10px] text-slate-500">{design.label}</p>
+                  </OptionCard>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

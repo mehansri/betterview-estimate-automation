@@ -184,6 +184,8 @@ class DoorPipelineSpec(BaseModel):
     standard: PipelineStandard = Field(default_factory=PipelineStandard)
     extras: PipelineExtras = Field(default_factory=PipelineExtras)
     sidelite_width_in: Optional[float] = Field(default=None, gt=0)
+    # Grooved / Stainless Steel Oak pattern code (config/door_faces.json), e.g. "WC07".
+    slab_design: Optional[str] = None
 
 
 class DoorOpeningSpec(BaseModel):
