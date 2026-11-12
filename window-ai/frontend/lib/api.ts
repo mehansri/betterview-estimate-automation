@@ -533,6 +533,8 @@ export type DoorCustomerItem = {
 export type DoorDrawingGeometry = {
   doors: number;
   sidelites: number;
+  /** Each sidelite's width, inches (14" on snapshots priced before it was drawn to width). */
+  sidelite_width?: number | null;
   transom: boolean;
   /** Whole opening (slabs + sidelites + transom), inches; the CRM draws from this and `sections`. */
   width: number;

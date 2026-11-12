@@ -139,6 +139,42 @@ def test_x10_direct_set_sidelites_come_at_every_height():
     assert not any("Direct-set sidelite at" in note for note in short["notes"])
 
 
+def test_sidelite_width_picks_the_direct_set_size_and_cuts_panel_sidelites():
+    from services.doors.pipeline import direct_set_size_for, door_drawing
+
+    sizes = ['5.5"-13.5"', 'up to 15.5"', 'up to 17.5"', 'up to 27.5"']
+    assert [direct_set_size_for(width, sizes) for width in (5.5, 9.375, 13.5, 13.6, 15.5, 27.5)] == [
+        '5.5"-13.5"', '5.5"-13.5"', '5.5"-13.5"', 'up to 15.5"', 'up to 15.5"', 'up to 27.5"',
+    ]
+    assert direct_set_size_for(5, sizes) is None and direct_set_size_for(28, sizes) is None
+
+    # Palma order 27990: a 42" slab with two 9.375" direct-set sidelites.
+    direct = {"model": "direct-glazed-full-lite", "glazed": True, "size": '5.5"-13.5"', "family": "sandblast", "series": "sandblast"}
+    phil = _sel("fiberglass", height='8\'0"', width=42, model="1-panel-true-plank-dratp80", configuration="single_2sl", sidelite_width_in=9.375,
+                glass={"door": {"glazed": False}, "sidelites": [direct, direct]})
+    assert not _lines(_quote(phil), "Cut-Down")
+    with pytest.raises(DoorValidationError, match=r'9.375" wide, which is the 5.5"-13.5" direct-set size, not up to 15.5"'):
+        _quote({**phil, "glass": {"door": {"glazed": False}, "sidelites": [{**direct, "size": 'up to 15.5"'}] * 2}})
+    with pytest.raises(DoorValidationError, match=r'made 5.5" to 27.5" wide, not 30"'):
+        _quote({**phil, "sidelite_width_in": 30})
+    drawn = door_drawing({"material": "fiberglass", "opening_type": "single_2_sidelites", "pipeline": phil})
+    assert drawn["sidelite_width"] == 9.375 and drawn["width"] == 60.75
+    assert [section["width"] for section in drawn["sections"]] == [9.375, 42.0, 9.375]
+    # Without a width, a direct-set sidelite is drawn at its size's top; a panel one at 14".
+    assert door_drawing({"material": "fiberglass", "opening_type": "single_2_sidelites", "pipeline": {**phil, "sidelite_width_in": None}})["sidelite_width"] == 13.5
+
+    # Panel sidelites come 12" or 14"; narrower is a cut-down per sidelite, wider needs direct-set.
+    panel = {"model": "oak-flush", "glazed": True, "size": "7x64", "family": "clear"}
+    flush = _sel("fiberglass", configuration="single_2sl", glass={"door": {"glazed": False}, "sidelites": [panel, panel]})
+    assert not _lines(_quote({**flush, "sidelite_width_in": 12}), "Cut-Down")
+    cut = _quote({**flush, "sidelite_width_in": 10})
+    assert _lines(cut, "Cut-Down")[0]["qty"] == 2
+    assert any('10" panel sidelites cut down' in note for note in cut["notes"])
+    with pytest.raises(DoorValidationError, match=r'come 12" or 14" wide; use a direct-set sidelite for 16"'):
+        _quote({**flush, "sidelite_width_in": 16})
+    assert door_drawing({"material": "fiberglass", "opening_type": "single_2_sidelites", "pipeline": flush})["sidelite_width"] == 14.0
+
+
 def test_w2_panel_selector_widths_steer_but_still_price():
     tao = next(model for model in CATALOG["materials"]["steel"]["models"] if model["key"] == "tao")
     assert all(offer["widths"] == [34, 36] for offer in tao["offers"])

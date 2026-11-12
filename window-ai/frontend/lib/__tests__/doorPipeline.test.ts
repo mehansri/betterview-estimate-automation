@@ -3,6 +3,7 @@ import {
   applyAstragalDefault,
   availableModels,
   customColours,
+  directSetSizeFor,
   emptySelection,
   lockSummary,
   multipointRequired,
@@ -15,6 +16,10 @@ import {
   normalizeSelection,
   PipelineCatalog,
   PipelineSelection,
+  setSideliteWidth,
+  sideliteDrawWidth,
+  sidelitesCutDown,
+  sideliteWidthProblem,
   sills,
   specFromSelection,
   stepComplete,
@@ -347,5 +352,54 @@ describe("pull bar drawing", () => {
     expect(pullBarTop(36, 80)).toBe(80 - (42 + 18)); // centred 42" off the floor
     expect(pullBarTop(84, 96)).toBe(6); // an 84" bar on an 8' slab
     expect(pullBarTop(72, 80)).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("sidelite width", () => {
+  const ranges = ['5.5"-13.5"', 'up to 15.5"', 'up to 27.5"'];
+  const widths: PipelineCatalog = JSON.parse(JSON.stringify(catalog));
+  widths.configurations.push({ key: "single_2sl", label: "Single + 2 sidelites", doors: 1, sidelites: 2, transom: false, opening_type: "single_2_sidelites" });
+  widths.materials.steel.sidelite_models.push({
+    key: "direct-glazed-full-lite", label: "Direct-glazed full lite", direct_glazed: true,
+    offers: [{ kind: "glazed", height: `6'8"`, glass: Object.fromEntries(ranges.map((size) => [size, { sandblast: ["sandblast"] }])) }],
+  });
+  function withSidelites(model: string): PipelineSelection {
+    const sel = completeSteel();
+    sel.configuration = "single_2sl";
+    const part = model === "flush" ? { model, glazed: true, size: "7x64", family: "clear", series: "clear_lowe" } : { model, glazed: true, size: ranges[1], family: "sandblast", series: "sandblast" };
+    sel.glass.sidelites = [{ ...part }, { ...part }];
+    return sel;
+  }
+
+  it("picks the direct-set size range from the width", () => {
+    expect([5.5, 9.375, 13.5, 13.6, 27.5].map((width) => directSetSizeFor(width, ranges))).toEqual([ranges[0], ranges[0], ranges[0], ranges[1], ranges[2]]);
+    expect(directSetSizeFor(28, ranges)).toBeUndefined();
+    const sel = withSidelites("direct-glazed-full-lite");
+    expect(sideliteWidthProblem(widths, sel)).toMatch(/Enter the sidelite width/);
+    expect(stepComplete(widths, sel)[5]).toBe(false);
+    setSideliteWidth(widths, sel, 9.375);
+    expect(sel.glass.sidelites.map((part) => part.size)).toEqual([ranges[0], ranges[0]]);
+    expect(sel.glass.sidelites[0]).toMatchObject({ family: "sandblast", series: "sandblast" });
+    expect(sideliteWidthProblem(widths, sel)).toBeNull();
+    expect(stepComplete(widths, sel)[5]).toBe(true);
+    expect(sideliteDrawWidth(sel)).toBe(9.375);
+    sel.glass.sidelites[1].size = ranges[2];
+    expect(sideliteWidthProblem(widths, sel)).toBe(`A 9.375" sidelite is the 5.5"-13.5" size, not up to 27.5".`);
+    setSideliteWidth(widths, sel, 30);
+    expect(sideliteWidthProblem(widths, sel)).toBe(`Direct-set sidelites are made 5.5" to 27.5" wide.`);
+  });
+
+  it("keeps panel sidelites at 12 or 14 inches, cutting narrower ones down", () => {
+    const sel = withSidelites("flush");
+    expect(sideliteWidthProblem(widths, sel)).toBeNull();
+    expect(sideliteDrawWidth(sel)).toBe(14);
+    setSideliteWidth(widths, sel, 12);
+    expect(sidelitesCutDown(widths, sel)).toBe(false);
+    setSideliteWidth(widths, sel, 10);
+    expect(sidelitesCutDown(widths, sel)).toBe(true);
+    setSideliteWidth(widths, sel, 16);
+    expect(sideliteWidthProblem(widths, sel)).toMatch(/use a direct-set sidelite for 16"/);
+    // A layout without sidelites drops the width.
+    expect(normalizeSelection(widths, { ...sel, configuration: "single" }).selection.sidelite_width_in).toBeUndefined();
   });
 });

@@ -104,6 +104,8 @@ export type PipelineSelection = {
   model?: string;
   /** Grooved / Stainless Steel Oak pattern (WC01–WC07, WGSS01–04): drawn on the door, one Palma price. */
   slab_design?: string;
+  /** Each sidelite's overall width (frame width minus slabs, split): picks the direct-set size; panel sidelites are 12"/14" or cut down. */
+  sidelite_width_in?: number;
   colours: {
     exterior?: PipelineSide;
     interior?: PipelineSide;
@@ -274,6 +276,97 @@ export function sideliteOffers(model: PipelineSideliteModel | undefined, height?
   const solid = model?.offers.find((offer) => offer.kind === "solid" && offer.height === height) as Extract<PipelineSideliteOffer, { kind: "solid" }> | undefined;
   const glazed = model?.offers.find((offer) => offer.kind === "glazed" && offer.height === height) as Extract<PipelineSideliteOffer, { kind: "glazed" }> | undefined;
   return { solid: solid || null, glazed: glazed || null };
+}
+
+/** Palma's panel sidelites come 12" or 14" wide; a narrower one is cut down (services/doors/pipeline.py). */
+export const PANEL_SIDELITE_WIDTHS = [12, 14];
+/** What the frame adds across the width to the slab(s) and sidelites, for the frame-size estimate; Palma confirms. */
+export const FRAME_ALLOWANCE_IN = 4.5;
+
+const rangeTop = (size: string) => {
+  const numbers = size.match(/\d+(?:\.\d+)?/g);
+  return numbers ? Number(numbers[numbers.length - 1]) : null;
+};
+
+/** Direct-set size ranges, narrowest first: "5.5"-13.5"" covers 5.5"–13.5", each "up to X"" the range below (exclusive) to X". Mirrors pipeline.direct_set_ranges. */
+export function directSetRanges(sizes: string[]): Array<{ size: string; low: number; high: number }> {
+  const tops = sizes.flatMap((size) => { const top = rangeTop(size); return top == null ? [] : [{ size, top }]; }).sort((a, b) => a.top - b.top);
+  let previous: number | null = null;
+  return tops.map(({ size, top }) => {
+    const numbers = size.match(/\d+(?:\.\d+)?/g) || [];
+    const low: number = numbers.length > 1 ? Number(numbers[0]) : previous ?? 0;
+    previous = top;
+    return { size, low, high: top };
+  });
+}
+
+/** The direct-set size range a sidelite of this overall width is priced in. */
+export function directSetSizeFor(width: number, sizes: string[]): string | undefined {
+  return directSetRanges(sizes).find((range, index) => (index === 0 ? range.low <= width : range.low < width) && width <= range.high)?.size;
+}
+
+/** The chosen sidelites at this height: direct-set ones are made to width (with their size ranges), the rest are 12"/14" panels. */
+export function chosenSidelites(catalog: PipelineCatalog, sel: PipelineSelection) {
+  const layout = configurationOf(catalog, sel);
+  const models = sideliteModels(catalog, sel);
+  return sel.glass.sidelites.slice(0, layout?.sidelites ?? 0).flatMap((part, index) => {
+    const model = models.find((item) => item.key === part.model);
+    if (!model) return [];
+    const sizes = Object.keys(sideliteOffers(model, sel.height).glazed?.glass || {});
+    return [{ index, part, model, direct: model.direct_glazed && part.glazed !== false, sizes }];
+  });
+}
+
+/** Why the sidelite width doesn't work yet, or null. One width covers every sidelite. */
+export function sideliteWidthProblem(catalog: PipelineCatalog, sel: PipelineSelection): string | null {
+  const parts = chosenSidelites(catalog, sel);
+  if (!parts.length) return null;
+  const width = sel.sidelite_width_in;
+  const direct = parts.filter((item) => item.direct);
+  if (!width) return direct.length ? "Enter the sidelite width — direct-set sidelites are made to width." : null;
+  for (const item of direct) {
+    const ranges = directSetRanges(item.sizes);
+    const fit = directSetSizeFor(width, item.sizes);
+    if (!fit) return `Direct-set sidelites are made ${fmtIn(ranges[0]?.low)} to ${fmtIn(ranges[ranges.length - 1]?.high)} wide.`;
+    if (item.part.size && item.part.size !== fit) return `A ${fmtIn(width)} sidelite is the ${fit} size, not ${item.part.size}.`;
+  }
+  if (parts.some((item) => !item.direct) && width > Math.max(...PANEL_SIDELITE_WIDTHS)) {
+    return `Panel sidelites come 12" or 14" wide — use a direct-set sidelite for ${fmtIn(width)}.`;
+  }
+  return null;
+}
+
+/** Whether panel sidelites at this width are cut down (Palma's cut-down charge per sidelite panel). */
+export function sidelitesCutDown(catalog: PipelineCatalog, sel: PipelineSelection) {
+  const width = sel.sidelite_width_in;
+  return Boolean(width && !PANEL_SIDELITE_WIDTHS.includes(width) && chosenSidelites(catalog, sel).some((item) => !item.direct));
+}
+
+/** Set the sidelite width; direct-set sidelites move to the size range it falls in, keeping their glass where offered. */
+export function setSideliteWidth(catalog: PipelineCatalog, sel: PipelineSelection, width: number | undefined) {
+  if (width) sel.sidelite_width_in = width;
+  else delete sel.sidelite_width_in;
+  if (!width) return;
+  for (const item of chosenSidelites(catalog, sel)) {
+    if (!item.direct) continue;
+    const size = directSetSizeFor(width, item.sizes);
+    if (!size || size === item.part.size) continue;
+    const glass = sideliteOffers(item.model, sel.height).glazed?.glass[size] || {};
+    const family = item.part.family && glass[item.part.family] ? item.part.family : undefined;
+    const series = family ? (glass[family].includes(item.part.series || "") ? item.part.series : glass[family][0]) : undefined;
+    sel.glass.sidelites[item.index] = { ...item.part, glazed: true, size, family, series };
+  }
+}
+
+/** The sidelite width drawn: the one set, else a direct-set range's top, else 14". Mirrors pipeline.sidelite_draw_width. */
+export function sideliteDrawWidth(sel: PipelineSelection): number {
+  if (sel.sidelite_width_in) return sel.sidelite_width_in;
+  const direct = sel.glass.sidelites.find((part) => part.glazed && part.size?.includes('"'));
+  return (direct?.size && rangeTop(direct.size)) || 14;
+}
+
+function fmtIn(value: number | undefined) {
+  return value == null ? "" : `${Math.round(value * 1000) / 1000}"`;
 }
 
 /** Configurations buildable at the chosen height (e.g. no fiberglass sidelites at 7'0"). */
@@ -481,7 +574,7 @@ export function stepComplete(catalog: PipelineCatalog, sel: PipelineSelection): 
     Boolean(layout && sel.frame_depth && frameDepths(catalog, sel).some((depth) => depth.key === sel.frame_depth)),
     Boolean(model),
     Boolean(colours.exterior?.type && colours.interior?.type && finishKey(sel) && frameOk),
-    glassDecided(catalog, sel, sel.glass.door, offers.glazed, offers.solid) && sidelitesOk && transomOk,
+    glassDecided(catalog, sel, sel.glass.door, offers.glazed, offers.solid) && sidelitesOk && !sideliteWidthProblem(catalog, sel) && transomOk,
     lockDecided(catalog, sel),
     Boolean(fireOk),
   ];
@@ -661,6 +754,7 @@ export function normalizeSelection(catalog: PipelineCatalog, input: PipelineSele
     if (next.glazed === false && solid && next.panel && !solid.panels.includes(next.panel)) next.panel = solid.panels[0];
     return next;
   });
+  if (!sidelites) delete sel.sidelite_width_in;
   if (layout?.transom) {
     sel.glass.transom = sel.glass.transom || { shape: "rectangle", tempered: false };
   } else if (sel.glass.transom) {

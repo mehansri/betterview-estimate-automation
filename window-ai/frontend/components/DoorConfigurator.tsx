@@ -11,6 +11,7 @@ import {
   accentsFor,
   applyAstragalDefault,
   availableModels,
+  chosenSidelites,
   configurationOf,
   configurationOffered,
   customColours,
@@ -18,11 +19,13 @@ import {
   DEFAULT_PULL_BAR,
   defaultSidelite,
   designsFor,
+  directSetRanges,
   doorOffers,
   familyInfo,
   FINISH_LABELS,
   finishKey,
   firstIncomplete,
+  FRAME_ALLOWANCE_IN,
   framedLites,
   frameDepths,
   GlassFamilyMap,
@@ -34,6 +37,7 @@ import {
   modelOf,
   multipointRequired,
   normalizeSelection,
+  PANEL_SIDELITE_WIDTHS,
   patternsFor,
   PIPELINE_STEPS,
   PipelineCatalog,
@@ -45,8 +49,12 @@ import {
   reededAccentAllowed,
   retractableScreenAllowed,
   selectionSummary,
+  setSideliteWidth,
+  sideliteDrawWidth,
   sideliteModels,
   sideliteOffers,
+  sidelitesCutDown,
+  sideliteWidthProblem,
   sideTypes,
   sills,
   stepComplete,
@@ -314,6 +322,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
       frameColour={frameColour}
       lock={value.standard.lock}
       pullBarIn={value.standard.lock === "pull_bar" ? value.standard.pull_bar?.length_in ?? 36 : undefined}
+      sideliteWidth={sideliteDrawWidth(value)}
       size={330}
     />
   );
@@ -577,8 +586,8 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
                     {sideOffers.solid && part.glazed === false ? (
                       <div className="mb-3"><ChipGroup label="Panel" options={sideOffers.solid.panels.map((panel) => ({ id: panel, label: panel }))} value={part.panel || sideOffers.solid.panels[0]} onChange={(panel) => setPart({ ...part, panel })} /></div>
                     ) : null}
-                    {sidelite.direct_glazed && value.material === "steel" ? (
-                      <div className="mb-3"><Note tone="brand">Pick the size by the sidelite&apos;s <b>overall width</b> (frame width minus slab width), not the glass width — e.g. a 69&quot; frame with a 42&quot; slab is &quot;up to 27.5&quot;&quot;.</Note></div>
+                    {sidelite.direct_glazed ? (
+                      <div className="mb-3"><Note tone="brand">Direct-set sidelites are made to width: enter the <b>sidelite width</b> below and the size range is picked for you.</Note></div>
                     ) : null}
                     <GlassPicker catalog={catalog} sel={value} choice={part} offer={sideOffers.glazed} solidAllowed={Boolean(sideOffers.solid)} label="Sidelite" onChange={(next) => setPart({ ...next, model: part.model, panel: next.glazed === false ? sideOffers.solid?.panels[0] : undefined })} />
                   </div>
@@ -586,6 +595,41 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
               </div>
             );
           })}
+          {chosenSidelites(catalog, value).length ? (() => {
+            const parts = chosenSidelites(catalog, value);
+            const direct = parts.find((item) => item.direct);
+            const ranges = direct ? directSetRanges(direct.sizes) : [];
+            const panels = parts.some((item) => !item.direct);
+            const problem = sideliteWidthProblem(catalog, value);
+            const sideWidth = value.sidelite_width_in;
+            const doors = layout?.doors ?? 1;
+            const count = layout?.sidelites ?? 0;
+            const slab = value.custom_size.enabled && value.custom_size.width_in ? value.custom_size.width_in : value.width || 0;
+            const inches = (n: number) => `${Math.round(n * 1000) / 1000}"`;
+            return (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <SectionTitle note={count > 1 ? "same width for both sidelites" : undefined}>Sidelite width</SectionTitle>
+                <div className="grid items-end gap-3 sm:grid-cols-2">
+                  <InchInput
+                    label="Each sidelite, overall"
+                    value={sideWidth ?? ""}
+                    onChange={(width) => update((draft) => setSideliteWidth(catalog, draft, width === "" ? undefined : Number(width)))}
+                    hint={direct ? `Direct-set: made to width, ${inches(ranges[0]?.low ?? 0)} to ${inches(ranges[ranges.length - 1]?.high ?? 0)}.` : `Palma's panel sidelites come 12" or 14"; narrower ones are cut down.`}
+                  />
+                  {panels ? (
+                    <ChipGroup label="Standard" options={PANEL_SIDELITE_WIDTHS.map((width) => ({ id: width, label: `${width}"` }))} value={sideWidth ?? 0} onChange={(width) => update((draft) => setSideliteWidth(catalog, draft, width))} />
+                  ) : null}
+                </div>
+                {sideWidth && slab ? (
+                  <p className="mt-3 text-[11px] text-slate-500">
+                    Frame about <b>{inches(doors * slab + count * sideWidth + FRAME_ALLOWANCE_IN)}</b> wide: {doors > 1 ? `2 × ${inches(slab)}` : inches(slab)} slab{doors > 1 ? "s" : ""} + {count > 1 ? `${count} × ` : ""}{inches(sideWidth)} + about {inches(FRAME_ALLOWANCE_IN)} of frame. Palma confirms the frame size.
+                  </p>
+                ) : null}
+                {sidelitesCutDown(catalog, value) ? <div className="mt-3"><Note tone="amber">{inches(sideWidth ?? 0)} panel sidelites are cut down from Palma&apos;s 12&quot;/14&quot;: a cut-down is charged per sidelite.</Note></div> : null}
+                {problem ? <p className="mt-2 text-[11px] font-semibold text-amber-800">{problem}</p> : null}
+              </div>
+            );
+          })() : null}
           {layout?.transom && value.glass.transom ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <p className="mb-3 text-sm font-semibold text-slate-900">Transom</p>

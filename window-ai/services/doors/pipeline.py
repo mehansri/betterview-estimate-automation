@@ -1236,6 +1236,30 @@ def resolve(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
             _require(panel in sidelite["solid"], f"Step 6: choose a solid panel for {label.lower()}.")
             plan["sidelites"].append({"kind": "solid", "model": sidelite, "panel": panel, "row": sidelite["solid"][panel]})
 
+    # One overall width for every sidelite (frame width minus slabs, split).
+    # Direct-set sidelites are priced by the size range it falls in; panel
+    # sidelites come 12" or 14", and a narrower one is cut down.
+    plan["sidelite_width"] = None
+    plan["cut_sidelites"] = 0
+    if spec.get("sidelite_width_in") and plan["sidelites"]:
+        side_w = float(spec["sidelite_width_in"])
+        plan["sidelite_width"] = side_w
+        for number, part in enumerate(plan["sidelites"], start=1):
+            label = f"Sidelite {number}"
+            if part["kind"] == "glazed" and part["model"]["direct_glazed"]:
+                offer = next(item for item in part["model"]["offers"] if item["kind"] == "glazed" and item["height"] == height)
+                ranges = direct_set_ranges(list(offer["glass"]))
+                fit = direct_set_size_for(side_w, list(offer["glass"]))
+                _require(fit, f'Step 6: direct-set sidelites are made {ranges[0][1]:g}" to {ranges[-1][2]:g}" wide, not {side_w:g}".')
+                _require(fit == part["size"], f'Step 6: {label.lower()} is {side_w:g}" wide, which is the {fit} direct-set size, not {part["size"]}.')
+            else:
+                _require(
+                    side_w <= max(PANEL_SIDELITE_WIDTHS),
+                    f'Step 6: {part["model"]["label"]} sidelites come 12" or 14" wide; use a direct-set sidelite for {side_w:g}".',
+                )
+                if side_w not in PANEL_SIDELITE_WIDTHS:
+                    plan["cut_sidelites"] += 1
+
     # "Special Order sidelites and doorlites will be ordered together, therefore
     # both will be priced as Special Order" (FG and ST pp. 5-10).
     parts = [plan["door"], *plan["sidelites"]]
@@ -1338,7 +1362,7 @@ def resolve(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
     operating = int(extras.get("operating_sidelite") or 0)
     if operating:
         _require(0 < operating <= layout["sidelites"], "Step 8: there aren't that many sidelites to hinge.")
-        _require(not (cut_width or cut_height), "Step 8: operating sidelites are for standard panel sizes only (FG p44, ST p40).")
+        _require(not (cut_width or cut_height or plan["cut_sidelites"]), "Step 8: operating sidelites are for standard panel sizes only (FG p44, ST p40).")
     if extras.get("triple_glazing"):
         _require(material == "steel", "Step 8: the triple-glazing upcharge is in the steel book only.")
         _require(extras["triple_glazing"] in {"lowe_1x", "lowe_2x"}, "Step 8: choose 1 or 2 LowE coatings for triple glazing.")
@@ -1609,14 +1633,22 @@ def quote_pipeline(spec: dict[str, Any], config: dict[str, Any]) -> dict[str, An
                 f"{height} system charged per door and per sidelite, as the extras page says; the glass pages say "
                 "\"per box\". Confirm with Palma."
             )
-    if plan["cut_width"] or plan["cut_height"]:
-        cut_panels = panels if plan["cut_height"] else doors
+    cut_sidelites = plan.get("cut_sidelites") or 0
+    if plan["cut_width"] or plan["cut_height"] or cut_sidelites:
+        # A height cut cuts every panel; otherwise the cut slab(s) and any panel sidelite narrower than 12"/14".
+        cut_panels = panels if plan["cut_height"] else (doors if plan["cut_width"] else 0) + cut_sidelites
         quote.add_option({"category": "custom_sizing", "item": "Cut-Down (per Door Panel or Sidelite Panel)", "qty": cut_panels, "row": "Upcharge Option"})
-        custom = pipe.get("custom_size") or {}
-        quote.notes.append(
-            f"Custom size {custom.get('width_in') or plan['width']}\" x {custom.get('height_in') or HEIGHTS[height]}\" "
-            f"cut down from the {plan['width']}\" x {height} slab."
-        )
+        if plan["cut_width"] or plan["cut_height"]:
+            custom = pipe.get("custom_size") or {}
+            quote.notes.append(
+                f"Custom size {custom.get('width_in') or plan['width']}\" x {custom.get('height_in') or HEIGHTS[height]}\" "
+                f"cut down from the {plan['width']}\" x {height} slab."
+            )
+        if cut_sidelites:
+            quote.notes.append(
+                f"{plan['sidelite_width']:g}\" panel sidelite{'s' if cut_sidelites > 1 else ''} cut down from Palma's 12\"/14\" "
+                "sidelite, charged as a cut-down per sidelite panel. Confirm with Palma."
+            )
 
     # -- Step 3: frame -----------------------------------------------------
     if plan["depth_item"]:
@@ -2150,6 +2182,55 @@ def _classic_glass(part: dict[str, Any] | None) -> dict[str, str] | None:
 
 SIDELITE_WIDTH_IN = 14.0
 TRANSOM_HEIGHT_IN = 14.0
+# Palma's panel sidelites come 12" or 14" wide (Panel Selector, audit
+# panel-selector-2026-09-30); a narrower one is cut down. Direct-set
+# sidelites are made to width, priced by size range ("5.5"-13.5"", "up to 15.5"" ...).
+PANEL_SIDELITE_WIDTHS = (12.0, 14.0)
+
+
+def _range_top(size: str) -> float | None:
+    numbers = re.findall(r"\d+(?:\.\d+)?", size)
+    return float(numbers[-1]) if numbers else None
+
+
+def direct_set_ranges(sizes: list[str]) -> list[tuple[str, float, float]]:
+    """Direct-set size ranges as (size, low, high), narrowest first.
+
+    "5.5"-13.5"" covers 5.5" to 13.5"; each "up to X"" covers from the range
+    below it (exclusive) up to X".
+    """
+    tops = sorted((top, size) for size in sizes if (top := _range_top(size)) is not None)
+    ranges: list[tuple[str, float, float]] = []
+    previous: float | None = None
+    for top, size in tops:
+        numbers = re.findall(r"\d+(?:\.\d+)?", size)
+        low = float(numbers[0]) if len(numbers) > 1 else (previous if previous is not None else 0.0)
+        ranges.append((size, low, top))
+        previous = top
+    return ranges
+
+
+def direct_set_size_for(width: float, sizes: list[str]) -> str | None:
+    """The direct-set size range a sidelite of this overall width is priced in."""
+    for index, (size, low, high) in enumerate(direct_set_ranges(sizes)):
+        if (low <= width if index == 0 else low < width) and width <= high:
+            return size
+    return None
+
+
+def sidelite_draw_width(pipe: dict[str, Any]) -> float:
+    """The sidelite width drawn: the one set, else a direct-set range's top, else 14"."""
+    try:
+        width = float(pipe.get("sidelite_width_in") or 0)
+    except (TypeError, ValueError):
+        width = 0.0
+    if width > 0:
+        return width
+    for part in (pipe.get("glass") or {}).get("sidelites") or []:
+        size = str(part.get("size") or "") if isinstance(part, dict) and part.get("glazed") else ""
+        if '"' in size:  # direct-set ranges carry inch marks; panel glass is "8x80"
+            return _range_top(size) or SIDELITE_WIDTH_IN
+    return SIDELITE_WIDTH_IN
 
 
 def door_lites(size: str | None, slab_w: float, slab_h: float) -> list[tuple[float, float, float, float, str]]:
@@ -2205,8 +2286,10 @@ def _with_sections(geometry: dict[str, Any], exterior_colour: str) -> dict[str, 
     slab_w = float(geometry.pop("width"))
     slab_h = float(geometry.pop("height"))
     doors, sidelites = geometry["doors"], geometry["sidelites"]
+    side_w = float(geometry.get("sidelite_width") or SIDELITE_WIDTH_IN)
+    geometry["sidelite_width"] = _rounded(side_w)
     transom_h = TRANSOM_HEIGHT_IN if geometry["transom"] else 0.0
-    total_w = doors * slab_w + sidelites * SIDELITE_WIDTH_IN
+    total_w = doors * slab_w + sidelites * side_w
 
     def lites(glass: dict[str, Any] | None, w: float, h: float) -> list[dict[str, float]]:
         if not glass:
@@ -2224,7 +2307,7 @@ def _with_sections(geometry: dict[str, Any], exterior_colour: str) -> dict[str, 
     x = 0.0
     for part in order:
         kind, index = part.split(":")
-        width = SIDELITE_WIDTH_IN if kind == "sidelite" else slab_w
+        width = side_w if kind == "sidelite" else slab_w
         glass = (sidelite_glass[int(index)] if int(index) < len(sidelite_glass) else None) if kind == "sidelite" else geometry.get("door_glass")
         hinge = None
         if kind == "door":
@@ -2300,6 +2383,7 @@ def door_drawing(spec: dict[str, Any] | None) -> dict[str, Any] | None:
         return _with_sections({
             "doors": layout["doors"],
             "sidelites": layout["sidelites"],
+            "sidelite_width": sidelite_draw_width(pipe) if layout["sidelites"] else None,
             "transom": layout["transom"],
             "width": width,
             "height": height,
