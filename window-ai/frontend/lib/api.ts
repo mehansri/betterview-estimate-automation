@@ -540,6 +540,10 @@ export type DoorDrawingGeometry = {
   /** The sidelite width / transom height the rep set (null while the drawing assumes one): the only ones the estimate labels. */
   sidelite_width_in?: number | null;
   transom_height_in?: number | null;
+  /** Each sidelite's own panels, glass-covered ones removed (null for an all-glass sidelite). */
+  sidelite_faces?: Array<import("@/lib/doorFaces").DoorFace | null> | null;
+  /** Stained finish: drawn with a wood grain. */
+  grain?: boolean;
   transom: boolean;
   /** Whole opening (slabs + sidelites + transom), inches; the CRM draws from this and `sections`. */
   width: number;
@@ -691,7 +695,12 @@ export type DoorOptionOpening = DoorSectionOpening & {
 };
 
 /** Every door the door options offer (services/customer_estimates.py _door_options). */
-export type DoorOptions = { openings: DoorOptionOpening[]; option_ids: string[] };
+export type DoorOptions = {
+  openings: DoorOptionOpening[];
+  option_ids: string[];
+  /** Option id -> the spec lines that set it apart (values not the same in every option). */
+  differences?: Record<string, string[]>;
+};
 
 export type TierLineGroup = {
   id: string;

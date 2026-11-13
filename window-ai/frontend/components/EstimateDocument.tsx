@@ -245,7 +245,7 @@ export default function EstimateDocument({
       {doorOptions ? (
         <section className="estimate-product-section">
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Pick one option</p><h2>Pricing summary</h2></div></div>
-          <OptionsPricingTable tiers={optionTiers} taxLabel={taxLabel} money={money} quotedId={pricing?.selected_tier} />
+          <OptionsPricingTable tiers={optionTiers} taxLabel={taxLabel} money={money} quotedId={pricing?.selected_tier} differences={doorOptions.differences} />
           {copy?.gst_number ? <p className="estimate-tax-number">GST/HST number: {copy.gst_number}</p> : null}
         </section>
       ) : null}

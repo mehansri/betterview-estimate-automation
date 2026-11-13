@@ -107,8 +107,12 @@ def accept_estimate(token: str, body: AcceptEstimateRequest, request: Request) -
                 snapshot.update(tier["scope"])
                 snapshot["selected_tier"] = tier["id"]
                 snapshot["quoted_tier"] = tier["id"]
-                # Bought: the other door options are no longer on offer.
+                # Bought: the other door options are no longer on offer, and the estimate keeps only
+                # the doors bought, in step with the option's priced doors.
                 snapshot["door_options"] = None
+                if isinstance(tier.get("door_ids"), list):
+                    bought = {str(door_id) for door_id in tier["door_ids"]}
+                    row.doors = [door for door in row.doors or [] if str(door.get("id")) in bought]
                 snapshot["tiers"] = [{**item, "selected": item.get("id") == tier["id"]} for item in pricing.get("tiers") or []]
                 snapshot["financing"] = tier.get("financing")
                 snapshot["deposit"] = tier.get("deposit")

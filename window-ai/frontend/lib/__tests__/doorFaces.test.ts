@@ -42,3 +42,17 @@ describe("door faces", () => {
     expect(outline[0][1]).toBeCloseTo(arch.y * 80 + arch.h * 80);
   });
 });
+
+describe("sidelite faces (sidelite_face() in services/doors/faces.py)", () => {
+  it("gives a 6-panel sidelite one panel per row of the door, inside 2.5\" stiles", async () => {
+    const { sideliteFace, withoutGlass } = await import("@/lib/doorFaces");
+    const face = sideliteFace("fiberglass", "oak-6-panel", 12)!;
+    expect(face.elements.map((e) => (e.t === "p" ? [Number(e.x.toFixed(4)), e.y, e.h] : e.t))).toEqual([
+      [0.2083, 0.06, 0.1], [0.2083, 0.21, 0.33], [0.2083, 0.61, 0.28],
+    ]);
+    // An 8x36 lite (7" wide in a 12" sidelite, from 8" down) takes the top two; the bottom panel stays.
+    const left = withoutGlass(face.elements, [{ x: 2.5, y: 8, w: 7, h: 36 }], 12, 80);
+    expect(left.map((e) => (e.t === "p" ? e.y : null))).toEqual([0.61]);
+    expect(sideliteFace("fiberglass", "direct-glazed-full-lite", 10)).toBeNull();
+  });
+});

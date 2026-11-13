@@ -84,6 +84,33 @@ def door_face(material: str | None, model: str | None, pattern: str | None = Non
     return {"key": entry, "label": face["label"], "pattern": None, "elements": [dict(e) for e in face["elements"]]}
 
 
+SIDELITE_STILE_IN = 2.5  # the frame left beside a sidelite's panels
+
+
+def sidelite_face(material: str | None, model: str | None, side_w: float) -> dict[str, Any] | None:
+    """A sidelite panel's face, from the face of its catalog model: one panel across the sidelite for
+    each row of the door's panels (a 6-panel sidelite has three stacked), and the door's grooves that
+    run across. Palma's sidelites follow their door's rails this way. None when the model isn't in
+    the library (a direct-glazed sidelite is all glass)."""
+    face = door_face(material, model)
+    if face is None:
+        return None
+    margin = min(SIDELITE_STILE_IN, side_w * 0.25) / side_w if side_w > 0 else 0.2
+    rows: dict[tuple[float, float], dict[str, Any]] = {}
+    elements: list[dict[str, Any]] = []
+    for element in face["elements"]:
+        if element["t"] == "p":
+            rows.setdefault((round(element["y"], 3), round(element["h"], 3)), element)
+        elif element["t"] == "g" and abs(element["y1"] - element["y2"]) < 0.01 and not element.get("taper"):
+            elements.append({"t": "g", "x1": 0.0, "y1": element["y1"], "x2": 1.0, "y2": element["y2"]})
+    for (_, _), element in sorted(rows.items()):
+        panel = {"t": "p", "x": margin, "y": element["y"], "w": 1 - 2 * margin, "h": element["h"], "s": element.get("s") or "raised"}
+        if element.get("top"):
+            panel["top"] = element["top"]
+        elements.append(panel)
+    return {"key": face["key"], "label": face["label"], "elements": elements}
+
+
 def element_box(element: dict[str, Any]) -> tuple[float, float, float, float]:
     """(x, y, w, h) in slab fractions; lines get a hair of thickness."""
     kind = element["t"]

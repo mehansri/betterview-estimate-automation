@@ -353,7 +353,7 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     """
     if not geometry or not geometry.get("doors"):
         return None
-    from reportlab.graphics.shapes import Circle, Drawing, Ellipse, Line, Rect, Wedge
+    from reportlab.graphics.shapes import Circle, Drawing, Ellipse, Line, PolyLine, Polygon, Rect, Wedge
     from reportlab.lib import colors
 
     if dimensions:
@@ -390,29 +390,81 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     def line(x1: float, y1: float, x2: float, y2: float, stroke, width: float) -> None:
         d.add(Line((x1 + 1.5) * scale, (total_h - y1) * scale, (x2 + 1.5) * scale, (total_h - y2) * scale, strokeColor=stroke, strokeWidth=width))
 
+    def pt(x: float, y: float) -> tuple[float, float]:
+        return (x + 1.5) * scale, (total_h - y) * scale
+
+    dark_slab = _slab_is_dark(slab_hex)
+
+    def pane(lx: float, ly: float, lw: float, lh: float, shape: str, family: str | None, framed: bool = True) -> None:
+        """One piece of glass: a moulded frame round an insert, the glass with a sheen, and the
+        family's look (decorative lattice and border, blinds, grilles, vent bar)."""
+        fill = frosted if family in ("sandblast", "obscure") else glass_fill
+        if framed:
+            fw = GLASS_FRAME_IN
+            moulding, edge = _hex_colour(slab_hex, 26 if dark_slab else -16), _hex_colour(slab_hex, 55 if dark_slab else -50)
+            cx, cy = pt(lx + lw / 2, ly + lh / 2)
+            if shape == "oval":
+                d.add(Ellipse(cx, cy, (lw / 2 + fw) * scale, (lh / 2 + fw) * scale, fillColor=moulding, strokeColor=edge, strokeWidth=0.4))
+            elif shape == "half":
+                bx, by = pt(lx + lw / 2, ly + lh + fw)
+                d.add(Wedge(bx, by, (lw / 2 + fw) * scale, 0, 180, fillColor=moulding, strokeColor=edge, strokeWidth=0.4))
+            else:
+                rect(lx - fw, ly - fw, lw + 2 * fw, lh + 2 * fw, moulding, stroke=edge, width=0.4)
+        x, y = pt(lx, ly + lh)
+        if shape == "oval":
+            d.add(Ellipse(x + lw * scale / 2, y + lh * scale / 2, lw * scale / 2, lh * scale / 2, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+        elif shape == "half":
+            d.add(Wedge(x + lw * scale / 2, y, lw * scale / 2, 0, 180, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+        else:
+            d.add(Rect(x, y, lw * scale, lh * scale, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+        box = (lx, ly, lw, lh)
+        if shape == "rect":
+            band = [(lx + lw * 0.18, ly), (lx + lw * 0.42, ly), (lx + lw * 0.42 - lh * 0.45, ly + lh), (lx + lw * 0.18 - lh * 0.45, ly + lh)]
+            sheen = _clip_polygon(band, box)
+            if len(sheen) >= 3:
+                d.add(Polygon([v for point in sheen for v in pt(*point)], fillColor=colors.white, fillOpacity=0.45, strokeColor=None, strokeWidth=0))
+        pattern = colors.HexColor("#0369a1")
+        thin = max(0.15 * scale, 0.25)
+        if family in ("decorative", "specialty") and shape in ("rect", "oval"):
+            for x1, y1, x2, y2 in _lattice(box, shape, GLASS_LATTICE_IN):
+                d.add(Line(*pt(x1, y1), *pt(x2, y2), strokeColor=pattern, strokeOpacity=0.5, strokeWidth=thin))
+            if shape == "rect" and lw > 6 and lh > 6:
+                b = GLASS_BORDER_IN
+                d.add(Rect(*pt(lx + b, ly + lh - b), (lw - 2 * b) * scale, (lh - 2 * b) * scale, fillColor=None, strokeColor=pattern, strokeOpacity=0.6, strokeWidth=thin))
+        elif family == "blinds" and shape == "rect":
+            row = ly + 1.5
+            while row < ly + lh:
+                line(lx, row, lx + lw, row, colors.HexColor("#f8fafc"), 0.7 * scale)
+                row += 1.5
+        elif family in ("grills", "sdl") and shape == "rect":
+            # As LiteShape: one vertical bar, horizontal bars about every 12".
+            bars = colors.HexColor("#f8fafc")
+            line(lx + lw / 2, ly, lx + lw / 2, ly + lh, bars, 0.8 * scale)
+            rows = max(2, _js_round(lh / 12))
+            for i in range(max(1, _js_round(lh / 12) - 1)):
+                row_y = ly + (i + 1) * lh / rows
+                line(lx, row_y, lx + lw, row_y, bars, 0.8 * scale)
+        elif family == "vented" and shape == "rect":
+            line(lx, ly + lh / 2, lx + lw, ly + lh / 2, colors.HexColor("#334155"), 0.9 * scale)
+
     def lites(ox: float, oy: float, w: float, h: float, glass: dict[str, Any] | None) -> list[tuple[float, float, float, float, str]]:
         if not glass:
             return []
-        family = glass.get("family")
-        fill = frosted if family in ("sandblast", "obscure") else glass_fill
         found = door_lites(glass.get("size"), w, h)
         for lx, ly, lw, lh, shape in found:
-            x, y = (ox + lx + 1.5) * scale, (total_h - oy - ly - lh) * scale
-            if shape == "oval":
-                d.add(Ellipse(x + lw * scale / 2, y + lh * scale / 2, lw * scale / 2, lh * scale / 2, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
-            elif shape == "half":
-                d.add(Wedge(x + lw * scale / 2, y, lw * scale / 2, 0, 180, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
-            else:
-                d.add(Rect(x, y, lw * scale, lh * scale, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
-                if family in ("grills", "sdl"):
-                    # As LiteShape: one vertical bar, horizontal bars about every 12".
-                    bars = colors.HexColor("#f8fafc")
-                    line(ox + lx + lw / 2, oy + ly, ox + lx + lw / 2, oy + ly + lh, bars, 0.8 * scale)
-                    rows = max(2, _js_round(lh / 12))
-                    for i in range(max(1, _js_round(lh / 12) - 1)):
-                        row_y = oy + ly + (i + 1) * lh / rows
-                        line(ox + lx, row_y, ox + lx + lw, row_y, bars, 0.8 * scale)
+            pane(ox + lx, oy + ly, lw, lh, shape, glass.get("family"))
         return found
+
+    def grain(ox: float, oy: float, w: float, h: float) -> None:
+        """Wood grain on a stained slab, sidelite or transom frame (mirrors Grain in DoorDrawing.tsx)."""
+        if not geometry.get("grain"):
+            return
+        stroke = _hex_colour(slab_hex, 14 if dark_slab else -16)
+        for index, gx in enumerate(_grain_lines(w)):
+            points: list[float] = []
+            for gy in _grain_rows(h):
+                points += pt(ox + gx + 0.3 * math.sin(gy / 7 + index * 1.7), oy + gy)
+            d.add(PolyLine(points, strokeColor=stroke, strokeWidth=max(0.12 * scale, 0.2)))
 
     # Brickmould, then the frame.
     d.add(Rect(0, 0, (total_w + 3) * scale, (total_h + 1.5) * scale, fillColor=_hex_colour(frame_hex, -25), strokeColor=None))
@@ -420,7 +472,9 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     door_top = frame + transom_h + (mull if transom_h else 0)
     if transom_h:
         rect(frame, frame, inner_w, transom_h, _hex_colour(frame_hex, -10), stroke=None)
-        rect(frame + 2, frame + 2, inner_w - 4, transom_h - 4, glass_fill if geometry.get("transom_glass") else frosted, width=0.3)
+        transom_glass = str(geometry.get("transom_glass") or "")
+        family = "decorative" if "decorative" in transom_glass or "wrought" in transom_glass else "sandblast" if "sandblast" in transom_glass or not transom_glass else "grills" if "grill" in transom_glass or "sdl" in transom_glass else "clear"
+        pane(frame + 2, frame + 2, inner_w - 4, transom_h - 4, "rect", family, framed=False)
     sidelite_glass = list(geometry.get("sidelite_glass") or [])
     parts: list[tuple[str, int]] = []
     if sidelites:
@@ -434,11 +488,19 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
             right = index == 1  # the mullion sits between the door and each sidelite
             cursor += mull if right else 0
             rect(cursor, door_top, side_w, slab_h, slab_colour)
-            if not lites(cursor, door_top, side_w, slab_h, sidelite_glass[index] if index < len(sidelite_glass) else None):
+            grain(cursor, door_top, side_w, slab_h)
+            side_faces = geometry.get("sidelite_faces")
+            side_face = side_faces[index] if isinstance(side_faces, list) and index < len(side_faces) else None
+            if isinstance(side_face, dict):
+                _draw_face(d, side_face.get("elements") or [], lambda x, y, ox=cursor: pt(ox + x, door_top + y), scale, side_w, slab_h, slab_hex)
+            drawn = lites(cursor, door_top, side_w, slab_h, sidelite_glass[index] if index < len(sidelite_glass) else None)
+            if not drawn and side_faces is None:
+                # Snapshots priced before sidelite faces: an outline for the panel.
                 rect(cursor + 3, door_top + 6, side_w - 6, slab_h - 12, None, stroke=_hex_colour(slab_hex, -30), width=0.4)
             cursor += side_w + (0 if right else mull)
             continue
         rect(cursor, door_top, slab_w, slab_h, slab_colour, width=0.5)
+        grain(cursor, door_top, slab_w, slab_h)
         door_glass = geometry.get("door_glass") or {}
         face = geometry.get("face") if isinstance(geometry.get("face"), dict) else None
         if face is not None:
@@ -482,6 +544,117 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
 
 
 DIM_LEFT, DIM_BOTTOM = 15.0, 15.0  # points kept for the dimension labels
+GLASS_FRAME_IN = 1.1  # the moulded frame round a glass insert
+GLASS_LATTICE_IN = 4.0  # decorative glass: diagonal lattice spacing
+GLASS_BORDER_IN = 1.2  # decorative glass: the border line inside the frame
+GRAIN_SPACING_IN = 1.6
+
+
+def _hash01(index: int) -> float:
+    """A repeatable 0..1 number per index (grain positions; hash01() in DoorDrawing.tsx)."""
+    value = math.sin(index * 12.9898 + 78.233) * 43758.5453
+    return value - math.floor(value)
+
+
+def _grain_lines(width: float) -> list[float]:
+    """Grain line positions across a part, about every 1.6", unevenly."""
+    count = int(width / GRAIN_SPACING_IN)
+    out = []
+    for index in range(count):
+        x = (index + 0.5) * width / max(count, 1) + (_hash01(index) - 0.5) * 0.8
+        if 0.4 < x < width - 0.4:
+            out.append(x)
+    return out
+
+
+def _grain_rows(height: float) -> list[float]:
+    rows = [float(y) for y in range(0, int(height), 4)]
+    return rows + [height]
+
+
+def _clip_polygon(points: list[tuple[float, float]], box: tuple[float, float, float, float]) -> list[tuple[float, float]]:
+    """Sutherland-Hodgman: a polygon cut to a box (x, y, w, h)."""
+    x0, y0, w, h = box
+    edges = [(lambda p: p[0] >= x0, lambda a, b: _cross_x(a, b, x0)), (lambda p: p[0] <= x0 + w, lambda a, b: _cross_x(a, b, x0 + w)),
+             (lambda p: p[1] >= y0, lambda a, b: _cross_y(a, b, y0)), (lambda p: p[1] <= y0 + h, lambda a, b: _cross_y(a, b, y0 + h))]
+    out = points
+    for inside, cross in edges:
+        if not out:
+            break
+        current, out = out, []
+        for i, point in enumerate(current):
+            prev = current[i - 1]
+            if inside(point):
+                if not inside(prev):
+                    out.append(cross(prev, point))
+                out.append(point)
+            elif inside(prev):
+                out.append(cross(prev, point))
+    return out
+
+
+def _cross_x(a: tuple[float, float], b: tuple[float, float], x: float) -> tuple[float, float]:
+    t = (x - a[0]) / (b[0] - a[0])
+    return x, a[1] + t * (b[1] - a[1])
+
+
+def _cross_y(a: tuple[float, float], b: tuple[float, float], y: float) -> tuple[float, float]:
+    t = (y - a[1]) / (b[1] - a[1])
+    return a[0] + t * (b[0] - a[0]), y
+
+
+def _lattice(box: tuple[float, float, float, float], shape: str, spacing: float) -> list[tuple[float, float, float, float]]:
+    """Decorative glass: both diagonals every ``spacing`` inches, cut to the pane (a rectangle or an oval)."""
+    x0, y0, w, h = box
+    out = []
+    for direction in (1, -1):
+        # Lines y = direction * x + c through the box.
+        corners = [y0 - direction * x0, y0 + h - direction * x0, y0 - direction * (x0 + w), y0 + h - direction * (x0 + w)]
+        c = math.floor(min(corners) / spacing) * spacing
+        while c <= max(corners):
+            a, b = (x0 - w, direction * (x0 - w) + c), (x0 + 2 * w, direction * (x0 + 2 * w) + c)
+            segment = _clip_to_oval(a, b, box) if shape == "oval" else _clip_to_box(a, b, box)
+            if segment:
+                out.append(segment)
+            c += spacing
+    return out
+
+
+def _clip_to_box(a, b, box):
+    """Liang-Barsky: the part of segment a-b inside the box, or None."""
+    x0, y0, w, h = box
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-dx, a[0] - x0), (dx, x0 + w - a[0]), (-dy, a[1] - y0), (dy, y0 + h - a[1])):
+        if p == 0:
+            if q < 0:
+                return None
+            continue
+        t = q / p
+        if p < 0:
+            t0 = max(t0, t)
+        else:
+            t1 = min(t1, t)
+        if t0 > t1:
+            return None
+    return a[0] + t0 * dx, a[1] + t0 * dy, a[0] + t1 * dx, a[1] + t1 * dy
+
+
+def _clip_to_oval(a, b, box):
+    """The part of segment a-b inside the ellipse filling the box, or None."""
+    x0, y0, w, h = box
+    cx, cy, rx, ry = x0 + w / 2, y0 + h / 2, w / 2, h / 2
+    ax, ay = (a[0] - cx) / rx, (a[1] - cy) / ry
+    dx, dy = (b[0] - a[0]) / rx, (b[1] - a[1]) / ry
+    qa, qb, qc = dx * dx + dy * dy, 2 * (ax * dx + ay * dy), ax * ax + ay * ay - 1
+    disc = qb * qb - 4 * qa * qc
+    if qa == 0 or disc <= 0:
+        return None
+    root = math.sqrt(disc)
+    t0, t1 = max(0.0, (-qb - root) / (2 * qa)), min(1.0, (-qb + root) / (2 * qa))
+    if t0 >= t1:
+        return None
+    return a[0] + t0 * (b[0] - a[0]), a[1] + t0 * (b[1] - a[1]), a[0] + t1 * (b[0] - a[0]), a[1] + t1 * (b[1] - a[1])
 
 
 def _inch_label(value: float) -> str:
@@ -604,12 +777,33 @@ def _draw_face(d, elements: list[dict[str, Any]], to_pt, scale: float, slab_w: f
             inset = 1.4 if raised else 0.6
             inner = dict(element, x=element["x"] + inset / slab_w, y=element["y"] + inset / slab_h,
                          w=max(element["w"] - 2 * inset / slab_w, 0.01), h=max(element["h"] - 2 * inset / slab_h, 0.01))
-            if raised:
+            square = (element.get("top") or "square") == "square"
+            if raised and square:
+                # The bevel lit from the top left: four faces, light top and left, shaded bottom and right.
+                light, lit, shade, shaded = (_hex_colour(slab_hex, v) for v in ((42, 26, -6, 2) if dark else (24, 10, -42, -26)))
+                ox_, oy_, ow, oh = element["x"] * slab_w, element["y"] * slab_h, element["w"] * slab_w, element["h"] * slab_h
+                ix, iy, iw, ih = inner["x"] * slab_w, inner["y"] * slab_h, inner["w"] * slab_w, inner["h"] * slab_h
+                for quad, tone in (([(ox_, oy_), (ox_ + ow, oy_), (ix + iw, iy), (ix, iy)], light),
+                                   ([(ox_, oy_), (ix, iy), (ix, iy + ih), (ox_, oy_ + oh)], lit),
+                                   ([(ox_, oy_ + oh), (ix, iy + ih), (ix + iw, iy + ih), (ox_ + ow, oy_ + oh)], shade),
+                                   ([(ox_ + ow, oy_), (ox_ + ow, oy_ + oh), (ix + iw, iy + ih), (ix + iw, iy)], shaded)):
+                    d.add(Polygon([v for point in quad for v in to_pt(*point)], fillColor=tone, strokeColor=None, strokeWidth=0))
+                polygon(element, None, edge, 0.2)
+                polygon(inner, _hex_colour(slab_hex, 4 if dark else 6), edge, 0.1)
+            elif raised:
                 polygon(element, bevel, edge, 0.25)
                 polygon(inner, _hex_colour(slab_hex), edge, 0.12)
             else:
                 polygon(element, _hex_colour(slab_hex), edge, 0.3)
                 polygon(inner, recess, None, 0)
+                if square:
+                    # A recessed field: shadow under the top and left edges, light on the bottom and right.
+                    ix, iy, iw, ih = inner["x"] * slab_w, inner["y"] * slab_h, inner["w"] * slab_w, inner["h"] * slab_h
+                    dim, glow = _hex_colour(slab_hex, -4 if dark else -34), _hex_colour(slab_hex, 30 if dark else 18)
+                    line(ix, iy + 0.2, ix + iw, iy + 0.2, dim, 0.4)
+                    line(ix + 0.2, iy, ix + 0.2, iy + ih, dim, 0.4)
+                    line(ix, iy + ih - 0.15, ix + iw, iy + ih - 0.15, glow, 0.3)
+                    line(ix + iw - 0.15, iy, ix + iw - 0.15, iy + ih, glow, 0.3)
             bottom = (inner["y"] + inner["h"]) * slab_h
             for x in element.get("planks") or []:
                 top = door_faces.panel_top(inner, x) * slab_h
@@ -1164,6 +1358,8 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
     if door_options:
         tax_name = (view.get("totals") or {}).get("tax_label") or "HST"
         ticking = not view.get("accepted")
+        difference_style = ParagraphStyle("difference", parent=small, fontSize=7.5, leading=9.5, leftIndent=8, bulletIndent=0, spaceBefore=1)
+
         def tick_box():
             """An empty box to tick on a printed copy."""
             from reportlab.graphics.shapes import Drawing, Rect
@@ -1174,8 +1370,12 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         rows = [([""] if ticking else []) + [label("Option", head)] + [label(name, head_right) for name in ("Subtotal", tax_name, "Total")]]
         for tier in option_tiers:
             name = f"<b>{tier.get('name')}</b>" + (f" — {tier['description']}" if tier.get("description") else "")
+            different = (door_options.get("differences") or {}).get(str(tier.get("id"))) or []
+            option_cell: list[Any] = [Paragraph(name.replace("&", "&amp;"), cell)]
+            # What sets this option apart from the others (spec lines not shared by every option).
+            option_cell += [Paragraph(str(text).replace("&", "&amp;").replace("<", "&lt;"), difference_style, bulletText="•") for text in different]
             rows.append(([tick_box()] if ticking else [])
-                        + [Paragraph(name.replace("&", "&amp;"), cell), p(_money(tier.get("subtotal")), cell_right),
+                        + [option_cell, p(_money(tier.get("subtotal")), cell_right),
                            p(_money(tier.get("hst")), cell_right), p(_money(tier.get("total")), cell_strong_right)])
         widths = ([0.3 * inch] if ticking else []) + [inner - 3.3 * inch - (0.3 * inch if ticking else 0), 1.1 * inch, 1.0 * inch, 1.2 * inch]
         summary = product_table(rows, widths)

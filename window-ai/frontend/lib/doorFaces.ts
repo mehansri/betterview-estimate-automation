@@ -123,6 +123,33 @@ function curve(top: string, t: number) {
   return top === "scroll" ? (1 + Math.cos(2 * Math.PI * t)) / 2 : 1 - Math.sin(Math.PI * t);
 }
 
+/** The frame left beside a sidelite's panels (SIDELITE_STILE_IN in services/doors/faces.py). */
+export const SIDELITE_STILE_IN = 2.5;
+
+/**
+ * A sidelite panel's face from its catalog model: one panel across the sidelite for each row of the
+ * door's panels, and the door's grooves that run across. Mirrors sidelite_face() in services/doors/faces.py.
+ */
+export function sideliteFace(material: string | null | undefined, model: string | null | undefined, sideW: number): DoorFace | null {
+  const face = doorFace(material, model);
+  if (!face) return null;
+  const margin = sideW > 0 ? Math.min(SIDELITE_STILE_IN, sideW * 0.25) / sideW : 0.2;
+  const rows = new Map<string, FacePanel>();
+  const elements: FaceElement[] = [];
+  for (const element of face.elements) {
+    if (element.t === "p") {
+      const key = `${element.y.toFixed(3)}|${element.h.toFixed(3)}`;
+      if (!rows.has(key)) rows.set(key, element);
+    } else if (element.t === "g" && Math.abs(element.y1 - element.y2) < 0.01 && !element.taper) {
+      elements.push({ t: "g", x1: 0, y1: element.y1, x2: 1, y2: element.y2 });
+    }
+  }
+  Array.from(rows.values()).sort((a, b) => a.y - b.y || a.h - b.h).forEach((element) => {
+    elements.push({ t: "p", x: margin, y: element.y, w: 1 - 2 * margin, h: element.h, s: element.s ?? "raised", ...(element.top ? { top: element.top } : {}) });
+  });
+  return { key: face.key, label: face.label, pattern: null, elements };
+}
+
 /** The y (slab fraction) of a panel's top edge at slab fraction x, for curved tops. */
 export function panelTop(panel: FacePanel, x: number) {
   const top = panel.top ?? "square";

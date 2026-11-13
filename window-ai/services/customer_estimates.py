@@ -590,7 +590,29 @@ def _door_options(doors: list[dict[str, Any]], tiers: list[dict[str, Any]], summ
         {**found[key], "options": options[key], "in_every_option": len(options[key]) == len(priced)}
         for key in (str(opening.get("id")) for opening in doors) if key in found
     ]
-    return {"openings": openings, "option_ids": [tier.get("id") for tier, _ in priced]}
+    return {"openings": openings, "option_ids": [tier.get("id") for tier, _ in priced],
+            "differences": _option_differences(openings, [tier.get("id") for tier, _ in priced])}
+
+
+def _option_differences(openings: list[dict[str, Any]], option_ids: list[Any]) -> dict[str, list[str]]:
+    """What sets each door option apart: the spec lines ("Door slab: ...", "Frame system: ...") of its
+    own doors whose value isn't the same in every option. Lines every option shares are left out."""
+    specs: dict[str, dict[str, str]] = {}
+    order: list[str] = []
+    for option_id in option_ids:
+        values: dict[str, str] = {}
+        for opening in openings:
+            if opening.get("in_every_option") or not any(o.get("id") == option_id for o in opening.get("options") or []):
+                continue
+            for line in opening.get("details") or []:
+                name, _, value = str(line).partition(": ")
+                if value and len(name) <= 24 and name not in values:
+                    values[name] = value
+                    if name not in order:
+                        order.append(name)
+        specs[str(option_id)] = values
+    differs = [name for name in order if len({values.get(name) for values in specs.values()}) > 1]
+    return {key: [f"{name}: {values[name]}" for name in differs if name in values] for key, values in specs.items()}
 
 
 # ------------------------------------------------------------------ pricing
@@ -919,6 +941,9 @@ def price_customer_estimate(
                     "sections": priced["sections"],
                     "totals": priced["totals"],
                     "profitability": priced["profitability"],
+                    # A door option's own priced lines, so the accepted estimate (and the CRM, which
+                    # reads them) carries the doors bought, not the first option's.
+                    **({key: priced.get(key) for key in ("window_quote", "door_quote", "adder_quote")} if is_door_option(tier) else {}),
                 },
             })
         tier_summaries.append(summary)

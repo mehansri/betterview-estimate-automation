@@ -607,6 +607,10 @@ def test_doors_offered_as_options_are_priced_one_at_a_time_and_the_customer_pick
     offered = pricing["door_options"]["openings"]
     assert [(o["id"], [x["id"] for x in o["options"]], o["in_every_option"]) for o in offered] == [
         ("steel", ["a"], False), ("glass", ["b"], False)]
+    differences = pricing["door_options"]["differences"]
+    assert any(line.startswith("Door slab: ") and "Steel" in line for line in differences["a"])
+    assert any(line.startswith("Door slab: ") and "Fiberglass" in line for line in differences["b"])
+    assert not any(line.startswith("Sill: ") for line in differences["a"])  # the same in both
 
     token = client.post(f"/api/customer-estimates/{estimate['id']}/finalize").json()["public_token"]
     view = client.get(f"/api/public/estimates/{token}").json()
@@ -626,6 +630,9 @@ def test_doors_offered_as_options_are_priced_one_at_a_time_and_the_customer_pick
     assert body["door_options"] is None
     assert [opening["id"] for opening in body["sections"]["doors"]["openings"]] == ["glass"]
     assert body["accepted"]["total"] == alone["glass"]
+    saved = client.get(f"/api/customer-estimates/{estimate['id']}").json()
+    assert [door["id"] for door in saved["doors"]] == ["glass"]
+    assert len(saved["pricing"]["door_quote"]["openings"]) == 1  # the CRM pairs doors with these
 
 
 def test_making_a_door_option_the_quote_keeps_only_its_doors(client):

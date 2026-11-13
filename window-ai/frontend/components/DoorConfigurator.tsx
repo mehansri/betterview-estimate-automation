@@ -4,7 +4,7 @@ import { ReactNode, useMemo, useState } from "react";
 import ConfiguratorShell, { ConfiguratorPrice } from "@/components/configurator/ConfiguratorShell";
 import { ChipGroup, InchInput, OptionCard, SectionTitle, Stepper } from "@/components/configurator/parts";
 import DoorDrawing, { finishHex } from "@/components/DoorDrawing";
-import { doorFace, slabDesignGroup, slabDesigns } from "@/lib/doorFaces";
+import { doorFace, sideliteFace, slabDesignGroup, slabDesigns } from "@/lib/doorFaces";
 import { useViewMode } from "@/lib/viewMode";
 import { isCustomColour, PALMA_PAINTS, PALMA_STAINS, standardColourName } from "@/lib/palmaColours";
 import {
@@ -324,6 +324,8 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
       pullBarIn={value.standard.lock === "pull_bar" ? value.standard.pull_bar?.length_in ?? 36 : undefined}
       sideliteWidth={sideliteDrawWidth(value)}
       transomHeight={value.glass.transom?.height_in ?? catalog.default_transom_height}
+      sideliteFaces={(value.glass.sidelites || []).map((part) => (sideliteFace(value.material, part.model, sideliteDrawWidth(value)) ?? sideliteFace("fiberglass", part.model, sideliteDrawWidth(value)) ?? sideliteFace("steel", part.model, sideliteDrawWidth(value)))?.elements ?? null)}
+      grain={value.colours.exterior?.type === "stained"}
       size={330}
     />
   );

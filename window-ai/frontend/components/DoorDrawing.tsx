@@ -4,7 +4,7 @@ import { useId } from "react";
 import type { DoorDrawingGeometry } from "@/lib/api";
 import { palmaHex } from "@/lib/palmaColours";
 import { fmtInches } from "@/lib/windowLayout";
-import { brightness, GROOVE_IN, INLAY_IN, insetPanel, panelOutline, panelTop, SLOT_IN, TAPER_IN, withoutGlass, type FaceElement } from "@/lib/doorFaces";
+import { brightness, GROOVE_IN, INLAY_IN, insetPanel, panelOutline, panelTop, SLOT_IN, TAPER_IN, withoutGlass, type FaceElement, type FacePanel } from "@/lib/doorFaces";
 
 /**
  * Elevation drawing of an entrance door opening, viewed from outside: frame,
@@ -137,15 +137,56 @@ function GlassFill({ id, family }: { id: string; family?: string }) {
   );
 }
 
-function LiteShape({ lite, id, family, ox, oy }: { lite: Lite; id: string; family?: string; ox: number; oy: number }) {
-  const fill = family === "decorative" || family === "specialty" ? `url(#${id}-deco)` : family === "blinds" ? `url(#${id}-blinds)` : `url(#${id}-g)`;
+/** The moulded frame round a glass insert, the lattice spacing and border of decorative glass (as estimate_documents.py). */
+const GLASS_FRAME_IN = 1.1;
+const GLASS_LATTICE_IN = 4;
+const GLASS_BORDER_IN = 1.2;
+
+/** Decorative glass: both diagonals every `spacing` inches across a pane's box (the pane's clip path trims them). */
+function latticeLines(x0: number, y0: number, w: number, h: number, spacing: number) {
+  const out: Array<[number, number, number, number]> = [];
+  for (const direction of [1, -1]) {
+    const corners = [y0 - direction * x0, y0 + h - direction * x0, y0 - direction * (x0 + w), y0 + h - direction * (x0 + w)];
+    for (let c = Math.floor(Math.min(...corners) / spacing) * spacing; c <= Math.max(...corners); c += spacing) {
+      out.push([x0 - w, direction * (x0 - w) + c, x0 + 2 * w, direction * (x0 + 2 * w) + c]);
+    }
+  }
+  return out;
+}
+
+function LiteShape({ lite, id, family, ox, oy, slabColour, framed = true }: { lite: Lite; id: string; family?: string; ox: number; oy: number; slabColour: string; framed?: boolean }) {
+  const fill = family === "blinds" ? `url(#${id}-blinds)` : `url(#${id}-g)`;
   const x = ox + lite.x;
   const y = oy + lite.y;
-  const common = { fill, stroke: "#475569", strokeWidth: 0.6 };
+  const common = { fill, stroke: "#475569", strokeWidth: 0.3 };
   const grid = family === "grills" || family === "sdl";
+  const dark = brightness(slabColour) < 0.35;
+  const clip = `${id}-clip-${Math.round(x * 10)}-${Math.round(y * 10)}`;
+  const shape = (inflate: number, props: Record<string, unknown>) => lite.shape === "half"
+    ? <path d={`M${x - inflate} ${y + lite.h + inflate} a${lite.w / 2 + inflate} ${lite.h + inflate} 0 0 1 ${lite.w + 2 * inflate} 0 z`} {...props} />
+    : lite.shape === "oval"
+      ? <ellipse cx={x + lite.w / 2} cy={y + lite.h / 2} rx={lite.w / 2 + inflate} ry={lite.h / 2 + inflate} {...props} />
+      : <rect x={x - inflate} y={y - inflate} width={lite.w + 2 * inflate} height={lite.h + 2 * inflate} {...props} />;
+  const pattern = "#0369a1";
   return (
     <g>
-      {lite.shape === "half" ? <path d={`M${x} ${y + lite.h} a${lite.w / 2} ${lite.h} 0 0 1 ${lite.w} 0 z`} {...common} /> : lite.shape === "oval" ? <ellipse cx={x + lite.w / 2} cy={y + lite.h / 2} rx={lite.w / 2} ry={lite.h / 2} {...common} /> : <rect x={x} y={y} width={lite.w} height={lite.h} {...common} />}
+      {framed ? shape(GLASS_FRAME_IN, { fill: shade(slabColour, dark ? 26 : -16), stroke: shade(slabColour, dark ? 55 : -50), strokeWidth: 0.25 }) : null}
+      <defs><clipPath id={clip}>{shape(0, {})}</clipPath></defs>
+      {shape(0, common)}
+      <g clipPath={`url(#${clip})`}>
+        {lite.shape === "rect" ? (
+          // A sheen across the glass (as the PDF's pane()).
+          <polygon points={[[x + lite.w * 0.18, y], [x + lite.w * 0.42, y], [x + lite.w * 0.42 - lite.h * 0.45, y + lite.h], [x + lite.w * 0.18 - lite.h * 0.45, y + lite.h]].map((p) => p.join(",")).join(" ")} fill="#ffffff" opacity={0.45} />
+        ) : null}
+        {(family === "decorative" || family === "specialty") && lite.shape !== "half" ? (
+          <g stroke={pattern} strokeWidth={0.15} opacity={0.5}>
+            {latticeLines(x, y, lite.w, lite.h, GLASS_LATTICE_IN).map(([x1, y1, x2, y2], i) => <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} />)}
+          </g>
+        ) : null}
+      </g>
+      {(family === "decorative" || family === "specialty") && lite.shape === "rect" && lite.w > 6 && lite.h > 6 ? (
+        <rect x={x + GLASS_BORDER_IN} y={y + GLASS_BORDER_IN} width={lite.w - 2 * GLASS_BORDER_IN} height={lite.h - 2 * GLASS_BORDER_IN} fill="none" stroke={pattern} strokeWidth={0.15} opacity={0.6} />
+      ) : null}
       {grid && lite.shape === "rect" ? (
         <g stroke="#f8fafc" strokeWidth={0.8}>
           <line x1={x + lite.w / 2} y1={y} x2={x + lite.w / 2} y2={y + lite.h} />
@@ -158,6 +199,28 @@ function LiteShape({ lite, id, family, ox, oy }: { lite: Lite; id: string; famil
       {family === "vented" && lite.shape === "rect" ? <line x1={x} y1={y + lite.h / 2} x2={x + lite.w} y2={y + lite.h / 2} stroke="#334155" strokeWidth={0.9} /> : null}
     </g>
   );
+}
+
+/** A repeatable 0..1 number per index (_hash01() in estimate_documents.py). */
+function hash01(index: number) {
+  const value = Math.sin(index * 12.9898 + 78.233) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+/** Wood grain on a stained part: fine, slightly wavy lines about every 1.6" (grain() in estimate_documents.py). */
+function Grain({ ox, oy, w, h, slabColour }: { ox: number; oy: number; w: number; h: number; slabColour: string }) {
+  const count = Math.floor(w / 1.6);
+  const rows: number[] = [];
+  for (let y = 0; y < Math.floor(h); y += 4) rows.push(y);
+  rows.push(h);
+  const stroke = shade(slabColour, brightness(slabColour) < 0.35 ? 14 : -16);
+  const lines: string[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const gx = ((i + 0.5) * w) / Math.max(count, 1) + (hash01(i) - 0.5) * 0.8;
+    if (gx <= 0.4 || gx >= w - 0.4) continue;
+    lines.push(rows.map((gy) => `${ox + gx + 0.3 * Math.sin(gy / 7 + lines.length * 1.7)},${oy + gy}`).join(" "));
+  }
+  return <g fill="none" stroke={stroke} strokeWidth={0.12}>{lines.map((points, i) => <polyline key={i} points={points} />)}</g>;
 }
 
 export type DoorDrawingProps = {
@@ -187,6 +250,10 @@ export type DoorDrawingProps = {
   /** Sidelite width and transom height to label (only sizes the rep set; an assumed size gets no dimension line). */
   sideliteLabelIn?: number | null;
   transomLabelIn?: number | null;
+  /** Each sidelite's own panels (sidelite_face / sideliteFace()); absent on snapshots priced before them. */
+  sideliteFaces?: Array<FaceElement[] | null>;
+  /** Stained finishes: draw a wood grain. */
+  grain?: boolean;
 };
 
 /** 10.5 -> 10-1/2" (as the custom door estimates and the PDF's _inch_label write sizes). */
@@ -194,7 +261,7 @@ function inchLabel(value: number): string {
   return `${fmtInches(value).replace(" ", "-")}"`;
 }
 
-export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", face, doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, sideliteWidth, transomHeight, size = 360, showDimensions = true, heightLabel, sideliteLabelIn, transomLabelIn }: DoorDrawingProps) {
+export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", face, doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, sideliteWidth, transomHeight, size = 360, showDimensions = true, heightLabel, sideliteLabelIn, transomLabelIn, sideliteFaces, grain = false }: DoorDrawingProps) {
   const frame = 2;
   const mull = 1.5;
   const sideW = sideliteWidth && sideliteWidth > 0 ? sideliteWidth : 14;
@@ -238,7 +305,7 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
       {transom ? (
         <g>
           <rect x={frame} y={frame} width={innerW} height={transomH} fill={shade(frameColour, -10)} />
-          <rect x={frame + 2} y={frame + 2} width={innerW - 4} height={transomH - 4} fill={transomGlass ? `url(#${id}-t-${transomGlass.includes("decorative") || transomGlass.includes("wrought") ? "deco" : "g"})` : "#e2e8f0"} stroke="#475569" strokeWidth={0.5} />
+          <LiteShape lite={{ x: frame + 2, y: frame + 2, w: innerW - 4, h: transomH - 4, shape: "rect" }} id={`${id}-t`} family={!transomGlass || transomGlass.includes("sandblast") ? "sandblast" : transomGlass.includes("decorative") || transomGlass.includes("wrought") ? "decorative" : transomGlass.includes("grill") || transomGlass.includes("sdl") ? "grills" : "clear"} ox={0} oy={0} slabColour={frameColour} framed={false} />
         </g>
       ) : null}
       {parts.map((part) => {
@@ -248,8 +315,10 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
           return (
             <g key={`s${part.index}`}>
               <rect x={part.x} y={doorTop} width={part.w} height={heightIn} fill={slabColour} stroke="#334155" strokeWidth={0.4} />
-              {lites.map((lite, i) => <LiteShape key={i} lite={lite} id={`${id}-s`} family={glass?.family} ox={part.x} oy={doorTop} />)}
-              {!lites.length ? <rect x={part.x + 3} y={doorTop + 6} width={part.w - 6} height={heightIn - 12} fill="none" stroke={shade(slabColour, -30)} strokeWidth={0.5} /> : null}
+              {grain ? <Grain ox={part.x} oy={doorTop} w={part.w} h={heightIn} slabColour={slabColour} /> : null}
+              {sideliteFaces?.[part.index] ? <FaceShapes elements={withoutGlass(sideliteFaces[part.index]!, lites, part.w, heightIn)} ox={part.x} oy={doorTop} slabW={part.w} slabH={heightIn} slabColour={slabColour} /> : null}
+              {lites.map((lite, i) => <LiteShape key={i} lite={lite} id={`${id}-s`} family={glass?.family} ox={part.x} oy={doorTop} slabColour={slabColour} />)}
+              {!lites.length && !sideliteFaces ? <rect x={part.x + 3} y={doorTop + 6} width={part.w - 6} height={heightIn - 12} fill="none" stroke={shade(slabColour, -30)} strokeWidth={0.5} /> : null}
             </g>
           );
         }
@@ -261,6 +330,7 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
         return (
           <g key={`d${part.index}`}>
             <rect x={part.x} y={doorTop} width={part.w} height={heightIn} fill={slabColour} stroke="#1e293b" strokeWidth={0.5} />
+            {grain ? <Grain ox={part.x} oy={doorTop} w={part.w} h={heightIn} slabColour={slabColour} /> : null}
             {panels.map((panel, i) => (
               <g key={i}>
                 <rect x={part.x + panel.x} y={doorTop + panel.y} width={panel.w} height={panel.h} fill={shade(slabColour, -12)} rx={0.5} />
@@ -268,7 +338,7 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
               </g>
             ))}
             {face ? <FaceShapes elements={withoutGlass(face, lites, part.w, heightIn)} ox={part.x} oy={doorTop} slabW={part.w} slabH={heightIn} slabColour={slabColour} /> : null}
-            {lites.map((lite, i) => <LiteShape key={i} lite={lite} id={id} family={doorGlass?.family} ox={part.x} oy={doorTop} />)}
+            {lites.map((lite, i) => <LiteShape key={i} lite={lite} id={id} family={doorGlass?.family} ox={part.x} oy={doorTop} slabColour={slabColour} />)}
             {[0.15, 0.5, 0.85].map((f) => <rect key={f} x={hingeX} y={doorTop + heightIn * f - 2} width={1} height={4} fill="#111827" />)}
             {lock === "pull_bar" && pullBarIn ? (
               // To scale on the latch side, centred near handle height; a double's inactive leaf carries the dummy bar.
@@ -321,6 +391,18 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
  * slots. Edges are lighter than a dark slab and darker than a light one so a
  * black door still shows its design. Mirrors _draw_face() in services/estimate_documents.py.
  */
+/** A square raised panel's four bevel faces (top, left, bottom, right) in slab inches, with their tone index. */
+function bevelQuads(outer: FacePanel, inner: FacePanel, slabW: number, slabH: number): Array<[Array<[number, number]>, number]> {
+  const [ox, oy, ow, oh] = [outer.x * slabW, outer.y * slabH, outer.w * slabW, outer.h * slabH];
+  const [ix, iy, iw, ih] = [inner.x * slabW, inner.y * slabH, inner.w * slabW, inner.h * slabH];
+  return [
+    [[[ox, oy], [ox + ow, oy], [ix + iw, iy], [ix, iy]], 0],
+    [[[ox, oy], [ix, iy], [ix, iy + ih], [ox, oy + oh]], 1],
+    [[[ox, oy + oh], [ix, iy + ih], [ix + iw, iy + ih], [ox + ow, oy + oh]], 2],
+    [[[ox + ow, oy], [ox + ow, oy + oh], [ix + iw, iy + ih], [ix + iw, iy]], 3],
+  ];
+}
+
 export function FaceShapes({ elements, ox, oy, slabW, slabH, slabColour }: { elements: FaceElement[]; ox: number; oy: number; slabW: number; slabH: number; slabColour: string }) {
   const dark = brightness(slabColour) < 0.35;
   const edge = shade(slabColour, dark ? 45 : -45);
@@ -334,11 +416,21 @@ export function FaceShapes({ elements, ox, oy, slabW, slabH, slabColour }: { ele
       {elements.map((element, i) => {
         if (element.t === "p") {
           const raised = element.s !== "shaker";
+          const square = (element.top ?? "square") === "square";
           const inner = insetPanel(element, raised ? 1.4 : 0.6, slabW, slabH);
           const bottom = oy + (inner.y + inner.h) * slabH;
           return (
             <g key={i}>
-              {raised ? (
+              {raised && square ? (
+                // The bevel lit from the top left: light top and left faces, shaded bottom and right (as _draw_face()).
+                <>
+                  {bevelQuads(element, inner, slabW, slabH).map(([quad, tone], q) => (
+                    <polygon key={q} points={quad.map(([x, y]) => `${ox + x},${oy + y}`).join(" ")} fill={shade(slabColour, dark ? [42, 26, -6, 2][tone] : [24, 10, -42, -26][tone])} />
+                  ))}
+                  <polygon points={points(panelOutline(element, slabW, slabH))} fill="none" stroke={edge} strokeWidth={0.2} />
+                  <polygon points={points(panelOutline(inner, slabW, slabH))} fill={shade(slabColour, dark ? 4 : 6)} stroke={edge} strokeWidth={0.1} />
+                </>
+              ) : raised ? (
                 <>
                   <polygon points={points(panelOutline(element, slabW, slabH))} fill={bevel} stroke={edge} strokeWidth={0.25} />
                   <polygon points={points(panelOutline(inner, slabW, slabH))} fill={slabColour} stroke={edge} strokeWidth={0.12} />
@@ -347,6 +439,19 @@ export function FaceShapes({ elements, ox, oy, slabW, slabH, slabColour }: { ele
                 <>
                   <polygon points={points(panelOutline(element, slabW, slabH))} fill={slabColour} stroke={edge} strokeWidth={0.3} />
                   <polygon points={points(panelOutline(inner, slabW, slabH))} fill={recess} />
+                  {square ? (() => {
+                    // A recessed field: shadow under the top and left edges, light on the bottom and right.
+                    const ix = ox + inner.x * slabW, iy = oy + inner.y * slabH, iw = inner.w * slabW, ih = inner.h * slabH;
+                    const dim = shade(slabColour, dark ? -4 : -34), glow = shade(slabColour, dark ? 30 : 18);
+                    return (
+                      <>
+                        <line x1={ix} y1={iy + 0.2} x2={ix + iw} y2={iy + 0.2} stroke={dim} strokeWidth={0.4} />
+                        <line x1={ix + 0.2} y1={iy} x2={ix + 0.2} y2={iy + ih} stroke={dim} strokeWidth={0.4} />
+                        <line x1={ix} y1={iy + ih - 0.15} x2={ix + iw} y2={iy + ih - 0.15} stroke={glow} strokeWidth={0.3} />
+                        <line x1={ix + iw - 0.15} y1={iy} x2={ix + iw - 0.15} y2={iy + ih} stroke={glow} strokeWidth={0.3} />
+                      </>
+                    );
+                  })() : null}
                 </>
               )}
               {(element.planks ?? []).map((x) => {
@@ -449,6 +554,8 @@ export function DoorGeometryDrawing({ geometry, size = 110, title, dimensions = 
         showDimensions={dimensions}
         sideliteLabelIn={geometry.sidelite_width_in}
         transomLabelIn={geometry.transom_height_in}
+        sideliteFaces={geometry.sidelite_faces ? geometry.sidelite_faces.map((face) => face?.elements ?? null) : undefined}
+        grain={Boolean(geometry.grain)}
       />
     </span>
   );

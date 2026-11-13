@@ -55,9 +55,21 @@ export function DoorOptionsStrip({ doorOptions, tiers, taxLabel, money }: {
   );
 }
 
+/** What sets an option apart from the others, as a short list. */
+export function OptionDifferences({ lines }: { lines?: string[] }) {
+  if (!lines?.length) return null;
+  return (
+    <ul className="door-option-differences">
+      {lines.map((line) => <li key={line}>{line}</li>)}
+    </ul>
+  );
+}
+
 /** Every option's price, subtotal / tax / total (the custom door estimates' pricing summary). */
-export function OptionsPricingTable({ tiers, taxLabel, money, quotedId }: {
+export function OptionsPricingTable({ tiers, taxLabel, money, quotedId, differences }: {
   tiers: OptionTier[];
+  /** Option id -> what sets it apart (DoorOptions.differences). */
+  differences?: Record<string, string[]>;
   taxLabel: string;
   money: (value: number | null | undefined) => string;
   /** The option picked as the main price, marked as such. */
@@ -71,7 +83,7 @@ export function OptionsPricingTable({ tiers, taxLabel, money, quotedId }: {
       <tbody>
         {rows.map((tier) => (
           <tr key={tier.id}>
-            <td data-label="Option"><strong>{tier.name}</strong>{tier.description ? <> — {tier.description}</> : null}{quotedId === tier.id ? <span className="block text-xs text-slate-500">Main price</span> : null}</td>
+            <td data-label="Option"><strong>{tier.name}</strong>{tier.description ? <> — {tier.description}</> : null}{quotedId === tier.id ? <span className="block text-xs text-slate-500">Main price</span> : null}<OptionDifferences lines={differences?.[tier.id]} /></td>
             <td data-label="Subtotal" className="text-right">{money(tier.subtotal)}</td>
             <td data-label={taxLabel} className="text-right">{money(tier.hst)}</td>
             <td data-label="Total" className="text-right font-semibold">{money(tier.total)}</td>

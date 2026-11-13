@@ -2236,6 +2236,23 @@ def _set_inches(value: Any) -> float | None:
     return inches if inches > 0 else None
 
 
+def _sidelite_faces(pipe: dict[str, Any], count: int, height: float) -> list[dict[str, Any] | None]:
+    """The face of each sidelite (faces.sidelite_face), with what its glass covers removed."""
+    side_w = sidelite_draw_width(pipe)
+    parts = ((pipe.get("glass") or {}).get("sidelites") or [])[:count]
+    out: list[dict[str, Any] | None] = []
+    for part in parts:
+        model = part.get("model") if isinstance(part, dict) else None
+        # Steel doors take fiberglass panel sidelites (Oak Flush), so look in both libraries.
+        face = next((found for material in (pipe.get("material"), "fiberglass", "steel")
+                     if (found := faces.sidelite_face(material, model, side_w))), None)
+        if face is not None:
+            ref = _glass_ref(part)
+            face["elements"] = faces.without_glass(face["elements"], door_lites(ref["size"], side_w, height) if ref else [], side_w, height)
+        out.append(face)
+    return out
+
+
 def sidelite_draw_width(pipe: dict[str, Any]) -> float:
     """The sidelite width drawn: the one set, else a direct-set range's top, else 14"."""
     try:
@@ -2416,6 +2433,10 @@ def door_drawing(spec: dict[str, Any] | None) -> dict[str, Any] | None:
             "face": face,
             "door_glass": _glass_ref(glass.get("door")),
             "sidelite_glass": [_glass_ref(part) for part in (glass.get("sidelites") or [])[: layout["sidelites"]]],
+            # Each sidelite's own panels from its model (glass-covered ones dropped), as ``face`` for the slab.
+            "sidelite_faces": _sidelite_faces(pipe, layout["sidelites"], height),
+            # Stained finishes are drawn with a wood grain.
+            "grain": exterior.get("type") == "stained",
             "transom_glass": (glass.get("transom") or {}).get("glass") if layout["transom"] else None,
             "slab_colour": finish_hex(exterior.get("type"), exterior.get("colour")),
             "frame_colour": frame_colour,

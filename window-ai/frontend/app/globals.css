@@ -204,6 +204,8 @@ button, input, select, textarea { max-width: 100%; }
 .door-option-price { margin-top: auto; padding-top: 0.5rem; color: var(--estimate-muted, #64748b); font-size: 0.7rem; }
 .door-option-price strong { color: var(--estimate-navy, #0f172a); font-size: 1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .door-options-pricing td strong { color: var(--estimate-navy, #0f172a); }
+.door-option-differences { margin-top: 0.35rem; padding-left: 1rem; list-style: disc; color: var(--estimate-muted, #64748b); font-size: 0.72rem; line-height: 1.35; text-align: left; }
+.door-option-differences li + li { margin-top: 0.1rem; }
 @media (max-width: 640px) {
   .door-card-head { padding: 0.8rem; }
   .door-card-body { grid-template-columns: minmax(0, 1fr); }
