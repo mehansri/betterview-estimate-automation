@@ -178,16 +178,18 @@ export type DoorDrawingProps = {
   pullBarIn?: number;
   /** Each sidelite's width in inches (default 14"). */
   sideliteWidth?: number;
+  /** The transom glass height in inches (default 14"). */
+  transomHeight?: number;
   size?: number;
   showDimensions?: boolean;
   heightLabel?: string;
 };
 
-export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", face, doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, sideliteWidth, size = 360, showDimensions = true, heightLabel }: DoorDrawingProps) {
+export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", face, doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, sideliteWidth, transomHeight, size = 360, showDimensions = true, heightLabel }: DoorDrawingProps) {
   const frame = 2;
   const mull = 1.5;
   const sideW = sideliteWidth && sideliteWidth > 0 ? sideliteWidth : 14;
-  const transomH = transom ? 14 : 0;
+  const transomH = transom ? (transomHeight && transomHeight > 0 ? transomHeight : 14) : 0;
   const leftSidelites = sidelites === 2 ? 1 : sidelites;
   const rightSidelites = sidelites === 2 ? 1 : 0;
   const innerW = doors * width + sidelites * sideW + sidelites * mull;
@@ -405,6 +407,7 @@ export function DoorGeometryDrawing({ geometry, size = 110, title }: { geometry:
         lock={geometry.lock || undefined}
         pullBarIn={geometry.pull_bar_in ?? undefined}
         sideliteWidth={geometry.sidelite_width ?? undefined}
+        transomHeight={geometry.transom_height ?? undefined}
         size={size}
         showDimensions={false}
       />

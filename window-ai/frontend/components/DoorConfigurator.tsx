@@ -323,6 +323,7 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
       lock={value.standard.lock}
       pullBarIn={value.standard.lock === "pull_bar" ? value.standard.pull_bar?.length_in ?? 36 : undefined}
       sideliteWidth={sideliteDrawWidth(value)}
+      transomHeight={value.glass.transom?.height_in ?? catalog.default_transom_height}
       size={330}
     />
   );

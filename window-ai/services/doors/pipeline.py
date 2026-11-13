@@ -2218,6 +2218,15 @@ def direct_set_size_for(width: float, sizes: list[str]) -> str | None:
     return None
 
 
+def _transom_draw_height(pipe: dict[str, Any]) -> float:
+    """The transom glass height drawn: the one set on the transom, else 14"."""
+    try:
+        height = float(((pipe.get("glass") or {}).get("transom") or {}).get("height_in") or 0)
+    except (TypeError, ValueError):
+        height = 0.0
+    return height if height > 0 else TRANSOM_HEIGHT_IN
+
+
 def sidelite_draw_width(pipe: dict[str, Any]) -> float:
     """The sidelite width drawn: the one set, else a direct-set range's top, else 14"."""
     try:
@@ -2288,7 +2297,8 @@ def _with_sections(geometry: dict[str, Any], exterior_colour: str) -> dict[str, 
     doors, sidelites = geometry["doors"], geometry["sidelites"]
     side_w = float(geometry.get("sidelite_width") or SIDELITE_WIDTH_IN)
     geometry["sidelite_width"] = _rounded(side_w)
-    transom_h = TRANSOM_HEIGHT_IN if geometry["transom"] else 0.0
+    transom_h = float(geometry.get("transom_height") or TRANSOM_HEIGHT_IN) if geometry["transom"] else 0.0
+    geometry["transom_height"] = _rounded(transom_h) if transom_h else None
     total_w = doors * slab_w + sidelites * side_w
 
     def lites(glass: dict[str, Any] | None, w: float, h: float) -> list[dict[str, float]]:
@@ -2384,6 +2394,7 @@ def door_drawing(spec: dict[str, Any] | None) -> dict[str, Any] | None:
             "doors": layout["doors"],
             "sidelites": layout["sidelites"],
             "sidelite_width": sidelite_draw_width(pipe) if layout["sidelites"] else None,
+            "transom_height": _transom_draw_height(pipe) if layout["transom"] else None,
             "transom": layout["transom"],
             "width": width,
             "height": height,

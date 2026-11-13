@@ -175,6 +175,20 @@ def test_sidelite_width_picks_the_direct_set_size_and_cuts_panel_sidelites():
     assert door_drawing({"material": "fiberglass", "opening_type": "single_2_sidelites", "pipeline": flush})["sidelite_width"] == 14.0
 
 
+def test_transom_is_drawn_at_its_glass_height():
+    from services.doors.pipeline import door_drawing
+
+    direct = {"model": "direct-glazed-full-lite", "glazed": True, "size": '5.5"-13.5"', "family": "sandblast", "series": "sandblast"}
+    sel = _sel("steel", height='8\'0"', configuration="single_1sl_transom", sidelite_width_in=10.5,
+               glass={"door": {"glazed": False}, "sidelites": [direct], "transom": {"shape": "rectangle", "glass": "clear_lowe_glass", "height_in": 23, "tempered": True}})
+    drawn = door_drawing({"material": "steel", "opening_type": "single_1_sidelite", "pipeline": sel})
+    assert drawn["transom_height"] == 23.0 and drawn["height"] == 96.0 + 23.0
+    assert drawn["sections"][0] == {"x": 0.0, "y": 0.0, "width": 46.5, "height": 23.0, "op": "fixed", "hinge": None, "panel": "glass"}
+    assert drawn["sections"][1]["y"] == 23.0
+    no_height = {**sel, "glass": {**sel["glass"], "transom": {"shape": "rectangle", "glass": "clear_lowe_glass", "tempered": True}}}
+    assert door_drawing({"material": "steel", "opening_type": "single_1_sidelite", "pipeline": no_height})["transom_height"] == 14.0
+
+
 def test_w2_panel_selector_widths_steer_but_still_price():
     tao = next(model for model in CATALOG["materials"]["steel"]["models"] if model["key"] == "tao")
     assert all(offer["widths"] == [34, 36] for offer in tao["offers"])

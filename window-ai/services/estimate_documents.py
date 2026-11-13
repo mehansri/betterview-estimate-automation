@@ -357,7 +357,7 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     slab_h = float(geometry.get("slab_height") or geometry.get("height") or 80)
     frame, mull = 2.0, 1.5
     side_w = float(geometry.get("sidelite_width") or 14.0)
-    transom_h = 14.0 if geometry.get("transom") else 0.0
+    transom_h = float(geometry.get("transom_height") or 14.0) if geometry.get("transom") else 0.0
     inner_w = doors * slab_w + sidelites * (side_w + mull)
     total_w = inner_w + frame * 2
     total_h = slab_h + transom_h + (mull if transom_h else 0) + frame + 1.5
