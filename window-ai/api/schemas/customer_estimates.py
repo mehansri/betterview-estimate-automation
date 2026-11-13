@@ -129,6 +129,9 @@ class EstimateTier(BaseModel):
     # Windows picked out of the option: each group's lines take its overrides
     # instead of window_overrides (e.g. Heritage at the front, Classic elsewhere).
     line_groups: list[TierLineGroup] = Field(default_factory=list)
+    # Doors offered as options: the door openings this option includes (the
+    # customer picks one option). None = every door on the estimate.
+    door_ids: Optional[list[str]] = None
 
 
 class CustomerEstimateDraft(BaseModel):

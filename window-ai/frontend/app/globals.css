@@ -165,26 +165,58 @@ button, input, select, textarea { max-width: 100%; }
 .estimate-table td:first-child { color: var(--estimate-navy); font-weight: 700; }
 .estimate-table-compact { margin-top: 0.35rem; }
 .estimate-table-compact td:first-child { font-weight: 500; }
-/* A door may run onto the next page; its heading and spec lines stay with its first price lines. */
-.estimate-door-opening { margin-top: 0.9rem; }
-.estimate-door-opening + .estimate-door-opening { margin-top: 1.4rem; }
-/* Sketch | title | price, with the spec lines under the title across to the price (as the PDF). */
-.estimate-door-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; break-inside: avoid; break-after: avoid; }
-.estimate-door-heading .estimate-door-title { grid-column: 2; grid-row: 1; min-width: 0; }
-.estimate-door-heading .estimate-door-price { grid-column: 3; grid-row: 1; margin-left: 1rem; }
-.estimate-door-sketch { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; flex-shrink: 0; }
-.estimate-door-heading .estimate-door-sketch { grid-column: 1; grid-row: 1 / span 2; margin-right: 1rem; }
-.estimate-door-specs { grid-column: 2 / -1; grid-row: 2; margin-top: 0.6rem; border-top: 1px solid #edf3f6; font-size: 0.78rem; line-height: 1.4; }
-.estimate-door-specs > div { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 0.75rem; padding: 0.32rem 0; border-bottom: 1px solid #edf3f6; }
-.estimate-door-specs dt { color: var(--estimate-navy); font-weight: 700; }
-.estimate-door-specs dd { color: #315269; }
-.estimate-door-specs .estimate-door-spec-note { grid-column: 1 / -1; }
-.estimate-door-sketch-button { border: 1px solid var(--estimate-line); border-radius: 0.6rem; padding: 0.35rem; background: #fff; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
-.estimate-door-sketch-button:hover { border-color: var(--estimate-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
-.estimate-door-sketch-button span { color: var(--estimate-blue); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-.estimate-door-heading h3 { color: var(--estimate-navy); font-size: 0.88rem; font-weight: 800; }
-.estimate-door-heading p { color: var(--estimate-muted); font-size: 0.74rem; margin-top: 0.18rem; }
-.estimate-door-heading strong { color: var(--estimate-navy); font-size: 0.8rem; }
+/* One door as a card (components/estimate/DoorOpeningCard.tsx), as door_card() in the PDF: item and
+   price across the top, a large elevation with its sizes in a shaded panel beside the spec rows, then
+   its parts. Brand colours come from the estimate document; the customer portal uses the fallbacks. */
+.door-card { margin-top: 0.9rem; border: 1px solid var(--estimate-line, #e2e8f0); border-top: 3px solid var(--estimate-blue, #2563eb); border-radius: 0.5rem; background: #fff; overflow: hidden; }
+.door-card + .door-card { margin-top: 1.25rem; }
+.door-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--estimate-line, #e2e8f0); break-inside: avoid; break-after: avoid; }
+.door-card-kicker { color: var(--estimate-blue, #2563eb); font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.door-card-head h3 { color: var(--estimate-navy, #0f172a); font-size: 1.02rem; font-weight: 800; line-height: 1.3; margin-top: 0.2rem; }
+.door-card-sub { color: var(--estimate-muted, #64748b); font-size: 0.76rem; margin-top: 0.15rem; }
+.door-card-price { flex-shrink: 0; text-align: right; white-space: nowrap; }
+.door-card-price strong { display: block; color: var(--estimate-navy, #0f172a); font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.door-card-price span { color: var(--estimate-muted, #64748b); font-size: 0.68rem; }
+.door-card-body { display: grid; grid-template-columns: 17rem minmax(0, 1fr); break-inside: avoid; }
+.door-card-body-plain { grid-template-columns: minmax(0, 1fr); }
+.door-card-drawing { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.45rem; margin: 0; padding: 1rem 0.75rem 0.8rem; background: var(--estimate-soft, #f8fafc); border-right: 1px solid var(--estimate-line, #e2e8f0); }
+.door-card-drawing figcaption { color: var(--estimate-muted, #64748b); font-size: 0.66rem; }
+.door-card-configure { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; border: 1px solid transparent; border-radius: 0.6rem; padding: 0.3rem; background: transparent; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s; }
+.door-card-configure:hover { border-color: var(--estimate-blue, #2563eb); background: #fff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.door-card-configure span { color: var(--estimate-blue, #2563eb); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.door-card-specs { padding: 0.55rem 1rem; font-size: 0.78rem; line-height: 1.4; }
+.door-card-specs > div { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 0.75rem; padding: 0.32rem 0; border-bottom: 1px solid #edf3f6; }
+.door-card-specs > div:last-child { border-bottom: 0; }
+.door-card-specs dt { color: var(--estimate-navy, #0f172a); font-weight: 700; }
+.door-card-specs dd { color: #315269; }
+.door-card-specs .door-card-spec-note { grid-column: 1 / -1; }
+.door-card-parts { padding: 0.75rem 1rem 0.85rem; border-top: 1px solid var(--estimate-line, #e2e8f0); }
+.door-card-body .door-card-parts { border-top: 0; }
+.door-card-parts ul { margin-top: 0.4rem; padding-left: 1rem; columns: 2; column-gap: 1.75rem; list-style: disc; color: #315269; font-size: 0.76rem; line-height: 1.4; }
+.door-card-body .door-card-parts ul { columns: 1; }
+.door-card-parts li { break-inside: avoid; margin-bottom: 0.2rem; }
+/* Doors offered as options side by side (DoorOptionsStrip), as page 2 of the custom door estimates. */
+.door-options-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.75rem; margin-top: 0.9rem; break-inside: avoid; }
+.door-option-tile { display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid var(--estimate-line, #e2e8f0); border-radius: 0.5rem; padding: 0.75rem 0.6rem 0.8rem; background: #fff; }
+.door-option-title { color: var(--estimate-navy, #0f172a); font-size: 0.86rem; font-weight: 800; line-height: 1.25; margin-top: 0.2rem; min-height: 2.2em; }
+.door-option-drawing { display: flex; align-items: flex-end; justify-content: center; width: 100%; min-height: 11.5rem; margin-top: 0.5rem; padding: 0.5rem 0; border-radius: 0.4rem; background: var(--estimate-soft, #f8fafc); }
+.door-option-sub { color: var(--estimate-muted, #64748b); font-size: 0.7rem; margin-top: 0.45rem; }
+.door-option-price { margin-top: auto; padding-top: 0.5rem; color: var(--estimate-muted, #64748b); font-size: 0.7rem; }
+.door-option-price strong { color: var(--estimate-navy, #0f172a); font-size: 1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.door-options-pricing td strong { color: var(--estimate-navy, #0f172a); }
+@media (max-width: 640px) {
+  .door-card-head { padding: 0.8rem; }
+  .door-card-body { grid-template-columns: minmax(0, 1fr); }
+  .door-card-drawing { border-right: 0; border-bottom: 1px solid var(--estimate-line, #e2e8f0); }
+  .door-card-specs { padding: 0.5rem 0.8rem; }
+  .door-card-specs > div { grid-template-columns: 1fr; gap: 0.1rem; }
+  .door-card-parts { padding: 0.7rem 0.8rem; }
+  .door-card-parts ul { columns: 1; }
+}
+@media print {
+  .door-card-configure { border: 0; padding: 0; }
+  .door-card-configure span { display: none; }
+}
 .estimate-empty-state { margin: 1.4rem 2rem 0; border: 1px dashed var(--estimate-line); background: var(--estimate-soft); color: var(--estimate-muted); padding: 1rem; font-size: 0.75rem; }
 .estimate-totals-block { width: min(20rem, calc(100% - 4rem)); margin: 1.5rem 2rem 0 auto; border-top: 1px solid var(--estimate-line); padding-top: 0.55rem; }
 .estimate-total-line { display: flex; justify-content: space-between; gap: 1rem; color: #315269; font-size: 0.84rem; padding: 0.25rem 0; }
@@ -258,9 +290,6 @@ button, input, select, textarea { max-width: 100%; }
   .estimate-table td::before { content: attr(data-label); color: var(--estimate-muted); font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-align: left; text-transform: uppercase; }
   .estimate-table td[data-label="Description"] { text-align: left; }
   .estimate-table-compact { min-width: 0; }
-  .estimate-door-specs { grid-column: 1 / -1; grid-row: 3; }
-  .estimate-door-heading .estimate-door-sketch { grid-row: 1 / span 1; }
-  .estimate-door-specs > div { grid-template-columns: 1fr; gap: 0.1rem; }
   .product-hub-card { grid-template-columns: 1fr; padding: 1rem; }
   .product-hub-actions { display: grid; grid-template-columns: 1fr; }
   .product-hub-actions .button { width: 100%; }

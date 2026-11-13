@@ -551,6 +551,48 @@ def _find_tier(tiers: list[dict[str, Any]], tier_id: str | None) -> dict[str, An
     raise CustomerEstimatePricingError(f"Option tier {tier_id!r} no longer exists.")
 
 
+def is_door_option(tier: dict[str, Any] | None) -> bool:
+    """An option that names its doors (``door_ids``): doors offered as alternatives, the customer picks one."""
+    return isinstance((tier or {}).get("door_ids"), list)
+
+
+def tier_doors(doors: list[dict[str, Any]], tier: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """The door openings an option includes: the ones it names, else every door."""
+    if not is_door_option(tier):
+        return doors
+    wanted = {str(door_id) for door_id in tier["door_ids"]}
+    return [opening for opening in doors if str(opening.get("id")) in wanted]
+
+
+def quoted_tier(tiers: list[dict[str, Any]], selected_tier: str | None) -> dict[str, Any] | None:
+    """The option the estimate's own price is: the main price picked, else the first door option.
+
+    Doors offered as options are alternatives, so the estimate never prices them
+    all together; until the rep picks a main price it shows the first option.
+    """
+    return _find_tier(tiers, selected_tier) or next((tier for tier in tiers if is_door_option(tier)), None)
+
+
+def _door_options(doors: list[dict[str, Any]], tiers: list[dict[str, Any]], summaries: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Every door the door options offer, for the customer to compare: each door as priced in
+    the first option that has it, with the options it is in. None without door options."""
+    priced = [(tier, summary) for tier, summary in zip(tiers, summaries) if is_door_option(tier) and summary.get("scope")]
+    if not priced:
+        return None
+    found: dict[str, dict[str, Any]] = {}
+    options: dict[str, list[dict[str, Any]]] = {}
+    for tier, summary in priced:
+        for opening in ((summary["scope"].get("sections") or {}).get("doors") or {}).get("openings") or []:
+            key = str(opening.get("id"))
+            found.setdefault(key, opening)
+            options.setdefault(key, []).append({"id": tier.get("id"), "name": summary.get("name")})
+    openings = [
+        {**found[key], "options": options[key], "in_every_option": len(options[key]) == len(priced)}
+        for key in (str(opening.get("id")) for opening in doors) if key in found
+    ]
+    return {"openings": openings, "option_ids": [tier.get("id") for tier, _ in priced]}
+
+
 # ------------------------------------------------------------------ pricing
 def _product_cost(windows: list[dict[str, Any]], doors: list[dict[str, Any]]) -> float:
     """Dealer + installation cost of the windows and doors, before sales pricing.
@@ -581,9 +623,9 @@ def product_cost(
     tiers: list[dict[str, Any]] | None = None,
     selected_tier: str | None = None,
 ) -> float:
-    """Project product cost with the selected option tier applied."""
-    selected = _find_tier(tiers or [], selected_tier)
-    return _product_cost(apply_tier(windows, selected), doors)
+    """Project product cost of the quoted option (quoted_tier)."""
+    quoted = quoted_tier(tiers or [], selected_tier)
+    return _product_cost(apply_tier(windows, quoted), tier_doors(doors, quoted))
 
 
 def _price_scope(
@@ -813,10 +855,11 @@ def price_customer_estimate(
     adders = adders or []
     tiers = tiers or []
     selected = _find_tier(tiers, selected_tier)
+    quoted = quoted_tier(tiers, selected_tier)
     checker = _LineChecker()
     scope = _price_scope(
-        windows=apply_tier_checked(windows, selected, checker)[0],
-        doors=doors,
+        windows=apply_tier_checked(windows, quoted, checker)[0],
+        doors=tier_doors(doors, quoted),
         commercial=commercial,
         adders=adders,
         province=province,
@@ -833,6 +876,7 @@ def price_customer_estimate(
             "name": tier.get("name") or "Option",
             "description": tier.get("description") or "",
             "selected": bool(selected and selected.get("id") == tier.get("id")),
+            "door_ids": tier.get("door_ids") if is_door_option(tier) else None,
         }
         tier_windows, report = apply_tier_checked(windows, tier, checker)
         # Windows that stay as quoted for part of this option, and why.
@@ -849,7 +893,7 @@ def price_customer_estimate(
         try:
             priced = _price_scope(
                 windows=tier_windows,
-                doors=doors,
+                doors=tier_doors(doors, tier),
                 commercial=tier_commercial,
                 adders=adders,
                 province=province,
@@ -890,6 +934,9 @@ def price_customer_estimate(
         **scope,
         "tiers": tier_summaries,
         "selected_tier": selected.get("id") if selected else None,
+        # The option the estimate's own sections and totals are (the first door option until a main price is picked).
+        "quoted_tier": quoted.get("id") if quoted else None,
+        "door_options": _door_options(doors, tiers, tier_summaries),
         "financing": business_settings.financing_options(total),
         "deposit": business_settings.deposit_amount(total),
         "price_versions": {

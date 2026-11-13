@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ApplyVariationResult, CustomerEstimate, CustomerWindowLine, EstimateTier, TierLineGroup, TierOverrides, TierSummary } from "@/lib/api";
+import { ApplyVariationResult, CustomerDoorOpening, CustomerEstimate, CustomerWindowLine, EstimateTier, TierLineGroup, TierOverrides, TierSummary } from "@/lib/api";
 import { EXTERIOR_COLOURS, WINDOW_GASES, WINDOW_GLASS, activeGlass } from "@/lib/productOptions";
 import { newEstimateLineId } from "@/lib/quoteHandoff";
 import VariationWindows from "@/components/estimate/VariationWindows";
@@ -119,17 +119,69 @@ function liveGroups(tier: Pick<EstimateTier, "line_groups">): TierLineGroup[] {
   return (tier.line_groups || []).filter((group) => group.line_ids.length && !isAsQuoted(group.overrides));
 }
 
-function tierIsAsQuoted(tier: Pick<EstimateTier, "window_overrides" | "line_groups">) {
-  return isAsQuoted(tier.window_overrides) && !liveGroups(tier).length;
+/** An option that names its doors: doors offered as alternatives, the customer picks one. */
+export function isDoorOption(tier: Pick<EstimateTier, "door_ids">): boolean {
+  return Array.isArray(tier.door_ids);
 }
 
-function sameTier(a: Pick<EstimateTier, "window_overrides" | "line_groups">, b: Pick<EstimateTier, "window_overrides" | "line_groups">) {
+function tierIsAsQuoted(tier: Pick<EstimateTier, "window_overrides" | "line_groups" | "door_ids">) {
+  return isAsQuoted(tier.window_overrides) && !liveGroups(tier).length && !isDoorOption(tier);
+}
+
+function sameTier(a: Pick<EstimateTier, "window_overrides" | "line_groups" | "door_ids">, b: Pick<EstimateTier, "window_overrides" | "line_groups" | "door_ids">) {
   const norm = (o: TierOverrides) => ({ s: o.series || "", e: o.colour_ext || "", i: o.colour_int || "", g: Object.entries(o.glazing || {}).sort() });
-  const key = (tier: Pick<EstimateTier, "window_overrides" | "line_groups">) => JSON.stringify({
+  const key = (tier: Pick<EstimateTier, "window_overrides" | "line_groups" | "door_ids">) => JSON.stringify({
     main: norm(tier.window_overrides),
     groups: liveGroups(tier).map((group) => ({ lines: [...group.line_ids].sort(), o: norm(group.overrides) })),
+    doors: isDoorOption(tier) ? [...(tier.door_ids || [])].sort() : null,
   });
   return key(a) === key(b);
+}
+
+const OPTION_LETTERS = "ABCDEFGHIJKL";
+
+function doorName(door: CustomerDoorOpening, index: number): string {
+  return (door.description || door.location || `Door ${index + 1}`).trim();
+}
+
+/**
+ * One option per picked door, "Option A", "Option B", ...: each includes its door and every door
+ * that isn't picked (bought whichever option the customer chooses).
+ */
+export function doorOptionTiers(doors: CustomerDoorOpening[], picked: string[], makeId: () => string): EstimateTier[] {
+  const alternatives = doors.filter((door) => picked.includes(door.id));
+  const always = doors.filter((door) => !picked.includes(door.id)).map((door) => door.id);
+  return alternatives.map((door, index) => ({
+    id: makeId(),
+    name: `Option ${OPTION_LETTERS[index] || index + 1}`,
+    description: doorName(door, doors.indexOf(door)),
+    window_overrides: {},
+    line_groups: [],
+    door_ids: [door.id, ...always],
+  }));
+}
+
+/** Checkboxes for the doors an option includes. */
+function DoorPicker({ doors, picked, disabled, onToggle }: { doors: CustomerDoorOpening[]; picked: string[]; disabled: boolean; onToggle: (id: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {doors.map((door, index) => {
+        const on = picked.includes(door.id);
+        return (
+          <button
+            key={door.id}
+            type="button"
+            disabled={disabled}
+            aria-pressed={on}
+            onClick={() => onToggle(door.id)}
+            className={`rounded-md border px-2 py-1 text-xs font-semibold ${on ? "border-brand-500 bg-brand-50 text-brand-800" : "border-slate-300 bg-white text-slate-500 line-through decoration-slate-400"}`}
+          >
+            {on ? "✓ " : ""}{doorName(door, index)}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 /** Short name for one set of choices, e.g. "Heritage · Black · Triple pane". */
@@ -382,6 +434,10 @@ export default function OptionTiersCard({
 }) {
   const tiers = estimate.tiers || [];
   const windows = estimate.windows;
+  const doors = estimate.doors || [];
+  const doorOptions = tiers.filter(isDoorOption);
+  /** Doors picked to offer as options; null = all of them. */
+  const [doorPicked, setDoorPicked] = useState<string[] | null>(null);
   const summaries = new Map<string, TierSummary>((estimate.pricing?.tiers || []).map((tier) => [tier.id, tier]));
   const selected = estimate.selected_tier;
   const baseline = quotedBaseline(windows);
@@ -476,7 +532,12 @@ export default function OptionTiersCard({
    * Asked on the card itself, not in a browser dialog: some browsers (embedded
    * views, blocked pop-ups) cancel window.confirm silently, so the button did nothing.
    */
-  function bakeWarning(summary: TierSummary | undefined) {
+  function bakeWarning(summary: TierSummary | undefined, tier: EstimateTier) {
+    if (isDoorOption(tier)) {
+      const removed = doors.filter((door) => !(tier.door_ids || []).includes(door.id)).length;
+      return `This keeps only this option's door${(tier.door_ids || []).length === 1 ? "" : "s"} on the estimate: ${plural(removed, "other door")} and the other door options will be removed.`
+        + (isAsQuoted(tier.window_overrides) && !liveGroups(tier).length ? "" : " Its window changes are made too.");
+    }
     const kept = summary?.kept_as_quoted?.length || 0;
     const adjusted = summary?.adjusted?.length || 0;
     return "This changes the windows themselves (not just an option)."
@@ -492,6 +553,21 @@ export default function OptionTiersCard({
     if (!onBake) return;
     const result = await onBake(tier.id);
     if (result) setBaked({ name: tier.name, result });
+  }
+
+  /** Replace the door options with one per picked door; window variations stay. */
+  function offerDoorOptions(picked: string[]) {
+    const fresh = doorOptionTiers(doors, picked, () => newEstimateLineId("tier"));
+    const kept = tiers.filter((tier) => !isDoorOption(tier));
+    onChange([...fresh, ...kept], selected && kept.some((tier) => tier.id === selected) ? selected : null);
+    setDoorPicked(null);
+    setNotice(null);
+  }
+
+  function toggleTierDoor(tier: EstimateTier, doorId: string) {
+    const current = isDoorOption(tier) ? tier.door_ids || [] : doors.map((door) => door.id);
+    const next = current.includes(doorId) ? current.filter((id) => id !== doorId) : [...current, doorId];
+    update(tier.id, { door_ids: doors.filter((door) => next.includes(door.id)).map((door) => door.id) });
   }
 
   const draftOverrides = overridesFrom(draft);
@@ -511,7 +587,40 @@ export default function OptionTiersCard({
         Re-price this same job in another collection, colour or glass, for every window at once or only the ones you pick (say Heritage at the front, Classic everywhere else). A window that isn&apos;t made with a choice keeps its quoted product, and the card shows which ones. Every option uses the same discount, and the customer picks one when accepting.
       </p>
       {baked ? <BakedNotice name={baked.name} result={baked.result} windows={windows} onClose={() => setBaked(null)} /> : null}
-      {!windowCount ? <p className="review-box">Add windows to offer variations.</p> : null}
+      {!windowCount && doors.length < 2 ? <p className="review-box">Add windows to offer variations, or two or more doors to offer them as options.</p> : null}
+
+      {editable && doors.length >= 2 ? (
+        <div className="mb-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Doors as options</p>
+          <p className="mt-1 text-xs text-slate-600">
+            The customer picks one door instead of buying them all (say steel, plain fiberglass and grooved fiberglass for the same opening). Each picked door becomes its own option, priced on its own; doors left unpicked are in every option.
+            {doorOptions.length ? ` Offered now: ${doorOptions.length} door options.` : ""}
+          </p>
+          <div className="mt-2">
+            <DoorPicker
+              doors={doors}
+              picked={doorPicked ?? doors.map((door) => door.id)}
+              disabled={false}
+              onToggle={(id) => setDoorPicked((current) => {
+                const list = current ?? doors.map((door) => door.id);
+                return list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
+              })}
+            />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" className="button primary" disabled={(doorPicked ?? doors).length < 2} onClick={() => offerDoorOptions(doorPicked ?? doors.map((door) => door.id))}>
+              {(doorPicked ?? doors).length < 2
+                ? "Pick two or more doors"
+                : `${doorOptions.length ? "Replace with" : "Offer"} ${(doorPicked ?? doors).length} door options (Option A–${OPTION_LETTERS[(doorPicked ?? doors).length - 1] || (doorPicked ?? doors).length})`}
+            </button>
+            {doorOptions.length ? (
+              <button type="button" className="button secondary" onClick={() => onChange(tiers.filter((tier) => !isDoorOption(tier)), selected && doorOptions.some((tier) => tier.id === selected) ? null : selected)}>
+                Stop offering doors as options
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {windowCount ? (
         <p className="mb-2 text-xs text-slate-600">
@@ -572,7 +681,7 @@ export default function OptionTiersCard({
           const pickedIds = new Set(liveGroups(tier).flatMap((group) => group.line_ids));
           const targeted = isAsQuoted(tier.window_overrides) ? pickedIds.size : windowCount;
           const asQuoted = tierIsAsQuoted(tier);
-          const diff = summary?.total != null && baseTotal != null && !asQuoted ? summary.total - baseTotal : null;
+          const diff = summary?.total != null && baseTotal != null && !asQuoted && !isDoorOption(tier) ? summary.total - baseTotal : null;
           const profitDiff = signedMoney(summary?.profit != null && baseProfitability && !asQuoted ? summary.profit - baseProfitability.profit : null);
           const factoryDiff = signedMoney(summary?.factory_cost != null && baseProfitability?.factory_cost != null && !asQuoted ? summary.factory_cost - baseProfitability.factory_cost : null);
           return (
@@ -628,18 +737,26 @@ export default function OptionTiersCard({
                 );
               })}
 
-              <div className="mt-2">
-                {groups.length ? <p className="mb-1 text-xs font-bold text-slate-700">All other windows</p> : null}
-                <ChoiceFields value={choiceOf(tier.window_overrides)} onChange={(patch) => changeChoice(tier, patch)} disabled={!editable} quotedSeries={baseline.series} />
-              </div>
+              {doors.length && (isDoorOption(tier) || doorOptions.length) ? (
+                <div className="mt-2">
+                  <p className="mb-1 text-xs font-bold text-slate-700">{isDoorOption(tier) ? "Doors in this option" : "Doors: every door (click one to leave it out)"}</p>
+                  <DoorPicker doors={doors} picked={isDoorOption(tier) ? tier.door_ids || [] : doors.map((door) => door.id)} disabled={!editable} onToggle={(id) => toggleTierDoor(tier, id)} />
+                </div>
+              ) : null}
+              {windowCount ? (
+                <div className="mt-2">
+                  {groups.length ? <p className="mb-1 text-xs font-bold text-slate-700">All other windows</p> : null}
+                  <ChoiceFields value={choiceOf(tier.window_overrides)} onChange={(patch) => changeChoice(tier, patch)} disabled={!editable} quotedSeries={baseline.series} />
+                </div>
+              ) : null}
               {editable && windowCount > 1 ? (
                 <button type="button" className="mt-1.5 text-xs font-semibold text-brand-700 hover:underline" onClick={() => addGroup(tier)}>
                   + Different choice for some windows
                 </button>
               ) : null}
 
-              {summary && !updating ? <ResultList summary={summary} windows={windows} targeted={targeted} asQuoted={asQuoted} /> : null}
-              {summary && !summary.error && !updating && !asQuoted ? (
+              {summary && !updating && (windowCount || summary.error) ? <ResultList summary={summary} windows={windows} targeted={targeted} asQuoted={asQuoted} /> : null}
+              {summary && !summary.error && !updating && !asQuoted && windowCount ? (
                 <VariationWindows
                   summary={summary}
                   windows={windows}
@@ -654,13 +771,13 @@ export default function OptionTiersCard({
               ) : null}
 
               <details className="mt-2 text-xs">
-                <summary className="cursor-pointer font-semibold text-slate-600">Customer description &amp; fine-tune glass</summary>
+                <summary className="cursor-pointer font-semibold text-slate-600">{windowCount ? "Customer description & fine-tune glass" : "Customer description"}</summary>
                 <div className="mt-2 space-y-2">
                   <label className="project-field"><span>Customer description</span>
                     <input className="project-input" value={tier.description || ""} onChange={(event) => update(tier.id, { description: event.target.value })} disabled={!editable} />
                   </label>
-                  <p className="text-slate-500">Fine-tune glass{groups.length ? " (all other windows)" : ""}:</p>
-                  <div className="grid gap-2 grid-cols-2 lg:grid-cols-5">
+                  {windowCount ? <p className="text-slate-500">Fine-tune glass{groups.length ? " (all other windows)" : ""}:</p> : null}
+                  <div className={`grid gap-2 grid-cols-2 lg:grid-cols-5 ${windowCount ? "" : "hidden"}`}>
                     {GLAZING_TOGGLES.map((toggle) => (
                       <label key={toggle.key} className="project-field"><span>{toggle.label}</span>
                         <GlazingOverride value={glazing[toggle.key]} disabled={!editable} onChange={(value) => updateGlazing(tier, toggle.key, value)} />
@@ -698,7 +815,7 @@ export default function OptionTiersCard({
               {editable && onBake && confirmingBake === tier.id ? (
                 <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
                   <p className="font-semibold">Make “{tier.name}” the quoted estimate?</p>
-                  <p className="mt-1">{bakeWarning(summary)}</p>
+                  <p className="mt-1">{bakeWarning(summary, tier)}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button type="button" className="button primary" disabled={updating} onClick={() => void bake(tier)}>Yes, make it the quote</button>
                     <button type="button" className="button secondary" onClick={() => setConfirmingBake(null)}>Cancel</button>

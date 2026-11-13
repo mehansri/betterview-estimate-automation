@@ -9,9 +9,10 @@ import {
   type FinancingOptions,
   type PublicEstimate,
 } from "@/lib/api";
-import { doorSpecLines, specPair } from "@/lib/doorPipeline";
 import SignaturePad from "@/components/SignaturePad";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
+import DoorOpeningCard from "@/components/estimate/DoorOpeningCard";
+import { DoorOptionsStrip, doorOptionCards, doorOptionKicker } from "@/components/estimate/DoorOptions";
 import { DoorGeometryDrawing } from "@/components/DoorDrawing";
 
 type PublicTier = PublicEstimate["tiers"][number];
@@ -306,6 +307,9 @@ export default function CustomerPortal({ token }: { token: string }) {
   const sections = estimate.sections;
   const windowLines = sections?.windows?.lines ?? [];
   const doorOpenings = sections?.doors?.openings ?? [];
+  // Doors offered as options (gone once one is accepted): every option's door, each option priced on its own.
+  const doorOptions = estimate.door_options?.openings?.length ? estimate.door_options : null;
+  const optionDoors = new Map(doorOptions ? doorOptionCards(doorOptions, tiers).map(({ tier, doors }) => [tier.id, doors[0]]) : []);
   const adderLines = sections?.adders?.lines ?? [];
   const totals = estimate.totals;
   const discount = Number(totals?.discount || 0);
@@ -584,60 +588,41 @@ export default function CustomerPortal({ token }: { token: string }) {
           </Card>
         ) : null}
 
+        {/* Scope: doors offered as options */}
+        {doorOptions ? (
+          <Card labelledBy={`${uid}-doors`}>
+            <SectionHeading id={`${uid}-doors`} kicker="Choose one" title="Your door options" />
+            <DoorOptionsStrip doorOptions={doorOptions} tiers={tiers} taxLabel={totals?.tax_label || "HST"} money={money} />
+            <div className="space-y-5">
+              {doorOptions.openings.map((opening, openingIndex) => (
+                <DoorOpeningCard
+                  key={opening.id}
+                  opening={opening}
+                  index={openingIndex + 1}
+                  kicker={doorOptionKicker(opening, openingIndex + 1)}
+                  everyOption={opening.in_every_option}
+                  price={money(opening.base_subtotal ?? opening.subtotal)}
+                  taxLabel={totals?.tax_label || "HST"}
+                />
+              ))}
+            </div>
+          </Card>
+        ) : null}
+
         {/* Scope: doors */}
-        {doorOpenings.length > 0 ? (
+        {!doorOptions && doorOpenings.length > 0 ? (
           <Card labelledBy={`${uid}-doors`}>
             <SectionHeading id={`${uid}-doors`} kicker="Scope of work" title="Doors" amount={sections.doors.base_subtotal ?? sections.doors.subtotal} />
-            <div className="space-y-6">
-              {doorOpenings.map((opening, openingIndex) => {
-                const details = [opening.location, opening.material, opening.finish_label].filter(Boolean).join(" · ");
-                return (
-                  <div key={opening.id}>
-                    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200 print:break-inside-avoid print:bg-white">
-                      {opening.drawing ? <span className="col-start-1 row-start-1 mr-3 sm:row-span-2"><DoorGeometryDrawing geometry={opening.drawing} size={96} title={`Door ${openingIndex + 1}, viewed from outside`} /></span> : null}
-                      <div className="col-start-2 row-start-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-slate-900">
-                          Item {openingIndex + 1} · {opening.scope || opening.label}
-                        </h3>
-                        {details ? <p className="mt-0.5 text-xs text-slate-600">{details}</p> : null}
-                      </div>
-                      <p className="col-start-3 row-start-1 ml-3 text-sm font-semibold tabular-nums text-slate-900">{money(opening.base_subtotal ?? opening.subtotal)}</p>
-                      {doorSpecLines(opening).length ? (
-                        <dl className="col-span-3 row-start-2 mt-2 border-t border-slate-200 text-xs sm:col-span-2 sm:col-start-2">
-                          {doorSpecLines(opening).map((line, index) => {
-                            const pair = specPair(line);
-                            return (
-                              <div key={index} className="grid gap-0.5 border-b border-slate-200 py-1.5 last:border-b-0 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-3">
-                                {pair ? <><dt className="font-semibold text-slate-900">{pair[0]}</dt><dd className="text-slate-700">{pair[1]}</dd></> : <dd className="text-slate-700 sm:col-span-2">{line}</dd>}
-                              </div>
-                            );
-                          })}
-                        </dl>
-                      ) : null}
-                    </div>
-                    {/* One price per door (as the QuickBooks estimates); its parts are listed, unpriced. */}
-                    {opening.items?.length ? (
-                      <table className="mt-1 w-full text-left text-sm">
-                        <caption className="sr-only">{`Door item ${openingIndex + 1} includes`}</caption>
-                        <thead>
-                          <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-                            <th scope="col" className="px-1 py-2 font-semibold">Includes</th>
-                            <th scope="col" className="px-1 py-2 text-right font-semibold">Qty</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {opening.items.map((item, index) => (
-                            <tr key={`${opening.id}-${index}`} className="align-top">
-                              <td className="px-1 py-2 text-slate-900">{item.description}</td>
-                              <td className="px-1 py-2 text-right tabular-nums text-slate-700">{item.qty}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : null}
-                  </div>
-                );
-              })}
+            <div className="space-y-5">
+              {doorOpenings.map((opening, openingIndex) => (
+                <DoorOpeningCard
+                  key={opening.id}
+                  opening={opening}
+                  index={openingIndex + 1}
+                  price={money(opening.base_subtotal ?? opening.subtotal)}
+                  taxLabel={totals?.tax_label || "HST"}
+                />
+              ))}
             </div>
           </Card>
         ) : null}
@@ -660,8 +645,8 @@ export default function CustomerPortal({ token }: { token: string }) {
           </Card>
         ) : null}
 
-        {/* Totals */}
-        <Card labelledBy={`${uid}-totals`}>
+        {/* Totals (each door option shows its own in the options below) */}
+        <Card labelledBy={`${uid}-totals`} className={doorOptions ? "hidden" : ""}>
           <h2 id={`${uid}-totals`} className="sr-only">
             Estimate totals
           </h2>
@@ -766,6 +751,11 @@ export default function CustomerPortal({ token }: { token: string }) {
                           {checked ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
                         </span>
                       </span>
+                      {optionDoors.get(tier.id)?.drawing ? (
+                        <span className="mt-3 flex justify-center rounded-lg bg-slate-50 py-2">
+                          <DoorGeometryDrawing geometry={optionDoors.get(tier.id)!.drawing!} size={120} title={`${tier.name}, viewed from outside`} />
+                        </span>
+                      ) : null}
                       {tier.description ? <span className="mt-1 whitespace-pre-line text-sm text-slate-600">{tier.description}</span> : null}
                       {tier.customer_note ? <span className="mt-1 text-xs text-slate-500">{tier.customer_note}</span> : null}
                       <span className="mt-auto pt-4">

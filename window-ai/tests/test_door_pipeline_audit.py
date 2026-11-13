@@ -189,6 +189,40 @@ def test_transom_is_drawn_at_its_glass_height():
     assert door_drawing({"material": "steel", "opening_type": "single_1_sidelite", "pipeline": no_height})["transom_height"] == 14.0
 
 
+
+def test_the_estimate_drawing_labels_only_the_sizes_the_rep_set():
+    """Door cards on the estimate draw the slab width and height, and the sidelite width / transom
+    height only when the rep typed them: an assumed 14" never reaches the customer as a size."""
+    from reportlab.graphics.shapes import Group, String
+
+    from services.doors.pipeline import door_drawing
+    from services.estimate_documents import _inch_label, door_drawing_flowable
+
+    def labels(drawing) -> list[str]:
+        found, stack = [], list(drawing.contents)
+        while stack:
+            shape = stack.pop()
+            if isinstance(shape, String):
+                found.append(shape.text)
+            elif isinstance(shape, Group):
+                stack.extend(shape.contents)
+        return sorted(found)
+
+    direct = {"model": "direct-glazed-full-lite", "glazed": True, "size": '5.5"-13.5"', "family": "sandblast", "series": "sandblast"}
+    sel = _sel("steel", height='8\'0"', configuration="single_1sl_transom", sidelite_width_in=10.5,
+               glass={"door": {"glazed": False}, "sidelites": [direct], "transom": {"shape": "rectangle", "glass": "clear_lowe_glass", "height_in": 23, "tempered": True}})
+    drawn = door_drawing({"material": "steel", "opening_type": "single_1_sidelite", "pipeline": sel})
+    assert (drawn["sidelite_width_in"], drawn["transom_height_in"]) == (10.5, 23.0)
+    assert labels(door_drawing_flowable(drawn, 180, 250, dimensions=True)) == ['10-1/2"', '23"', '36"', "8'0\""]
+
+    assumed = {**sel, "sidelite_width_in": None, "glass": {**sel["glass"], "transom": {"shape": "rectangle", "glass": "clear_lowe_glass", "tempered": True}}}
+    drawn = door_drawing({"material": "steel", "opening_type": "single_1_sidelite", "pipeline": assumed})
+    assert (drawn["sidelite_width"], drawn["transom_height"]) == (13.5, 14.0)  # still drawn at a size
+    assert (drawn["sidelite_width_in"], drawn["transom_height_in"]) == (None, None)
+    assert labels(door_drawing_flowable(drawn, 180, 250, dimensions=True)) == ['36"', "8'0\""]
+    assert labels(door_drawing_flowable(drawn, 180, 250)) == []  # the CRM / thumbnail drawing has none
+    assert [_inch_label(v) for v in (36, 9.375, 10.5)] == ['36"', '9-3/8"', '10-1/2"']
+
 def test_w2_panel_selector_widths_steer_but_still_price():
     tao = next(model for model in CATALOG["materials"]["steel"]["models"] if model["key"] == "tao")
     assert all(offer["widths"] == [34, 36] for offer in tao["offers"])

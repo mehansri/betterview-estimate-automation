@@ -570,3 +570,75 @@ def test_internal_memo_is_staff_only_and_carries_to_revisions(client):
 
     cleared = dict(_draft(mixed=False), internal_memo="   ")
     assert client.put(f"/api/customer-estimates/{revised['id']}", json=cleared).json()["internal_memo"] == ""
+
+
+def _pipeline_door(opening_id: str, material: str, model: str) -> dict:
+    colours = {"exterior": {"type": "painted", "colour": "Black"}, "interior": {"type": "painted", "colour": "Black"}}
+    pipeline = {"material": material, "width": 36, "height": "6'8\"", "configuration": "single", "frame_depth": "4.625",
+                "model": model, "colours": colours, "glass": {"door": {"glazed": False}}, "standard": {"lock": "double_bore"}}
+    return {"id": opening_id, "location": "Front entry", "description": f"{material} {model}",
+            "spec": {"label": "Front entry", "material": material, "opening_type": "single_door", "pipeline": pipeline}}
+
+
+@pytest.mark.usefixtures("no_profit_floor")
+def test_doors_offered_as_options_are_priced_one_at_a_time_and_the_customer_picks_one(client):
+    """EST2199: four front doors, the customer picks one. Each option prices only its door, the
+    estimate's own price is the first option (never every door added up), and accepting an option
+    leaves only its door on the signed estimate."""
+    draft = _draft(mixed=False)
+    draft["windows"] = []
+    draft["doors"] = [_pipeline_door("steel", "steel", "orleans"), _pipeline_door("glass", "fiberglass", "oak-6-panel")]
+    alone = {}
+    for door in draft["doors"]:
+        single = _create(client, {**draft, "doors": [door]})
+        alone[door["id"]] = _price(client, single["id"])["pricing"]["totals"]["total"]
+
+    draft["tiers"] = [
+        {"id": "a", "name": "Option A", "description": "Steel", "door_ids": ["steel"]},
+        {"id": "b", "name": "Option B", "description": "Fiberglass", "door_ids": ["glass"]},
+    ]
+    estimate = _create(client, draft)
+    pricing = _price(client, estimate["id"])["pricing"]
+    tiers = {tier["id"]: tier for tier in pricing["tiers"]}
+    assert (tiers["a"]["total"], tiers["b"]["total"]) == (alone["steel"], alone["glass"])
+    assert pricing["selected_tier"] is None and pricing["quoted_tier"] == "a"
+    assert pricing["totals"]["total"] == alone["steel"]  # not both doors together
+    assert [opening["id"] for opening in pricing["sections"]["doors"]["openings"]] == ["steel"]
+    offered = pricing["door_options"]["openings"]
+    assert [(o["id"], [x["id"] for x in o["options"]], o["in_every_option"]) for o in offered] == [
+        ("steel", ["a"], False), ("glass", ["b"], False)]
+
+    token = client.post(f"/api/customer-estimates/{estimate['id']}/finalize").json()["public_token"]
+    view = client.get(f"/api/public/estimates/{token}").json()
+    assert len(view["door_options"]["openings"]) == 2
+    from pypdf import PdfReader
+    import io
+    pdf = client.get(f"/api/public/estimates/{token}/pdf")
+    text = " ".join(page.extract_text() for page in PdfReader(io.BytesIO(pdf.content)).pages)
+    assert "Your door options" in text and "Pricing summary" in text
+    assert "Option A" in text and "Option B" in text
+    refused = client.post(f"/api/public/estimates/{token}/accept", json={"name": "Ada", "signature": PNG_SIGNATURE, "accepted_terms": True})
+    assert refused.status_code == 422  # must choose an option
+    accepted = client.post(f"/api/public/estimates/{token}/accept",
+                           json={"name": "Ada", "signature": PNG_SIGNATURE, "accepted_terms": True, "tier_id": "b"})
+    assert accepted.status_code == 200, accepted.text
+    body = accepted.json()
+    assert body["door_options"] is None
+    assert [opening["id"] for opening in body["sections"]["doors"]["openings"]] == ["glass"]
+    assert body["accepted"]["total"] == alone["glass"]
+
+
+def test_making_a_door_option_the_quote_keeps_only_its_doors(client):
+    draft = _draft(mixed=False)
+    draft["doors"] = [_pipeline_door("steel", "steel", "orleans"), _pipeline_door("glass", "fiberglass", "oak-6-panel")]
+    draft["tiers"] = [
+        {"id": "a", "name": "Option A", "door_ids": ["steel"]},
+        {"id": "b", "name": "Option B", "door_ids": ["glass"]},
+        {"id": "triple", "name": "Triple glass", "window_overrides": {"glazing": {"triple": True}}, "door_ids": None},
+    ]
+    estimate = _create(client, draft)
+    baked = client.post(f"/api/customer-estimates/{estimate['id']}/apply-variation", json={"tier_id": "b"})
+    assert baked.status_code == 200, baked.text
+    after = baked.json()["estimate"]
+    assert [door["id"] for door in after["doors"]] == ["glass"]
+    assert [tier["id"] for tier in after["tiers"]] == ["triple"]  # the other door option went with its door

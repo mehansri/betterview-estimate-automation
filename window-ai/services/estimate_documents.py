@@ -15,6 +15,7 @@ from typing import Any
 
 from services import business_settings, payment_schedule
 from services.doors import faces as door_faces
+from services.descriptions import _fraction
 from services.doors.pipeline import door_lites
 from services.windowcity.layout import exterior_colour
 
@@ -36,7 +37,7 @@ def _with_window_colours(windows: dict[str, Any], row, pricing: dict[str, Any]) 
         return windows
     from services.customer_estimates import apply_tier
 
-    tier = next((t for t in row.tiers or [] if str(t.get("id")) == str(pricing.get("selected_tier"))), None)
+    tier = next((t for t in row.tiers or [] if str(t.get("id")) == str(pricing.get("selected_tier") or pricing.get("quoted_tier"))), None)
     specs = {str(line.get("id")): line.get("spec") or {} for line in apply_tier(row.windows or [], tier)}
     return {**windows, "lines": [
         {**line, "drawing": {**line["drawing"], "exterior_colour": exterior_colour(specs.get(str(line.get("id"))) or {})}}
@@ -170,7 +171,7 @@ def document_copy(row) -> dict[str, Any]:
     """Standing estimate copy (GST/HST number, general notes, payment terms, product features)."""
     pricing = row.pricing_snapshot or {}
     settings = business_settings.get_group("estimate_document")
-    tier = next((t for t in row.tiers or [] if str(t.get("id")) == str(pricing.get("selected_tier"))), None)
+    tier = next((t for t in row.tiers or [] if str(t.get("id")) == str(pricing.get("selected_tier") or pricing.get("quoted_tier"))), None)
     window_lines = ((pricing.get("sections") or {}).get("windows") or {}).get("lines") or []
     items = _quoted_specs(row, window_lines, tier)
     door_specs = [opening.get("spec") or {} for opening in row.doors or []]
@@ -211,7 +212,7 @@ def customer_view(row) -> dict[str, Any]:
     pricing = row.pricing_snapshot or {}
     sections = pricing.get("sections") or {}
     tiers = [
-        {key: tier.get(key) for key in ("id", "name", "description", "customer_note", "subtotal", "hst", "total", "financing", "deposit", "selected")}
+        {key: tier.get(key) for key in ("id", "name", "description", "customer_note", "subtotal", "hst", "total", "financing", "deposit", "selected", "door_ids")}
         for tier in pricing.get("tiers") or []
         if not tier.get("error")
     ]
@@ -247,6 +248,9 @@ def customer_view(row) -> dict[str, Any]:
         },
         "tiers": tiers,
         "selected_tier": pricing.get("selected_tier"),
+        "quoted_tier": pricing.get("quoted_tier"),
+        # Doors offered as options (the customer picks one); gone once one is accepted.
+        "door_options": pricing.get("door_options") if row.status != "accepted" else None,
         "financing": pricing.get("financing"),
         "deposit": pricing.get("deposit") or 0,
         "company": business_settings.get_group("company"),
@@ -338,18 +342,24 @@ def window_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, m
     return d
 
 
-def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max_height: float):
-    """A small elevation of a door opening, viewed from outside (reportlab points).
+def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max_height: float, *, dimensions: bool = False):
+    """An elevation of a door opening, viewed from outside (reportlab points).
 
     Matches frontend/components/DoorDrawing.tsx: brickmould and frame, transom,
     sidelites, slab colour and panels, glass lites with grilles/SDL bars, hinges,
     handles (a double's inactive leaf carries the dummy), astragal and sill.
+    ``dimensions`` adds the slab width(s) and door height, and the sidelite width and
+    transom height when the rep set them (an assumed size is never labelled).
     """
     if not geometry or not geometry.get("doors"):
         return None
     from reportlab.graphics.shapes import Circle, Drawing, Ellipse, Line, Rect, Wedge
     from reportlab.lib import colors
 
+    if dimensions:
+        # Room for the labels: the widths under the drawing, the heights up its left side.
+        inner = door_drawing_flowable(geometry, max_width - DIM_LEFT - 2, max_height - DIM_BOTTOM - 2)
+        return _with_dimensions(inner, geometry) if inner is not None else None
     doors = int(geometry["doors"])
     sidelites = int(geometry.get("sidelites") or 0)
     # Snapshots priced before the CRM sections were added kept the slab in width/height.
@@ -421,10 +431,12 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     cursor = frame
     for kind, index in parts:
         if kind == "sidelite":
+            right = index == 1  # the mullion sits between the door and each sidelite
+            cursor += mull if right else 0
             rect(cursor, door_top, side_w, slab_h, slab_colour)
             if not lites(cursor, door_top, side_w, slab_h, sidelite_glass[index] if index < len(sidelite_glass) else None):
                 rect(cursor + 3, door_top + 6, side_w - 6, slab_h - 12, None, stroke=_hex_colour(slab_hex, -30), width=0.4)
-            cursor += side_w + mull
+            cursor += side_w + (0 if right else mull)
             continue
         rect(cursor, door_top, slab_w, slab_h, slab_colour, width=0.5)
         door_glass = geometry.get("door_glass") or {}
@@ -463,7 +475,78 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
             rect(cursor - 0.6, door_top, 1.2, slab_h, _hex_colour(slab_hex, -35), stroke=None)  # astragal
         cursor += slab_w
     d.add(Rect(1.5 * scale, 0, total_w * scale, max(1.5 * scale, 0.8), fillColor=hardware, strokeColor=None))
+    # Where the dimension labels go (_with_dimensions), in this drawing's points.
+    d._door_layout = {"scale": scale, "total_h": total_h, "frame": frame, "mull": mull, "parts": parts,
+                      "slab_w": slab_w, "side_w": side_w, "slab_h": slab_h, "transom_h": transom_h, "door_top": door_top}
     return d
+
+
+DIM_LEFT, DIM_BOTTOM = 15.0, 15.0  # points kept for the dimension labels
+
+
+def _inch_label(value: float) -> str:
+    """36 -> '36"', 10.5 -> '10-1/2"', 9.375 -> '9-3/8"' (as the custom door estimates write sizes)."""
+    return f'{_fraction(float(value)).replace(" ", "-")}"'
+
+
+def _with_dimensions(inner, geometry: dict[str, Any]):
+    """``inner`` (a door_drawing_flowable) with dimension lines: each slab's (and each set sidelite's)
+    width underneath, the door height (and a set transom height) up the left side. A size the drawing
+    only assumes gets no line; a label may run 6pt past each end of its span, and one longer is left off."""
+    from reportlab.graphics.shapes import Drawing, Group, Line, String
+    from reportlab.lib import colors
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    layout = inner._door_layout
+    scale, total_h = layout["scale"], layout["total_h"]
+    rule, ink, font, size = colors.HexColor("#94a3b8"), colors.HexColor("#475569"), "Helvetica", 7.5
+    out = Drawing(inner.width + DIM_LEFT + 2, inner.height + DIM_BOTTOM + 2)
+    body = Group(*inner.contents)
+    body.translate(DIM_LEFT, DIM_BOTTOM)
+    out.add(body)
+
+    def x_pt(x: float) -> float:
+        return DIM_LEFT + (x + 1.5) * scale
+
+    def y_pt(y: float) -> float:  # y measured down from the top of the frame
+        return DIM_BOTTOM + (total_h - y) * scale
+
+    def span(a: float, b: float, text: str | None, horizontal: bool) -> None:
+        tick = 2.5
+        if horizontal:
+            at = DIM_BOTTOM - 5
+            out.add(Line(a + 0.6, at, b - 0.6, at, strokeColor=rule, strokeWidth=0.5))
+            for end in (a + 0.6, b - 0.6):
+                out.add(Line(end, at - tick, end, at + tick, strokeColor=rule, strokeWidth=0.5))
+            if text and stringWidth(text, font, size) <= b - a + 12:
+                out.add(String((a + b) / 2, 1.5, text, fontName=font, fontSize=size, fillColor=ink, textAnchor="middle"))
+            return
+        at = DIM_LEFT - 4
+        out.add(Line(at, a + 0.6, at, b - 0.6, strokeColor=rule, strokeWidth=0.5))
+        for end in (a + 0.6, b - 0.6):
+            out.add(Line(at - tick, end, at + tick, end, strokeColor=rule, strokeWidth=0.5))
+        if text and stringWidth(text, font, size) <= b - a + 12:
+            label = Group(String(0, 0, text, fontName=font, fontSize=size, fillColor=ink, textAnchor="middle"))
+            label.transform = (0, 1, -1, 0, at - 2.5, (a + b) / 2)  # reads bottom to top, left of the line
+            out.add(label)
+
+    sidelite_label = geometry.get("sidelite_width_in")
+    cursor = layout["frame"]
+    for kind, index in layout["parts"]:
+        if kind == "sidelite":
+            right = index == 1
+            cursor += layout["mull"] if right else 0
+            if sidelite_label:
+                span(x_pt(cursor), x_pt(cursor + layout["side_w"]), _inch_label(sidelite_label), True)
+            cursor += layout["side_w"] + (0 if right else layout["mull"])
+            continue
+        span(x_pt(cursor), x_pt(cursor + layout["slab_w"]), _inch_label(layout["slab_w"]), True)
+        cursor += layout["slab_w"]
+    door_top, slab_h = layout["door_top"], layout["slab_h"]
+    span(y_pt(door_top + slab_h), y_pt(door_top), str(geometry.get("height_label") or _inch_label(slab_h)), False)
+    if layout["transom_h"] and geometry.get("transom_height_in"):
+        span(y_pt(layout["frame"] + layout["transom_h"]), y_pt(layout["frame"]), _inch_label(geometry["transom_height_in"]), False)
+    return out
 
 
 def _js_round(value: float) -> int:
@@ -616,7 +699,7 @@ def _website(company: dict[str, Any]) -> str:
 def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -> bytes:
     """The customer estimate as a PDF, laid out like the site preview (EstimateDocument.tsx)."""
     from reportlab.lib import colors
-    from reportlab.lib.enums import TA_RIGHT
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
     from reportlab.lib.pagesizes import LETTER
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import inch
@@ -801,6 +884,154 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         ]))
         return t
 
+    door_kicker = ParagraphStyle("door_kicker", parent=kicker, fontSize=8, leading=10.5)
+    door_title = ParagraphStyle("door_title", parent=h2, fontSize=12.5, leading=15.5)
+    door_price = ParagraphStyle("door_price", parent=h2_right, fontSize=13, leading=16)
+    door_tax = ParagraphStyle("door_tax", parent=small, fontSize=8, leading=10, alignment=TA_RIGHT)
+    door_caption = ParagraphStyle("door_caption", parent=small, fontSize=7.5, leading=9.5, alignment=TA_CENTER)
+    door_part = ParagraphStyle("door_part", parent=cell, fontSize=8.5, leading=11, leftIndent=8, bulletIndent=0, spaceAfter=2)
+
+    def door_card(opening: dict[str, Any], index: int, tax_label: str, kicker_override: str | None = None) -> Table:
+        """One door as a card, like the custom door estimates: item and price across the top, a large
+        elevation with its sizes in a shaded panel beside the spec rows, then what the price includes."""
+        scope = str(opening.get("scope") or "")
+        prefix = "To supply and install:"
+        title = scope[len(prefix):].strip() if scope.startswith(prefix) else (scope or str(opening.get("label") or "Door"))
+        place = str(opening.get("location") or "").strip()  # the label is the long order summary
+        kicker_text = kicker_override or (f"Item {index}" + (f" · {place}" if place and place.lower() != title.lower() else ""))
+        every_option = bool(opening.get("in_every_option"))
+        material = str(opening.get("material") or "").strip()
+        sub = " · ".join(filter(None, ["To supply and install" if scope.startswith(prefix) else "",
+                                       material[:1].upper() + material[1:], opening.get("finish_label")]))
+        heading = Table([[[label(kicker_text, door_kicker), Spacer(1, 3), p(title, door_title),
+                           *([Spacer(1, 2), p(sub, small)] if sub else [])],
+                          [p("In every option", door_tax)] if every_option else
+                          [p(_money(_before_discount(opening)), door_price), Spacer(1, 1), p(f"+ {tax_label}", door_tax)]]],
+                        colWidths=[inner - 24 - 1.5 * inch, 1.5 * inch])
+        heading.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                                     ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
+                                     ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+
+        # Its parts: listed, unpriced (one price per door, as the QuickBooks estimates), × qty when more than one.
+        parts = []
+        for item in opening.get("items") or []:
+            if not item.get("description"):
+                continue
+            try:
+                qty = float(item.get("qty") or 1)
+            except (TypeError, ValueError):
+                qty = 1.0
+            parts.append(str(item["description"]) + (f" × {qty:g}" if qty != 1 else ""))
+        specs = door_spec_lines(opening)
+        panel_w = 2.6 * inch
+        sketch = door_drawing_flowable(opening.get("drawing"), panel_w - 20, 3.4 * inch, dimensions=True)
+        right_w = inner - panel_w if sketch is not None else inner
+
+        def parts_list(total: float, columns: int) -> list[Any]:
+            per = -(-len(parts) // columns)
+            cols = [[Paragraph(str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), door_part, bulletText="•")
+                     for text in parts[i * per:(i + 1) * per]] for i in range(columns)]
+            t = Table([cols], colWidths=[total / columns] * columns)
+            t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                                   ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 0),
+                                   ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+            names = " / ".join(str(o.get("name") or "") for o in opening.get("options") or [])
+            return [label(f"{names if names and not every_option else f'Item {index}'} includes"), Spacer(1, 4), t]
+
+        # Spec rows beside the drawing; a door without them (older snapshots) lists its parts there instead.
+        if specs:
+            detail: list[Any] = [door_specs(specs, right_w - 24)]
+        elif parts:
+            detail = parts_list(right_w - 24, 1)
+        else:
+            detail = [Spacer(1, 1)]
+        rows: list[list[Any]] = [[heading] + ([""] if sketch is not None else [])]
+        body_row: list[Any] = []
+        if sketch is not None:
+            sketch.hAlign = "CENTER"
+            body_row.append([sketch, Spacer(1, 5), p("Exterior view, for illustration", door_caption)])
+        body_row.append(detail)
+        rows.append(body_row)
+        if specs and parts:
+            rows.append([parts_list(inner - 24, 2)] + ([""] if sketch is not None else []))
+        widths = [panel_w, inner - panel_w] if sketch is not None else [inner]
+        style = [
+            ("BOX", (0, 0), (-1, -1), 0.75, line_colour), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 12), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+            ("TOPPADDING", (0, 0), (-1, -1), 10), ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+            ("LINEABOVE", (0, 0), (-1, 0), 2.25, blue), ("LINEBELOW", (0, 0), (-1, 0), 0.75, line_colour),
+        ]
+        if sketch is not None:
+            style += [("SPAN", (0, 0), (-1, 0)), ("BACKGROUND", (0, 1), (0, 1), soft),
+                      ("LINEAFTER", (0, 1), (0, 1), 0.75, line_colour), ("VALIGN", (0, 1), (0, 1), "MIDDLE"),
+                      ("TOPPADDING", (0, 1), (0, 1), 14), ("BOTTOMPADDING", (0, 1), (0, 1), 10),
+                      ("LEFTPADDING", (0, 1), (0, 1), 10), ("RIGHTPADDING", (0, 1), (0, 1), 10)]
+        if len(rows) == 3:
+            style += [("LINEABOVE", (0, 2), (-1, 2), 0.75, line_colour)]
+            if sketch is not None:
+                style.append(("SPAN", (0, 2), (-1, 2)))
+        card = Table(rows, colWidths=widths)
+        card.setStyle(TableStyle(style))
+        return card
+
+    strip_title = ParagraphStyle("strip_title", parent=h3, fontSize=10, leading=12.5, alignment=TA_CENTER)
+    strip_kicker = ParagraphStyle("strip_kicker", parent=door_kicker, alignment=TA_CENTER)
+    strip_sub = ParagraphStyle("strip_sub", parent=small, fontSize=7.5, leading=9.5, alignment=TA_CENTER)
+    strip_price = ParagraphStyle("strip_price", parent=body, fontName="Helvetica-Bold", fontSize=11.5, leading=14, textColor=navy, alignment=TA_CENTER)
+
+    def door_option_kicker(opening: dict[str, Any], index: int) -> str:
+        """"Option A · Front entry"; "Item 3 · Side door · in every option" for a door every option has."""
+        place = str(opening.get("location") or "").strip()
+        if opening.get("in_every_option"):
+            return " · ".join(filter(None, [f"Item {index}", place, "in every option"]))
+        return " · ".join(filter(None, [" / ".join(str(o.get("name") or "") for o in opening.get("options") or []), place]))
+
+    def door_options_strip(door_options: dict[str, Any], tiers: list[dict[str, Any]], tax_label: str) -> Table | None:
+        """Each door option's door, name and price side by side (up to four a row), as page 2 of the
+        custom door estimates, so the customer compares them before the details."""
+        by_id = {str(tier.get("id")): tier for tier in tiers}
+        cells: list[Any] = []
+        for option_id in door_options.get("option_ids") or []:
+            tier = by_id.get(str(option_id))
+            if tier is None:
+                continue
+            doors = [o for o in door_options["openings"] if not o.get("in_every_option")
+                     and any(str(x.get("id")) == str(option_id) for x in o.get("options") or [])]
+            door = doors[0] if doors else {}
+            scope = str(door.get("scope") or "")
+            title = tier.get("description") or (scope.split(":", 1)[1].strip() if ":" in scope else scope)
+            cells.append((tier, door, title))
+        if not cells:
+            return None
+        columns = min(4, len(cells))
+        cell_w = inner / columns
+        boxes = []
+        for tier, door, title in cells:
+            # Fixed rows (title, drawing, finish) so the tiles line up whatever wraps.
+            sketch = door_drawing_flowable(door.get("drawing"), cell_w - 30, 2.4 * inch, dimensions=True)
+            if sketch is not None:
+                sketch.hAlign = "CENTER"
+            material = str(door.get("material") or "")
+            sub = " · ".join(filter(None, [material[:1].upper() + material[1:], door.get("finish_label")]))
+            price = Paragraph(f"{_money(tier.get('subtotal'))} <font size=8 color='{PDF_BRAND['muted']}'>+ {tax_label}</font>", strip_price)
+            box = Table([[label(str(tier.get("name") or "Option"), strip_kicker)], [p(title, strip_title)], [sketch or ""],
+                         [p(sub, strip_sub)], [price]],
+                        colWidths=[cell_w - 8], rowHeights=[14, 28, 2.4 * inch + 6, 22, 20])
+            box.setStyle(TableStyle([
+                ("BOX", (0, 0), (-1, -1), 0.75, line_colour), ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"), ("VALIGN", (0, 1), (0, 1), "MIDDLE"), ("VALIGN", (0, 2), (0, 2), "BOTTOM"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (0, 0), 8), ("TOPPADDING", (0, 3), (0, 3), 4),
+            ]))
+            boxes.append(box)
+        rows = [boxes[i:i + columns] + [""] * (columns - len(boxes[i:i + columns])) for i in range(0, len(boxes), columns)]
+        strip = Table(rows, colWidths=[cell_w] * columns)
+        strip.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                                   ("RIGHTPADDING", (0, 0), (-1, -1), 4), ("TOPPADDING", (0, 0), (-1, -1), 0),
+                                   ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
+        return strip
+
     def heads(*names: str) -> list[Paragraph]:
         numeric = {"Qty", "Unit", "Amount", "Total"}
         return [label(name, head_right if name in numeric else head) for name in names]
@@ -863,38 +1094,30 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         story.extend(padded([*section_heading("Scope of work", "Windows", _before_discount(sections["windows"])),
                              product_table(rows, widths)], top=14))
 
+    door_options = (view.get("door_options") or {}) if (view.get("door_options") or {}).get("openings") else None
+    option_tiers = [tier for tier in view.get("tiers") or [] if tier.get("total") is not None]
+    if door_options:
+        tax_label = (view.get("totals") or {}).get("tax_label") or "HST"
+        story.extend(padded(section_heading("Choose one", "Your door options"), top=14))
+        strip = door_options_strip(door_options, option_tiers, tax_label)
+        if strip is not None:
+            story.extend(padded([strip, Spacer(1, 4), p(
+                "Front elevations (exterior view), for illustration. Hinge side and final sizes are confirmed at the site measure.",
+                ParagraphStyle("strip_note", parent=small, fontSize=7.5, leading=9.5, alignment=TA_CENTER))], top=10))
+        for index, opening in enumerate(door_options["openings"], start=1):
+            card = door_card(opening, index, tax_label, door_option_kicker(opening, index))
+            card.wrap(inner, doc.height)
+            story.extend(padded([CondPageBreak(sum(card._rowHeights[:2])), card], top=12))
+
     openings = (sections.get("doors") or {}).get("openings") or []
-    if openings:
+    if openings and not door_options:
         story.extend(padded(section_heading("Scope of work", "Doors", _before_discount(sections["doors"])), top=14))
+        tax_label = (view.get("totals") or {}).get("tax_label") or "HST"
         for index, opening in enumerate(openings, start=1):
-            detail = " · ".join(filter(None, [opening.get("location"), opening.get("material"), opening.get("finish_label")]))
-            title_cell = [p(f"Item {index} · {opening.get('scope') or opening.get('label')}", h3), Spacer(1, 2), p(detail, small)]
-            sketch = door_drawing_flowable(opening.get("drawing"), 1.3 * inch, 1.1 * inch)
-            lead = 1.45 * inch if sketch is not None else 0
-            widths = ([lead] if lead else []) + [inner - lead - 1.2 * inch, 1.2 * inch]
-            rows: list[list[Any]] = [([sketch] if lead else []) + [title_cell, p(_money(_before_discount(opening)), h3_right)]]
-            style = [("VALIGN", (0, 0), (-1, -1), "TOP"),
-                     ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]
-            specs = door_spec_lines(opening)
-            if specs:
-                # Label | value rows under the title, across to the price column; the sketch spans both rows.
-                rows.append(([""] if lead else []) + [door_specs(specs, inner - lead), ""])
-                first = 1 if lead else 0
-                style += [("SPAN", (first, 1), (-1, 1)), ("TOPPADDING", (first, 1), (-1, 1), 6)]
-                if lead:
-                    style.append(("SPAN", (0, 0), (0, 1)))
-            heading = Table(rows, colWidths=widths)
-            heading.setStyle(TableStyle(style))
-            # One price per door (as the QuickBooks estimates); its parts are listed, unpriced.
-            items = [[p(item.get("description"), cell), p(item.get("qty"), cell_right)]
-                     for item in opening.get("items") or [] if item.get("description")]
-            included = [heads("Includes", "Qty"), *items]
-            item_widths = [inner - 0.6 * inch, 0.6 * inch]
-            # The heading starts a page only with room for its first parts under it; the list
-            # may then run onto the next page, repeating its header there.
-            needed = heading.wrap(inner, doc.height)[1] + (6 + 3 * 22 if items else 0)
-            parts = [Spacer(1, 6), product_table(included, item_widths)] if items else []
-            story.extend(padded([CondPageBreak(needed), heading, *parts], top=12))
+            card = door_card(opening, index, tax_label)
+            # Title and drawing stay together (a new page when they don't fit); the parts list may run on.
+            card.wrap(inner, doc.height)
+            story.extend(padded([CondPageBreak(sum(card._rowHeights[:2])), card], top=12))
 
     adders = (sections.get("adders") or {}).get("lines") or []
     if adders:
@@ -938,13 +1161,37 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         totals_block += [Spacer(1, 4), Table([[p(f"GST/HST number: {gst_number}", ParagraphStyle(
             "gst", parent=small, alignment=TA_RIGHT))]], colWidths=[3.5 * inch], hAlign="RIGHT",
             style=[("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)])]
-    story.extend(padded(KeepTogether(totals_block), top=12))
+    if door_options:
+        tax_name = (view.get("totals") or {}).get("tax_label") or "HST"
+        ticking = not view.get("accepted")
+        def tick_box():
+            """An empty box to tick on a printed copy."""
+            from reportlab.graphics.shapes import Drawing, Rect
+            box = Drawing(10, 10)
+            box.add(Rect(0.5, 0.5, 9, 9, fillColor=None, strokeColor=navy, strokeWidth=0.75))
+            return box
+
+        rows = [([""] if ticking else []) + [label("Option", head)] + [label(name, head_right) for name in ("Subtotal", tax_name, "Total")]]
+        for tier in option_tiers:
+            name = f"<b>{tier.get('name')}</b>" + (f" — {tier['description']}" if tier.get("description") else "")
+            rows.append(([tick_box()] if ticking else [])
+                        + [Paragraph(name.replace("&", "&amp;"), cell), p(_money(tier.get("subtotal")), cell_right),
+                           p(_money(tier.get("hst")), cell_right), p(_money(tier.get("total")), cell_strong_right)])
+        widths = ([0.3 * inch] if ticking else []) + [inner - 3.3 * inch - (0.3 * inch if ticking else 0), 1.1 * inch, 1.0 * inch, 1.2 * inch]
+        summary = product_table(rows, widths)
+        note = ("Tick the option you choose. " if ticking else "") + "Each option's price includes supply, delivery and installation as described."
+        block: list[Any] = [*section_heading("Pick one option", "Pricing summary"), summary, Spacer(1, 4), p(note, small)]
+        if gst_number:
+            block += [Spacer(1, 2), p(f"GST/HST number: {gst_number}", small)]
+        story.extend(padded(KeepTogether(block), top=14))
+    else:
+        story.extend(padded(KeepTogether(totals_block), top=12))
     blocks = collection_blocks()
     if blocks:
         story.extend(padded(blocks, top=6))
 
     tiers = view.get("tiers") or []
-    if tiers:
+    if tiers and not door_options:
         rows = [heads("Option", "What changes", "Total")]
         for tier in tiers:
             name = tier.get("name") + (" (quoted above)" if tier.get("selected") else "")

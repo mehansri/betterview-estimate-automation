@@ -3,6 +3,7 @@
 import { useId } from "react";
 import type { DoorDrawingGeometry } from "@/lib/api";
 import { palmaHex } from "@/lib/palmaColours";
+import { fmtInches } from "@/lib/windowLayout";
 import { brightness, GROOVE_IN, INLAY_IN, insetPanel, panelOutline, panelTop, SLOT_IN, TAPER_IN, withoutGlass, type FaceElement } from "@/lib/doorFaces";
 
 /**
@@ -183,9 +184,17 @@ export type DoorDrawingProps = {
   size?: number;
   showDimensions?: boolean;
   heightLabel?: string;
+  /** Sidelite width and transom height to label (only sizes the rep set; an assumed size gets no dimension line). */
+  sideliteLabelIn?: number | null;
+  transomLabelIn?: number | null;
 };
 
-export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", face, doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, sideliteWidth, transomHeight, size = 360, showDimensions = true, heightLabel }: DoorDrawingProps) {
+/** 10.5 -> 10-1/2" (as the custom door estimates and the PDF's _inch_label write sizes). */
+function inchLabel(value: number): string {
+  return `${fmtInches(value).replace(" ", "-")}"`;
+}
+
+export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", face, doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, sideliteWidth, transomHeight, size = 360, showDimensions = true, heightLabel, sideliteLabelIn, transomLabelIn }: DoorDrawingProps) {
   const frame = 2;
   const mull = 1.5;
   const sideW = sideliteWidth && sideliteWidth > 0 ? sideliteWidth : 14;
@@ -283,10 +292,23 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
       {/* Sill */}
       <rect x={-1} y={doorTop + heightIn} width={totalW + 2} height={1.5} fill="#111827" />
       {showDimensions ? (
-        <g fontSize={3.4} fill="#475569" fontFamily="ui-sans-serif, system-ui" textAnchor="middle">
-          <line x1={parts.find((p) => p.kind === "door")!.x} y1={totalH + 4} x2={parts.find((p) => p.kind === "door")!.x + width} y2={totalH + 4} stroke="#94a3b8" strokeWidth={0.3} />
-          <text x={parts.find((p) => p.kind === "door")!.x + width / 2} y={totalH + 7.8}>{`${width}" slab`}</text>
-          <text x={-5} y={doorTop + heightIn / 2} transform={`rotate(-90 ${-5} ${doorTop + heightIn / 2})`}>{heightLabel || `${heightIn}"`}</text>
+        // Each slab's (and a set sidelite's) width underneath, the door (and a set transom's) height up the left: as _with_dimensions() in services/estimate_documents.py.
+        // About 10px whatever the size (a small estimate drawing would otherwise print 6px labels); 3.4" at the builder's size.
+        <g fontSize={Math.min(5.5, Math.max(3.4, 10 / scale))} fill="#475569" fontFamily="ui-sans-serif, system-ui" textAnchor="middle">
+          {parts.map((part) => (part.kind === "door" || sideliteLabelIn ? (
+            <g key={`dim-${part.kind}-${part.index}`}>
+              <DimensionLine from={part.x} to={part.x + part.w} at={totalH + 3.4} horizontal />
+              <text x={part.x + part.w / 2} y={totalH + 7.8}>{part.kind === "door" ? inchLabel(width) : inchLabel(sideliteLabelIn!)}</text>
+            </g>
+          ) : null))}
+          <DimensionLine from={doorTop} to={doorTop + heightIn} at={-3} />
+          <text x={-5} y={doorTop + heightIn / 2} transform={`rotate(-90 ${-5} ${doorTop + heightIn / 2})`}>{heightLabel || inchLabel(heightIn)}</text>
+          {transom && transomLabelIn ? (
+            <>
+              <DimensionLine from={frame} to={frame + transomH} at={-3} />
+              <text x={-5} y={frame + transomH / 2} transform={`rotate(-90 ${-5} ${frame + transomH / 2})`}>{inchLabel(transomLabelIn)}</text>
+            </>
+          ) : null}
         </g>
       ) : null}
     </svg>
@@ -387,7 +409,22 @@ function PullBar({ x, top, length }: { x: number; top: number; length: number })
 }
 
 /** Draw a door from the geometry the server attaches to estimate openings. */
-export function DoorGeometryDrawing({ geometry, size = 110, title }: { geometry: DoorDrawingGeometry; size?: number; title?: string }) {
+/** A dimension line with end ticks, in drawing inches; vertical lines run down the left at x = at. */
+function DimensionLine({ from, to, at, horizontal = false }: { from: number; to: number; at: number; horizontal?: boolean }) {
+  const [a, b, tick] = [from + 0.4, to - 0.4, 1.1];
+  return horizontal ? (
+    <g stroke="#94a3b8" strokeWidth={0.3}>
+      <line x1={a} y1={at} x2={b} y2={at} /><line x1={a} y1={at - tick} x2={a} y2={at + tick} /><line x1={b} y1={at - tick} x2={b} y2={at + tick} />
+    </g>
+  ) : (
+    <g stroke="#94a3b8" strokeWidth={0.3}>
+      <line x1={at} y1={a} x2={at} y2={b} /><line x1={at - tick} y1={a} x2={at + tick} y2={a} /><line x1={at - tick} y1={b} x2={at + tick} y2={b} />
+    </g>
+  );
+}
+
+/** `dimensions` labels the slab width and height, and the sidelite width / transom height when the rep set them. */
+export function DoorGeometryDrawing({ geometry, size = 110, title, dimensions = false }: { geometry: DoorDrawingGeometry; size?: number; title?: string; dimensions?: boolean }) {
   return (
     <span className="inline-block" title={title}>
       <DoorDrawing
@@ -409,7 +446,9 @@ export function DoorGeometryDrawing({ geometry, size = 110, title }: { geometry:
         sideliteWidth={geometry.sidelite_width ?? undefined}
         transomHeight={geometry.transom_height ?? undefined}
         size={size}
-        showDimensions={false}
+        showDimensions={dimensions}
+        sideliteLabelIn={geometry.sidelite_width_in}
+        transomLabelIn={geometry.transom_height_in}
       />
     </span>
   );

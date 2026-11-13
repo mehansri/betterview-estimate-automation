@@ -31,6 +31,8 @@ from services import business_settings, mailer
 from services.customer_estimates import (
     CustomerEstimatePricingError,
     apply_tier_checked,
+    is_door_option,
+    tier_doors,
     nothing_applied_reason,
     canonical_pricing_payload,
     price_customer_estimate,
@@ -578,7 +580,7 @@ def _refreshed_description(before: dict | None, after: dict) -> dict:
 
 def _is_as_quoted_tier(tier: dict) -> bool:
     """A variation that changes nothing: the estimate exactly as quoted."""
-    if tier.get("line_groups"):
+    if tier.get("line_groups") or is_door_option(tier):
         return False
     overrides = tier.get("window_overrides") or {}
     return not any(value not in (None, "", {}, []) for value in overrides.values())
@@ -592,6 +594,9 @@ def apply_variation(estimate_id: str, body: ApplyVariationRequest) -> ApplyVaria
     isn't made in the variation's collection, colour or glass keeps its
     product and is listed in the response. The variation itself is removed;
     the others stay, now relative to the new quoted windows.
+
+    A door option keeps only its doors: the other door options (alternatives
+    to it) go with the doors they offered.
     """
     with get_session() as session:
         row = _get_row(session, estimate_id)
@@ -602,12 +607,16 @@ def apply_variation(estimate_id: str, body: ApplyVariationRequest) -> ApplyVaria
             raise HTTPException(status_code=404, detail="That variation no longer exists")
         before = {str(line.get("id")): line for line in row.windows or []}
         windows, report = apply_tier_checked(row.windows or [], tier)
-        if not report["applied_lines"]:
+        door_option = is_door_option(tier)
+        if not report["applied_lines"] and not door_option:
             raise HTTPException(status_code=422, detail=nothing_applied_reason(report))
         # The product changed, so a description generated for the old one would keep naming it.
         windows = [_refreshed_description(before.get(str(line.get("id"))), line) for line in windows]
         row.windows = windows
         remaining = [item for item in tiers if item is not tier]
+        if door_option:
+            row.doors = tier_doors(row.doors or [], tier)
+            remaining = [item for item in remaining if not is_door_option(item)]
         # "As quoted" was there so the customer could pick the old product; alone it only repeats the new quote.
         row.tiers = [] if remaining and all(_is_as_quoted_tier(item) for item in remaining) else remaining
         row.selected_tier = None

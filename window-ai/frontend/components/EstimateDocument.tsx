@@ -4,11 +4,11 @@ import type { CSSProperties } from "react";
 import type { CustomerEstimate, CustomerEstimatePricing, EstimateCollectionCopy } from "@/lib/api";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
-import { DoorGeometryDrawing } from "@/components/DoorDrawing";
+import DoorOpeningCard from "@/components/estimate/DoorOpeningCard";
+import { DoorOptionsStrip, OptionsPricingTable, doorOptionKicker } from "@/components/estimate/DoorOptions";
 import { layoutFromLegacySpec } from "@/lib/windowLayout";
 import { specExteriorColour } from "@/lib/productOptions";
 import { scheduleTermsLines } from "@/lib/paymentSchedule";
-import { doorSpecLines, specPair } from "@/lib/doorPipeline";
 
 const BRAND = {
   blue: "#248fd0",
@@ -118,6 +118,10 @@ export default function EstimateDocument({
   const pricing = estimate.pricing as CustomerEstimatePricing | null | undefined;
   const sections = pricing?.sections;
   const totals = pricing?.totals;
+  const taxLabel = totals?.tax_label || "HST";
+  // Doors offered as options: every option's door is shown and each option priced, never added up.
+  const doorOptions = pricing?.door_options?.openings?.length ? pricing.door_options : null;
+  const optionTiers = (pricing?.tiers || []).filter((tier) => !tier.error);
   const copy = estimate.document;
   // Settings → Company; the fallback covers responses from before the API sent it.
   const company = copy?.company ?? { name: "Better View Solutions Inc.", phone: "647-326-0613", email: "sales@betterview.ca", address: "1 Greensboro Dr, Suite 308 · Etobicoke, ON M9W 1C8", website: "" };
@@ -194,30 +198,35 @@ export default function EstimateDocument({
         </section>
       ) : null}
 
-      {sections?.doors?.openings?.length ? (
+      {doorOptions ? (
+        <section className="estimate-product-section">
+          <div className="estimate-section-heading"><div><p className="estimate-section-label">Choose one</p><h2>Your door options</h2></div></div>
+          <DoorOptionsStrip doorOptions={doorOptions} tiers={optionTiers} taxLabel={taxLabel} money={money} />
+          {doorOptions.openings.map((opening, openingIndex) => (
+            <DoorOpeningCard
+              key={opening.id}
+              opening={opening}
+              index={openingIndex + 1}
+              kicker={doorOptionKicker(opening, openingIndex + 1)}
+              everyOption={opening.in_every_option}
+              price={money(opening.base_subtotal ?? opening.subtotal)}
+              taxLabel={taxLabel}
+              onConfigure={onConfigureDoor && estimate.doors.some((door) => door.id === opening.id) ? () => onConfigureDoor(opening.id) : undefined}
+            />
+          ))}
+        </section>
+      ) : sections?.doors?.openings?.length ? (
         <section className="estimate-product-section">
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Doors</h2></div><span>{money(sections.doors.base_subtotal ?? sections.doors.subtotal)}</span></div>
           {sections.doors.openings.map((opening, openingIndex) => (
-            <div className="estimate-door-opening" key={opening.id}>
-              <div className="estimate-door-heading">{opening.drawing ? (onConfigureDoor && estimate.doors.some((door) => door.id === opening.id) ? (
-                <button type="button" className="estimate-door-sketch estimate-door-sketch-button print:hidden" onClick={() => onConfigureDoor(opening.id)} title="Configure this door">
-                  <DoorGeometryDrawing geometry={opening.drawing} size={96} />
-                  <span>Configure</span>
-                </button>
-              ) : <span className="estimate-door-sketch"><DoorGeometryDrawing geometry={opening.drawing} size={96} /></span>) : null}<div className="estimate-door-title"><h3>{`Item ${openingIndex + 1} · ${opening.scope || opening.label}`}</h3><p>{opening.location || ""}{opening.location && opening.material ? " · " : ""}{opening.material} · {opening.finish_label}</p></div><strong className="estimate-door-price">{money(opening.base_subtotal ?? opening.subtotal)}</strong>
-                {doorSpecLines(opening).length ? (
-                  <dl className="estimate-door-specs">
-                    {doorSpecLines(opening).map((line, index) => {
-                      const pair = specPair(line);
-                      return pair ? <div key={index}><dt>{pair[0]}</dt><dd>{pair[1]}</dd></div> : <div key={index}><dd className="estimate-door-spec-note">{line}</dd></div>;
-                    })}
-                  </dl>
-                ) : null}</div>
-              {/* One price per door (as the QuickBooks estimates); its parts are listed, unpriced. */}
-              {opening.items.length ? (
-                <table className="estimate-table estimate-table-compact"><thead><tr><th className="text-left">Includes</th><th className="text-right">Qty</th></tr></thead><tbody>{opening.items.map((item, index) => <tr key={`${opening.id}-${index}`}><td data-label="Includes">{item.description}</td><td data-label="Qty" className="text-right">{item.qty}</td></tr>)}</tbody></table>
-              ) : null}
-            </div>
+            <DoorOpeningCard
+              key={opening.id}
+              opening={opening}
+              index={openingIndex + 1}
+              price={money(opening.base_subtotal ?? opening.subtotal)}
+              taxLabel={totals?.tax_label || "HST"}
+              onConfigure={onConfigureDoor && estimate.doors.some((door) => door.id === opening.id) ? () => onConfigureDoor(opening.id) : undefined}
+            />
           ))}
         </section>
       ) : null}
@@ -233,7 +242,15 @@ export default function EstimateDocument({
 
       {!sections ? <div className="estimate-empty-state">Price the project to populate the customer-facing estimate.</div> : null}
 
-      <section className="estimate-totals-block">
+      {doorOptions ? (
+        <section className="estimate-product-section">
+          <div className="estimate-section-heading"><div><p className="estimate-section-label">Pick one option</p><h2>Pricing summary</h2></div></div>
+          <OptionsPricingTable tiers={optionTiers} taxLabel={taxLabel} money={money} quotedId={pricing?.selected_tier} />
+          {copy?.gst_number ? <p className="estimate-tax-number">GST/HST number: {copy.gst_number}</p> : null}
+        </section>
+      ) : null}
+
+      <section className={`estimate-totals-block ${doorOptions ? "hidden" : ""}`}>
         {(totals?.base_subtotal || 0) > (totals?.subtotal || 0) + 0.01 ? <div className="estimate-total-line"><span>Original subtotal</span><strong>{money(totals?.base_subtotal)}</strong></div> : null}
         {(totals?.discount || 0) > 0 ? <div className="estimate-total-line"><span>Offer discount</span><strong>−{money(totals?.discount)}</strong></div> : null}
         <div className="estimate-total-line"><span>Subtotal</span><strong>{money(totals?.subtotal)}</strong></div>
@@ -251,7 +268,7 @@ export default function EstimateDocument({
         </section>
       ) : null}
 
-      {pricing?.tiers?.some((tier) => !tier.error) ? (
+      {!doorOptions && pricing?.tiers?.some((tier) => !tier.error) ? (
         <section className="estimate-product-section">
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Choose your package</p><h2>Options</h2></div></div>
           <table className="estimate-table"><thead><tr><th>Option</th><th>What changes</th><th className="text-right">Total</th></tr></thead><tbody>

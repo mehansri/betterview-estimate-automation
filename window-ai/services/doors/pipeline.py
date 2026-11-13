@@ -2227,6 +2227,15 @@ def _transom_draw_height(pipe: dict[str, Any]) -> float:
     return height if height > 0 else TRANSOM_HEIGHT_IN
 
 
+def _set_inches(value: Any) -> float | None:
+    """A size the rep typed, in inches; None when blank, zero or unreadable."""
+    try:
+        inches = float(value or 0)
+    except (TypeError, ValueError):
+        return None
+    return inches if inches > 0 else None
+
+
 def sidelite_draw_width(pipe: dict[str, Any]) -> float:
     """The sidelite width drawn: the one set, else a direct-set range's top, else 14"."""
     try:
@@ -2395,6 +2404,9 @@ def door_drawing(spec: dict[str, Any] | None) -> dict[str, Any] | None:
             "sidelites": layout["sidelites"],
             "sidelite_width": sidelite_draw_width(pipe) if layout["sidelites"] else None,
             "transom_height": _transom_draw_height(pipe) if layout["transom"] else None,
+            # The sizes the rep set (None while the drawing assumes one): the only ones the estimate labels.
+            "sidelite_width_in": _set_inches(pipe.get("sidelite_width_in")) if layout["sidelites"] else None,
+            "transom_height_in": _set_inches(((glass.get("transom") or {}).get("height_in"))) if layout["transom"] else None,
             "transom": layout["transom"],
             "width": width,
             "height": height,

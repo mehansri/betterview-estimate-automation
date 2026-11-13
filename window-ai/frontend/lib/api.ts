@@ -537,6 +537,9 @@ export type DoorDrawingGeometry = {
   sidelite_width?: number | null;
   /** The transom glass height, inches (14" on snapshots priced before it was drawn to height). */
   transom_height?: number | null;
+  /** The sidelite width / transom height the rep set (null while the drawing assumes one): the only ones the estimate labels. */
+  sidelite_width_in?: number | null;
+  transom_height_in?: number | null;
   transom: boolean;
   /** Whole opening (slabs + sidelites + transom), inches; the CRM draws from this and `sections`. */
   width: number;
@@ -676,7 +679,19 @@ export type EstimateTier = {
   window_overrides: TierOverrides;
   /** Picked windows that take their group's choices instead of window_overrides. */
   line_groups?: TierLineGroup[];
+  /** Doors offered as options (the customer picks one): the door openings this option includes. null / absent = every door. */
+  door_ids?: string[] | null;
 };
+
+/** A door the door options offer, as priced in the first option that has it. */
+export type DoorOptionOpening = DoorSectionOpening & {
+  options: Array<{ id: string; name: string }>;
+  /** In every door option (a door bought whichever option is picked). */
+  in_every_option: boolean;
+};
+
+/** Every door the door options offer (services/customer_estimates.py _door_options). */
+export type DoorOptions = { openings: DoorOptionOpening[]; option_ids: string[] };
 
 export type TierLineGroup = {
   id: string;
@@ -760,6 +775,8 @@ export type TierSummary = {
   changed_line_ids?: string[];
   /** The windows, doors and totals the customer buys with this option, priced. */
   scope?: { sections: EstimateSections; profitability?: Profitability };
+  /** A door option's doors (see EstimateTier.door_ids). */
+  door_ids?: string[] | null;
 };
 
 export type WindowSectionLine = {
@@ -864,6 +881,9 @@ export type CustomerEstimatePricing = {
   profitability?: Profitability;
   tiers?: TierSummary[];
   selected_tier?: string | null;
+  /** The option these sections and totals are: the main price, else the first door option. */
+  quoted_tier?: string | null;
+  door_options?: DoorOptions | null;
   financing?: FinancingOptions;
   deposit?: number;
   window_quote?: DeterministicQuoteResponse | null;
@@ -989,8 +1009,11 @@ export type PublicEstimate = {
   terms: string;
   sections: EstimateSections;
   totals: Pick<EstimateTotals, "subtotal" | "hst" | "tax_label" | "tax_lines" | "total" | "base_subtotal" | "discount" | "currency">;
-  tiers: Array<Pick<TierSummary, "id" | "name" | "description" | "customer_note" | "subtotal" | "hst" | "total" | "financing" | "deposit" | "selected">>;
+  tiers: Array<Pick<TierSummary, "id" | "name" | "description" | "customer_note" | "subtotal" | "hst" | "total" | "financing" | "deposit" | "selected" | "door_ids">>;
   selected_tier?: string | null;
+  quoted_tier?: string | null;
+  /** Doors offered as options; null once one is accepted. */
+  door_options?: DoorOptions | null;
   financing?: FinancingOptions;
   deposit: number;
   company: CompanySettings;

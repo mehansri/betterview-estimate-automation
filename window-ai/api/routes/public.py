@@ -106,6 +106,9 @@ def accept_estimate(token: str, body: AcceptEstimateRequest, request: Request) -
                 snapshot = dict(pricing)
                 snapshot.update(tier["scope"])
                 snapshot["selected_tier"] = tier["id"]
+                snapshot["quoted_tier"] = tier["id"]
+                # Bought: the other door options are no longer on offer.
+                snapshot["door_options"] = None
                 snapshot["tiers"] = [{**item, "selected": item.get("id") == tier["id"]} for item in pricing.get("tiers") or []]
                 snapshot["financing"] = tier.get("financing")
                 snapshot["deposit"] = tier.get("deposit")
