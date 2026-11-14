@@ -544,6 +544,7 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
 
 
 DIM_LEFT, DIM_BOTTOM = 15.0, 15.0  # points kept for the dimension labels
+SECTION_HEADING_PT = 44.0  # a section heading (eyebrow, title, rule) and the space above it
 GLASS_FRAME_IN = 1.1  # the moulded frame round a glass insert
 GLASS_LATTICE_IN = 4.0  # decorative glass: diagonal lattice spacing
 GLASS_BORDER_IN = 1.2  # decorative glass: the border line inside the frame
@@ -1292,8 +1293,10 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
     option_tiers = [tier for tier in view.get("tiers") or [] if tier.get("total") is not None]
     if door_options:
         tax_label = (view.get("totals") or {}).get("tax_label") or "HST"
-        story.extend(padded(section_heading("Choose one", "Your door options"), top=14))
         strip = door_options_strip(door_options, option_tiers, tax_label)
+        # The heading starts a page with the options under it, never alone at the bottom.
+        story.append(CondPageBreak(SECTION_HEADING_PT + 24 + (strip.wrap(inner, doc.height)[1] if strip is not None else 0)))
+        story.extend(padded(section_heading("Choose one", "Your door options"), top=14))
         if strip is not None:
             story.extend(padded([strip, Spacer(1, 4), p(
                 "Front elevations (exterior view), for illustration. Hinge side and final sizes are confirmed at the site measure.",
@@ -1305,10 +1308,13 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
 
     openings = (sections.get("doors") or {}).get("openings") or []
     if openings and not door_options:
-        story.extend(padded(section_heading("Scope of work", "Doors", _before_discount(sections["doors"])), top=14))
         tax_label = (view.get("totals") or {}).get("tax_label") or "HST"
-        for index, opening in enumerate(openings, start=1):
-            card = door_card(opening, index, tax_label)
+        cards = [door_card(opening, index, tax_label) for index, opening in enumerate(openings, start=1)]
+        cards[0].wrap(inner, doc.height)
+        # The heading starts a page with its first door's title and drawing, never alone at the bottom.
+        story.append(CondPageBreak(SECTION_HEADING_PT + 26 + sum(cards[0]._rowHeights[:2])))
+        story.extend(padded(section_heading("Scope of work", "Doors", _before_discount(sections["doors"])), top=14))
+        for card in cards:
             # Title and drawing stay together (a new page when they don't fit); the parts list may run on.
             card.wrap(inner, doc.height)
             story.extend(padded([CondPageBreak(sum(card._rowHeights[:2])), card], top=12))
