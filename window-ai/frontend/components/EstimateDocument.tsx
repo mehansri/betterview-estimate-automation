@@ -5,6 +5,8 @@ import type { CustomerEstimate, CustomerEstimatePricing, EstimateCollectionCopy 
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import DoorOpeningCard from "@/components/estimate/DoorOpeningCard";
+import { WindowLineText, WindowSpecsBox } from "@/components/estimate/WindowSpecs";
+import { sharedWindowSpecs } from "@/lib/windowSpecs";
 import { DoorOptionsStrip, OptionsPricingTable, doorOptionKicker } from "@/components/estimate/DoorOptions";
 import { layoutFromLegacySpec } from "@/lib/windowLayout";
 import { specExteriorColour } from "@/lib/productOptions";
@@ -86,10 +88,10 @@ function WindowLineSketch({ line, estimate }: { line: NonNullable<CustomerEstima
   const spec = estimate.windows.find((item) => item.id === line.id)?.spec as Record<string, unknown> | undefined;
   // Snapshots priced before drawings carried a colour fall back to the saved line's.
   const colour = line.drawing?.exterior_colour || specExteriorColour(spec);
-  if (line.drawing) return <span className="mb-1 block"><WindowUnitDrawing geometry={line.drawing} colour={colour} size={84} showDimensions={false} showIndexes={false} /></span>;
+  if (line.drawing) return <WindowUnitDrawing geometry={line.drawing} colour={colour} size={128} showDimensions labelPx={9} showIndexes={false} />;
   const drawable = spec ? layoutFromLegacySpec(spec) : null;
   if (!drawable) return null;
-  return <span className="mb-1 block"><WindowUnitDrawing layout={drawable.layout} width={drawable.width} height={drawable.height} colour={colour} size={84} showDimensions={false} showIndexes={false} /></span>;
+  return <WindowUnitDrawing layout={drawable.layout} width={drawable.width} height={drawable.height} colour={colour} size={128} showDimensions labelPx={9} showIndexes={false} />;
 }
 
 /** Scope summary and standing features of one collection, after the totals. */
@@ -119,6 +121,8 @@ export default function EstimateDocument({
   const sections = pricing?.sections;
   const totals = pricing?.totals;
   const taxLabel = totals?.tax_label || "HST";
+  // What every window has is said once above the list; each line keeps its own type, size and sections.
+  const windowSpecs = sharedWindowSpecs((sections?.windows?.lines || []).map((line) => line.description || ""));
   // Doors offered as options: every option's door is shown and each option priced, never added up.
   const doorOptions = pricing?.door_options?.openings?.length ? pricing.door_options : null;
   const optionTiers = (pricing?.tiers || []).filter((tier) => !tier.error);
@@ -192,8 +196,9 @@ export default function EstimateDocument({
       {sections?.windows?.lines?.length ? (
         <section className="estimate-product-section">
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Windows</h2></div><span>{money(sections.windows.base_subtotal ?? sections.windows.subtotal)}</span></div>
+          <WindowSpecsBox shared={windowSpecs.shared} />
           <table className="estimate-table"><thead><tr><th>#</th><th>Description</th><th>Location</th><th className="text-right">Qty</th><th className="text-right">Unit</th><th className="text-right">Amount</th></tr></thead><tbody>
-            {sections.windows.lines.map((line, index) => <tr key={line.id}><td data-label="#">{index + 1}</td><td data-label="Description"><WindowLineSketch line={line} estimate={estimate} />{line.description}{line.energy ? <span className="block text-xs text-slate-500">{line.energy}</span> : null}</td><td data-label="Location">{line.location || "—"}</td><td data-label="Qty" className="text-right">{line.qty}</td><td data-label="Unit" className="text-right">{money(line.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(line.line_total)}</td></tr>)}
+            {sections.windows.lines.map((line, index) => <tr key={line.id}><td data-label="#">{index + 1}</td><td data-label="Description"><WindowLineText text={windowSpecs.own[index] ?? line.description} energy={line.energy} sketch={<WindowLineSketch line={line} estimate={estimate} />} /></td><td data-label="Location">{line.location || "—"}</td><td data-label="Qty" className="text-right">{line.qty}</td><td data-label="Unit" className="text-right">{money(line.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(line.line_total)}</td></tr>)}
           </tbody></table>
         </section>
       ) : null}

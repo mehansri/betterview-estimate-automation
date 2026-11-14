@@ -12,6 +12,8 @@ import {
 import SignaturePad from "@/components/SignaturePad";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import DoorOpeningCard from "@/components/estimate/DoorOpeningCard";
+import { WindowLineText, WindowSpecsBox } from "@/components/estimate/WindowSpecs";
+import { sharedWindowSpecs } from "@/lib/windowSpecs";
 import { DoorOptionsStrip, OptionDifferences, doorOptionCards, doorOptionKicker } from "@/components/estimate/DoorOptions";
 import { DoorGeometryDrawing } from "@/components/DoorDrawing";
 
@@ -94,7 +96,7 @@ function LineTable({
   caption: string;
   showLocation?: boolean;
   showIndex?: boolean;
-  rows: Array<{ key: string; title: string; subtitle?: string; visual?: ReactNode; location?: string; qty: number; unit: number; amount: number }>;
+  rows: Array<{ key: string; title: string; subtitle?: string; visual?: ReactNode; location?: string; qty: number; unit: number; amount: number; content?: ReactNode }>;
 }) {
   return (
     <>
@@ -116,9 +118,13 @@ function LineTable({
               <tr key={row.key} className="align-top">
                 {showIndex ? <td className="py-3 pr-3 tabular-nums text-slate-500">{index + 1}</td> : null}
                 <td className="py-3 pr-3 text-slate-900">
-                  {row.visual ? <span className="mb-2 block">{row.visual}</span> : null}
-                  <span className="whitespace-pre-line">{row.title}</span>
-                  {row.subtitle ? <span className="mt-0.5 block whitespace-pre-line text-xs text-slate-500">{row.subtitle}</span> : null}
+                  {row.content ?? (
+                    <>
+                      {row.visual ? <span className="mb-2 block">{row.visual}</span> : null}
+                      <span className="whitespace-pre-line">{row.title}</span>
+                      {row.subtitle ? <span className="mt-0.5 block whitespace-pre-line text-xs text-slate-500">{row.subtitle}</span> : null}
+                    </>
+                  )}
                 </td>
                 {showLocation ? <td className="py-3 pr-3 text-slate-600">{row.location || "—"}</td> : null}
                 <td className="py-3 pr-3 text-right tabular-nums text-slate-700">{row.qty}</td>
@@ -132,15 +138,28 @@ function LineTable({
       <ul className="divide-y divide-slate-100 sm:hidden print:hidden" aria-label={caption}>
         {rows.map((row, index) => (
           <li key={row.key} className="py-3">
-            {row.visual ? <div className="mb-2">{row.visual}</div> : null}
-            <div className="flex items-start justify-between gap-3">
-              <p className="min-w-0 break-words text-sm font-medium text-slate-900">
-                {showIndex ? <span className="mr-1.5 text-slate-400">{index + 1}.</span> : null}
-                <span className="whitespace-pre-line">{row.title}</span>
-              </p>
-              <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(row.amount)}</p>
-            </div>
-            {row.subtitle ? <p className="mt-0.5 whitespace-pre-line text-xs text-slate-500">{row.subtitle}</p> : null}
+            {row.content ? (
+              // The row's own layout (a window: drawing, type, size); the number and price beside it, said once.
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 text-sm">
+                  {showIndex ? <span className="mb-1 block text-slate-400">{index + 1}.</span> : null}
+                  {row.content}
+                </div>
+                <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(row.amount)}</p>
+              </div>
+            ) : (
+              <>
+                {row.visual ? <div className="mb-2">{row.visual}</div> : null}
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 break-words text-sm font-medium text-slate-900">
+                    {showIndex ? <span className="mr-1.5 text-slate-400">{index + 1}.</span> : null}
+                    <span className="whitespace-pre-line">{row.title}</span>
+                  </p>
+                  <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(row.amount)}</p>
+                </div>
+                {row.subtitle ? <p className="mt-0.5 whitespace-pre-line text-xs text-slate-500">{row.subtitle}</p> : null}
+              </>
+            )}
             <p className="mt-1 text-xs text-slate-500">
               {showLocation && row.location ? <span>{row.location} · </span> : null}
               <span className="tabular-nums">
@@ -306,6 +325,7 @@ export default function CustomerPortal({ token }: { token: string }) {
   const companyName = company.name || "Better View Solutions Inc.";
   const sections = estimate.sections;
   const windowLines = sections?.windows?.lines ?? [];
+  const windowSpecs = sharedWindowSpecs(windowLines.map((line) => line.description || ""));
   const doorOpenings = sections?.doors?.openings ?? [];
   // Doors offered as options (gone once one is accepted): every option's door, each option priced on its own.
   const doorOptions = estimate.door_options?.openings?.length ? estimate.door_options : null;
@@ -570,6 +590,7 @@ export default function CustomerPortal({ token }: { token: string }) {
         {windowLines.length > 0 ? (
           <Card labelledBy={`${uid}-windows`}>
             <SectionHeading id={`${uid}-windows`} kicker="Scope of work" title="Windows" amount={sections.windows.base_subtotal ?? sections.windows.subtotal} />
+            <WindowSpecsBox shared={windowSpecs.shared} />
             <LineTable
               caption="Windows"
               showIndex
@@ -578,7 +599,13 @@ export default function CustomerPortal({ token }: { token: string }) {
                 key: line.id,
                 title: line.description,
                 subtitle: line.energy || undefined,
-                visual: line.drawing ? <WindowUnitDrawing geometry={line.drawing} size={96} showDimensions={false} showIndexes={false} title={`Window ${index + 1}, viewed from outside`} /> : undefined,
+                content: (
+                  <WindowLineText
+                    text={windowSpecs.own[index] ?? line.description}
+                    energy={line.energy}
+                    sketch={line.drawing ? <WindowUnitDrawing geometry={line.drawing} size={128} showDimensions labelPx={9} showIndexes={false} title={`Window ${index + 1}, viewed from outside`} /> : undefined}
+                  />
+                ),
                 location: line.location,
                 qty: line.qty,
                 unit: line.unit_price,

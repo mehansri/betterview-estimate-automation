@@ -195,6 +195,24 @@ button, input, select, textarea { max-width: 100%; }
 .door-card-parts ul { margin-top: 0.4rem; padding-left: 1rem; columns: 2; column-gap: 1.75rem; list-style: disc; color: #315269; font-size: 0.76rem; line-height: 1.4; }
 .door-card-body .door-card-parts ul { columns: 1; }
 .door-card-parts li { break-inside: avoid; margin-bottom: 0.2rem; }
+/* Windows: what every window shares, once (WindowSpecsBox), then each line's drawing beside its own text. */
+.window-specs-box { margin-top: 0.75rem; border: 1px solid var(--estimate-line, #e2e8f0); border-radius: 0.5rem; background: var(--estimate-soft, #f8fafc); padding: 0.7rem 0.9rem; }
+.window-specs-label { color: var(--estimate-blue, #2563eb); font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.window-specs-box dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.3rem 1.5rem; margin-top: 0.4rem; font-size: 0.78rem; line-height: 1.35; }
+.window-specs-box dl > div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.5rem; }
+.window-specs-box dt { color: var(--estimate-navy, #0f172a); font-weight: 700; }
+.window-specs-box dd { color: #315269; }
+.window-line { display: flex; align-items: flex-start; gap: 0.75rem; text-align: left; }
+.window-line-sketch { display: flex; flex-shrink: 0; justify-content: center; width: 8.25rem; }
+.window-line-text { display: flex; min-width: 0; flex-direction: column; gap: 0.1rem; }
+.window-line-type { color: var(--estimate-navy, #0f172a); font-weight: 700; }
+.window-line-detail { color: #315269; font-weight: 400; }
+.window-line-energy { color: var(--estimate-muted, #64748b); font-size: 0.72rem; font-weight: 400; }
+@media (max-width: 640px) {
+  .window-specs-box dl { grid-template-columns: minmax(0, 1fr); }
+  .window-line { flex-direction: column; }
+}
+
 /* Doors offered as options side by side (DoorOptionsStrip), as page 2 of the custom door estimates. */
 .door-options-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.75rem; margin-top: 0.9rem; break-inside: avoid; }
 .door-option-tile { display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid var(--estimate-line, #e2e8f0); border-radius: 0.5rem; padding: 0.75rem 0.6rem 0.8rem; background: #fff; }

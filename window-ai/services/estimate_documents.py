@@ -289,15 +289,24 @@ def window_frame_colours(name: Any) -> tuple[str, str]:
     return WINDOW_FRAME_COLOURS[key]
 
 
-def window_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max_height: float):
-    """A small elevation of a window line, viewed from outside (reportlab points).
+def window_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max_height: float, *, dimensions: bool = False):
+    """An elevation of a window line, viewed from outside (reportlab points).
 
     Matches frontend/components/WindowUnitDrawing.tsx: the frame is drawn in the
     exterior colour, swing lines meet at the hinge side, sliders and hung sashes
-    get an arrow on the moving sash.
+    get an arrow on the moving sash. ``dimensions`` adds the overall width under
+    it and the height up its left side, as on the door drawings.
     """
     if not geometry or not geometry.get("sections"):
         return None
+    if dimensions:
+        inner = window_drawing_flowable(geometry, max_width - DIM_LEFT - 2, max_height - DIM_BOTTOM - 2)
+        if inner is None:
+            return None
+        out, span = _dimensioned(inner)
+        span(DIM_LEFT, DIM_LEFT + inner.width, _inch_label(float(geometry["width"])), True)
+        span(DIM_BOTTOM, DIM_BOTTOM + inner.height, _inch_label(float(geometry["height"])), False)
+        return out
     from reportlab.graphics.shapes import Drawing, Line, PolyLine, Rect
     from reportlab.lib import colors
 
@@ -658,32 +667,52 @@ def _clip_to_oval(a, b, box):
     return a[0] + t0 * (b[0] - a[0]), a[1] + t0 * (b[1] - a[1]), a[0] + t1 * (b[0] - a[0]), a[1] + t1 * (b[1] - a[1])
 
 
+def shared_window_specs(descriptions: list[str]) -> tuple[list[str], list[str]]:
+    """What every window line says, and what each says on its own.
+
+    Window descriptions are " - "-joined parts (services/descriptions.py): the collection and
+    product, size, sections, colours, glass, gas, jamb. With two or more lines, the parts every
+    line has (colours, glass, jamb...) and a collection name every first part starts with are
+    stated once; each line keeps the rest. Returns (shared parts, each line's own text).
+    """
+    split = [[part.strip() for part in str(text or "").split(" - ") if part.strip()] for text in descriptions]
+    if len(split) < 2 or not all(split):
+        return [], [str(text or "") for text in descriptions]
+    common = [part for part in split[0][1:] if all(part in parts[1:] for parts in split[1:])]
+    # "Classic 3 1/4" (WC-100 series) casement window" / "... 2-section window unit": the collection.
+    firsts = [parts[0] for parts in split]
+    prefix = firsts[0]
+    for first in firsts[1:]:
+        while prefix and not first.startswith(prefix):
+            prefix = prefix[:-1]
+    prefix = prefix[: prefix.rfind(")") + 1] if ")" in prefix else ""
+    shared = ([prefix] if len(prefix) >= 8 else []) + common
+    own = []
+    for parts in split:
+        head = parts[0][len(prefix):].strip() if len(prefix) >= 8 else parts[0]
+        head = head[:1].upper() + head[1:]
+        own.append(" - ".join([head, *[part for part in parts[1:] if part not in common]]))
+    return shared, own
+
+
 def _inch_label(value: float) -> str:
     """36 -> '36"', 10.5 -> '10-1/2"', 9.375 -> '9-3/8"' (as the custom door estimates write sizes)."""
     return f'{_fraction(float(value)).replace(" ", "-")}"'
 
 
-def _with_dimensions(inner, geometry: dict[str, Any]):
-    """``inner`` (a door_drawing_flowable) with dimension lines: each slab's (and each set sidelite's)
-    width underneath, the door height (and a set transom height) up the left side. A size the drawing
-    only assumes gets no line; a label may run 6pt past each end of its span, and one longer is left off."""
+def _dimensioned(inner):
+    """``inner`` moved up and right to make room for dimension lines, and a ``span(a, b, text, horizontal)``
+    that draws one: widths under the drawing, heights up its left side (points in the new drawing). A label
+    may run 6pt past each end of its span; one longer is left off, its line kept."""
     from reportlab.graphics.shapes import Drawing, Group, Line, String
     from reportlab.lib import colors
     from reportlab.pdfbase.pdfmetrics import stringWidth
 
-    layout = inner._door_layout
-    scale, total_h = layout["scale"], layout["total_h"]
     rule, ink, font, size = colors.HexColor("#94a3b8"), colors.HexColor("#475569"), "Helvetica", 7.5
     out = Drawing(inner.width + DIM_LEFT + 2, inner.height + DIM_BOTTOM + 2)
     body = Group(*inner.contents)
     body.translate(DIM_LEFT, DIM_BOTTOM)
     out.add(body)
-
-    def x_pt(x: float) -> float:
-        return DIM_LEFT + (x + 1.5) * scale
-
-    def y_pt(y: float) -> float:  # y measured down from the top of the frame
-        return DIM_BOTTOM + (total_h - y) * scale
 
     def span(a: float, b: float, text: str | None, horizontal: bool) -> None:
         tick = 2.5
@@ -703,6 +732,23 @@ def _with_dimensions(inner, geometry: dict[str, Any]):
             label = Group(String(0, 0, text, fontName=font, fontSize=size, fillColor=ink, textAnchor="middle"))
             label.transform = (0, 1, -1, 0, at - 2.5, (a + b) / 2)  # reads bottom to top, left of the line
             out.add(label)
+
+    return out, span
+
+
+def _with_dimensions(inner, geometry: dict[str, Any]):
+    """``inner`` (a door_drawing_flowable) with dimension lines: each slab's (and each set sidelite's)
+    width underneath, the door height (and a set transom height) up the left side. A size the drawing
+    only assumes gets no line."""
+    layout = inner._door_layout
+    scale, total_h = layout["scale"], layout["total_h"]
+    out, span = _dimensioned(inner)
+
+    def x_pt(x: float) -> float:
+        return DIM_LEFT + (x + 1.5) * scale
+
+    def y_pt(y: float) -> float:  # y measured down from the top of the frame
+        return DIM_BOTTOM + (total_h - y) * scale
 
     sidelite_label = geometry.get("sidelite_width_in")
     cursor = layout["frame"]
@@ -1227,6 +1273,46 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
                                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
         return strip
 
+    spec_name = ParagraphStyle("spec_name", parent=cell, fontName="Helvetica-Bold", textColor=navy)
+
+    def window_specs_box(shared: list[str]) -> Table:
+        """The specs every window has, in a pale box: labelled parts (Exterior colour: black) as label | value,
+        the collection first, and glass, gas, jamb and the like together."""
+        rows: list[list[Any]] = []
+        loose: list[str] = []
+        for index, part in enumerate(shared):
+            name, _, value = part.partition(": ")
+            if value and len(name) <= 24:
+                rows.append([p(name, spec_name), p(value, cell)])
+            elif index == 0 and "(" in part:
+                rows.append([p("Collection", spec_name), p(part, cell)])
+            elif re.match(r"WC-\d+", part, re.IGNORECASE):
+                rows.append([p("Style", spec_name), p(part, cell)])
+            else:
+                loose.append(part)
+        if loose:
+            rows.append([p("Glass & options", spec_name), p(" · ".join(loose), cell)])
+        half = -(-len(rows) // 2)
+        columns = [rows[:half], rows[half:]]
+        tables = []
+        for column in columns:
+            t = Table(column or [["", ""]], colWidths=[1.15 * inch, (inner - 24) / 2 - 1.15 * inch - 8])
+            t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                                   ("RIGHTPADDING", (0, 0), (-1, -1), 6), ("TOPPADDING", (0, 0), (-1, -1), 2),
+                                   ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]))
+            tables.append(t)
+        grid = Table([tables], colWidths=[(inner - 24) / 2] * 2)
+        grid.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                                  ("RIGHTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 0),
+                                  ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+        box = Table([[[label("Every window"), Spacer(1, 5), grid]]], colWidths=[inner])
+        box.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), soft), ("BOX", (0, 0), (-1, -1), 0.75, line_colour),
+            ("LEFTPADDING", (0, 0), (-1, -1), 12), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+            ("TOPPADDING", (0, 0), (-1, -1), 9), ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ]))
+        return box
+
     def heads(*names: str) -> list[Paragraph]:
         numeric = {"Qty", "Unit", "Amount", "Total"}
         return [label(name, head_right if name in numeric else head) for name in names]
@@ -1271,23 +1357,29 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
     sections = view.get("sections") or {}
     windows = (sections.get("windows") or {}).get("lines") or []
     if windows:
-        rows: list[list[Any]] = [heads("#", "Description", "Location", "Qty", "Unit", "Amount")]
-        for index, line in enumerate(windows, start=1):
-            description: list[Any] = []
-            # 84px in the preview's 850px-wide document
-            sketch = window_drawing_flowable(line.get("drawing"), 0.8 * inch, 0.75 * inch)
-            if sketch is not None:
-                sketch.hAlign = "LEFT"
-                description += [sketch, Spacer(1, 4)]
-            description.append(p(line.get("description"), cell))
+        # What every window has is said once, above the list; each line keeps its own type, size and sections.
+        shared, own = shared_window_specs([line.get("description") or "" for line in windows])
+        drawing_w = 1.45 * inch
+        rows: list[list[Any]] = [heads("#", "", "Description", "Location", "Qty", "Unit", "Amount")]
+        for index, (line, text) in enumerate(zip(windows, own), start=1):
+            sketch = window_drawing_flowable(line.get("drawing"), drawing_w - 8, 1.25 * inch, dimensions=True)
+            # The window type in bold, then its size and sections.
+            window_type, _, rest = text.partition(" - ")
+            escape = lambda value: value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            description: list[Any] = [Paragraph(escape(window_type), cell_strong)]
+            if rest:
+                description.append(Paragraph(escape(rest.replace(" - ", " · ")), cell))
             if line.get("energy"):
                 description.append(p(line["energy"], small))
-            rows.append([p(index, cell_strong), description, p(line.get("location") or "—", cell),
+            rows.append([p(index, cell_strong), sketch or "", description, p(line.get("location") or "—", cell),
                          p(line.get("qty"), cell_right), p(_money(line.get("unit_price")), cell_right),
                          p(_money(line.get("line_total")), cell_strong_right)])
-        widths = [0.3 * inch, inner - 3.4 * inch, 1.0 * inch, 0.4 * inch, 0.85 * inch, 0.85 * inch]
-        story.extend(padded([*section_heading("Scope of work", "Windows", _before_discount(sections["windows"])),
-                             product_table(rows, widths)], top=14))
+        widths = [0.3 * inch, drawing_w, inner - 3.4 * inch - drawing_w, 1.0 * inch, 0.4 * inch, 0.85 * inch, 0.85 * inch]
+        block: list[Any] = [*section_heading("Scope of work", "Windows", _before_discount(sections["windows"]))]
+        if shared:
+            block += [Spacer(1, 8), window_specs_box(shared)]
+        block.append(product_table(rows, widths))
+        story.extend(padded(block, top=14))
 
     door_options = (view.get("door_options") or {}) if (view.get("door_options") or {}).get("openings") else None
     option_tiers = [tier for tier in view.get("tiers") or [] if tier.get("total") is not None]

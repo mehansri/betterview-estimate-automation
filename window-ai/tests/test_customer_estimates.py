@@ -682,3 +682,22 @@ def test_company_payment_schedule_is_validated(tmp_path, monkeypatch):
     saved = business_settings.save_group("estimate_document", {**settings, "payment_schedule": [
         {"trigger": "deposit", "percentage": 50}, {"trigger": "delivery", "percentage": 25}, {"trigger": "completion", "percentage": 25}]})
     assert [entry["percentage"] for entry in saved["payment_schedule"]] == [50, 25, 25]
+
+
+def test_window_specs_every_line_shares_are_stated_once():
+    """The estimate lists what every window has (collection, colours, glass, jamb) once, above the list;
+    each line keeps its own type, size and sections."""
+    from services.estimate_documents import shared_window_specs
+
+    common = 'Exterior colour: black - Interior colour: black - LoE 180 - Argon gas - 5 1/2" primed wood jamb'
+    shared, own = shared_window_specs([
+        f'Classic 3 1/4" (WC-100 series) 2-section window unit - 42.125 x 144 in - Fixed / Fixed - {common}',
+        f'Classic 3 1/4" (WC-100 series) casement (left) window - 24 x 72 in - {common}',
+    ])
+    assert shared == ['Classic 3 1/4" (WC-100 series)', "Exterior colour: black", "Interior colour: black",
+                      "LoE 180", "Argon gas", '5 1/2" primed wood jamb']
+    assert own == ["2-section window unit - 42.125 x 144 in - Fixed / Fixed", "Casement (left) window - 24 x 72 in"]
+    # A part only some windows have stays on those lines; one window shares nothing.
+    shared, own = shared_window_specs(["Casement - 24 x 72 in - LoE 180", "Awning - 30 x 20 in - Triple pane"])
+    assert shared == [] and own[1] == "Awning - 30 x 20 in - Triple pane"
+    assert shared_window_specs(["Casement - 24 x 72 in - LoE 180"]) == ([], ["Casement - 24 x 72 in - LoE 180"])

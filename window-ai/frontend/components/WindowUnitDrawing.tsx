@@ -55,6 +55,8 @@ type Props = {
   /** Division chain dimensions along the bottom and right edges. */
   showDivisions?: boolean;
   showSectionSizes?: boolean;
+  /** Smallest on-screen size of the dimension labels, px (estimate thumbnails); the margins grow to fit. */
+  labelPx?: number;
   /** Section numbers on multi-section units (off for thumbnails). */
   showIndexes?: boolean;
   /** Text shown over the joint being dragged (e.g. "1/3"). */
@@ -170,6 +172,7 @@ export default function WindowUnitDrawing({
   showIndexes = true,
   dragLabel = null,
   title,
+  labelPx,
 }: Props) {
   const uid = useId().replace(/:/g, "");
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -187,12 +190,15 @@ export default function WindowUnitDrawing({
   const frame = Math.min(Math.max(Math.min(W, H) * 0.045, 1.4), 2.6);
   const mullion = frame * 0.8;
   const sash = frame * 0.75;
-  const font = u * 3.6;
+  // A thumbnail's labels would be a few px: keep them at labelPx on screen, and the margins wide enough for them.
+  const roughScale = size / Math.max(W + u * 11.5, H + u * 11.5);
+  const font = labelPx ? Math.max(u * 3.6, labelPx / roughScale) : u * 3.6;
+  const dimMargin = Math.max(u * 10, font * 2.3);
   const chains = showDivisions ? chainDimensions(resolved) : { across: [], down: [] };
   const showAcross = chains.across.length > 1;
   const showDown = chains.down.length > 1;
-  const top = showDimensions ? u * 10 : u * 1.5;
-  const left = showDimensions ? u * 10 : u * 1.5;
+  const top = showDimensions ? dimMargin : u * 1.5;
+  const left = showDimensions ? dimMargin : u * 1.5;
   const bottom = showAcross ? u * 9 : u * 1.5;
   const right = showDown ? u * 9 : u * 1.5;
   const boxW = W + left + right;
