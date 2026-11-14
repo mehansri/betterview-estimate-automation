@@ -13,7 +13,7 @@ import SignaturePad from "@/components/SignaturePad";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import DoorOpeningCard from "@/components/estimate/DoorOpeningCard";
 import { WindowLineText, WindowSpecsBox } from "@/components/estimate/WindowSpecs";
-import { sharedWindowSpecs } from "@/lib/windowSpecs";
+import { sharedWindowSpecs, windowGroups } from "@/lib/windowSpecs";
 import { DoorOptionsStrip, OptionDifferences, doorOptionCards, doorOptionKicker } from "@/components/estimate/DoorOptions";
 import { DoorGeometryDrawing } from "@/components/DoorDrawing";
 
@@ -96,7 +96,12 @@ function LineTable({
   caption: string;
   showLocation?: boolean;
   showIndex?: boolean;
-  rows: Array<{ key: string; title: string; subtitle?: string; visual?: ReactNode; location?: string; qty: number; unit: number; amount: number; content?: ReactNode }>;
+  rows: Array<{ key: string; title: string; subtitle?: string; visual?: ReactNode; location?: string; qty: number; unit: number; amount: number; content?: ReactNode;
+    /** The line's own number (lines shown grouped keep their order's numbers). */
+    number?: number;
+    /** Starts a group: its name, line count and subtotal shown above it. */
+    group?: { label: string; count: number; subtotal: number };
+  }>;
 }) {
   return (
     <>
@@ -114,9 +119,17 @@ function LineTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {rows.map((row, index) => (
+            {rows.map((row, index) => [
+              row.group ? (
+                <tr key={`${row.key}-group`} className="bg-slate-50">
+                  <td colSpan={(showIndex ? 1 : 0) + (showLocation ? 1 : 0) + 3} className="px-2 py-2 text-sm font-semibold text-slate-900">
+                    {row.group.label} <span className="font-normal text-slate-500">· {row.group.count} window{row.group.count === 1 ? "" : "s"}</span>
+                  </td>
+                  <td className="whitespace-nowrap px-0 py-2 text-right text-sm font-semibold tabular-nums text-slate-900">{money(row.group.subtotal)}</td>
+                </tr>
+              ) : null,
               <tr key={row.key} className="align-top">
-                {showIndex ? <td className="py-3 pr-3 tabular-nums text-slate-500">{index + 1}</td> : null}
+                {showIndex ? <td className="py-3 pr-3 tabular-nums text-slate-500">{row.number ?? index + 1}</td> : null}
                 <td className="py-3 pr-3 text-slate-900">
                   {row.content ?? (
                     <>
@@ -130,19 +143,25 @@ function LineTable({
                 <td className="py-3 pr-3 text-right tabular-nums text-slate-700">{row.qty}</td>
                 <td className="whitespace-nowrap py-3 pr-3 text-right tabular-nums text-slate-700">{money(row.unit)}</td>
                 <td className="whitespace-nowrap py-3 text-right font-semibold tabular-nums text-slate-900">{money(row.amount)}</td>
-              </tr>
-            ))}
+              </tr>,
+            ])}
           </tbody>
         </table>
       </div>
       <ul className="divide-y divide-slate-100 sm:hidden print:hidden" aria-label={caption}>
         {rows.map((row, index) => (
           <li key={row.key} className="py-3">
+            {row.group ? (
+              <div className="-mx-1 mb-3 flex items-baseline justify-between gap-3 rounded-md bg-slate-50 px-2 py-1.5 text-sm font-semibold text-slate-900">
+                <span>{row.group.label} <span className="font-normal text-slate-500">· {row.group.count} window{row.group.count === 1 ? "" : "s"}</span></span>
+                <span className="tabular-nums">{money(row.group.subtotal)}</span>
+              </div>
+            ) : null}
             {row.content ? (
               // The row's own layout (a window: drawing, type, size); the number and price beside it, said once.
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 text-sm">
-                  {showIndex ? <span className="mb-1 block text-slate-400">{index + 1}.</span> : null}
+                  {showIndex ? <span className="mb-1 block text-slate-400">{row.number ?? index + 1}.</span> : null}
                   {row.content}
                 </div>
                 <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(row.amount)}</p>
@@ -152,7 +171,7 @@ function LineTable({
                 {row.visual ? <div className="mb-2">{row.visual}</div> : null}
                 <div className="flex items-start justify-between gap-3">
                   <p className="min-w-0 break-words text-sm font-medium text-slate-900">
-                    {showIndex ? <span className="mr-1.5 text-slate-400">{index + 1}.</span> : null}
+                    {showIndex ? <span className="mr-1.5 text-slate-400">{row.number ?? index + 1}.</span> : null}
                     <span className="whitespace-pre-line">{row.title}</span>
                   </p>
                   <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{money(row.amount)}</p>
@@ -326,6 +345,14 @@ export default function CustomerPortal({ token }: { token: string }) {
   const sections = estimate.sections;
   const windowLines = sections?.windows?.lines ?? [];
   const windowSpecs = sharedWindowSpecs(windowLines.map((line) => line.description || ""));
+  // Many windows: grouped by where they are, each group headed by its name, count and subtotal.
+  const windowOrder = (windowGroups(windowLines.map((line) => line.location)) ?? [{ label: "", indexes: windowLines.map((_, index) => index) }])
+    .flatMap((group) => group.indexes.map((index, position) => ({
+      index,
+      group: group.label && position === 0
+        ? { label: group.label, count: group.indexes.length, subtotal: group.indexes.reduce((sum, i) => sum + Number(windowLines[i].line_total || 0), 0) }
+        : undefined,
+    })));
   const doorOpenings = sections?.doors?.openings ?? [];
   // Doors offered as options (gone once one is accepted): every option's door, each option priced on its own.
   const doorOptions = estimate.door_options?.openings?.length ? estimate.door_options : null;
@@ -595,8 +622,10 @@ export default function CustomerPortal({ token }: { token: string }) {
               caption="Windows"
               showIndex
               showLocation
-              rows={windowLines.map((line, index) => ({
+              rows={windowOrder.map(({ index, group }) => ({ line: windowLines[index], index, group })).map(({ line, index, group }) => ({
                 key: line.id,
+                number: index + 1,
+                group,
                 title: line.description,
                 subtitle: line.energy || undefined,
                 content: (

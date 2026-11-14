@@ -667,6 +667,52 @@ def _clip_to_oval(a, b, box):
     return a[0] + t0 * (b[0] - a[0]), a[1] + t0 * (b[1] - a[1]), a[0] + t1 * (b[0] - a[0]), a[1] + t1 * (b[1] - a[1])
 
 
+WINDOW_GROUP_MIN_LINES = 6
+WINDOW_GROUP_MAX_GROUPS = 12
+WINDOW_GROUP_MIN_AVERAGE = 2.5
+
+
+def _location_parts(location: Any) -> list[str]:
+    """A location's levels: "Second floor · East · front elevation · N/201" -> 4 parts; notes in
+    brackets ("North side (left)") are dropped."""
+    text = re.sub(r"\s*\([^)]*\)", "", str(location or "")).strip()
+    return [part.strip() for part in re.split(r"\s*[·•|]\s*", text) if part.strip()]
+
+
+def window_groups(locations: list[Any]) -> list[tuple[str, list[int]]] | None:
+    """Window lines grouped by where they are, for an estimate with many: [(label, line indexes)].
+
+    Locations are free text, often levels ("Second floor · East · front elevation · N/201") or a
+    side with a note ("North side (left)"). The most specific level that groups well is used:
+    at least 6 lines, 2 to 12 groups, 2.5 or more lines a group, and no more than one group (or a
+    quarter of them) a single window (else the next level up). One window a room ("Kitchen",
+    "Den") doesn't group, so None: the list stays as it is. Groups keep the order they first
+    appear in; lines without a location go last, as "Other windows". Mirrors windowGroups() in
+    frontend/lib/windowSpecs.ts.
+    """
+    if len(locations) < WINDOW_GROUP_MIN_LINES:
+        return None
+    parts = [_location_parts(location) for location in locations]
+    deepest = max((len(item) for item in parts), default=0)
+    for depth in range(deepest, 0, -1):
+        groups: dict[str, list[int]] = {}
+        labels: dict[str, str] = {}
+        for index, item in enumerate(parts):
+            label = " · ".join(item[:depth])
+            key = label.casefold()
+            groups.setdefault(key, []).append(index)
+            labels.setdefault(key, label or "Other windows")
+        named = [key for key in groups if key]
+        if not 2 <= len(groups) <= WINDOW_GROUP_MAX_GROUPS or len(locations) / len(groups) < WINDOW_GROUP_MIN_AVERAGE:
+            continue
+        # A level where many groups are one window apiece reads as fragments: try a broader one.
+        if sum(len(groups[key]) == 1 for key in named) > max(1.0, 0.25 * len(named)):
+            continue
+        ordered = named + ([""] if "" in groups else [])
+        return [(labels[key], groups[key]) for key in ordered]
+    return None
+
+
 def shared_window_specs(descriptions: list[str]) -> tuple[list[str], list[str]]:
     """What every window line says, and what each says on its own.
 
@@ -1360,7 +1406,7 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
         # What every window has is said once, above the list; each line keeps its own type, size and sections.
         shared, own = shared_window_specs([line.get("description") or "" for line in windows])
         drawing_w = 1.45 * inch
-        rows: list[list[Any]] = [heads("#", "", "Description", "Location", "Qty", "Unit", "Amount")]
+        window_rows: list[list[Any]] = []
         for index, (line, text) in enumerate(zip(windows, own), start=1):
             sketch = window_drawing_flowable(line.get("drawing"), drawing_w - 8, 1.25 * inch, dimensions=True)
             # The window type in bold, then its size and sections.
@@ -1371,15 +1417,36 @@ def render_pdf(view: dict[str, Any], *, signature_data_url: str | None = None) -
                 description.append(Paragraph(escape(rest.replace(" - ", " · ")), cell))
             if line.get("energy"):
                 description.append(p(line["energy"], small))
-            rows.append([p(index, cell_strong), sketch or "", description, p(line.get("location") or "—", cell),
-                         p(line.get("qty"), cell_right), p(_money(line.get("unit_price")), cell_right),
-                         p(_money(line.get("line_total")), cell_strong_right)])
+            window_rows.append([p(index, cell_strong), sketch or "", description, p(line.get("location") or "—", cell),
+                                p(line.get("qty"), cell_right), p(_money(line.get("unit_price")), cell_right),
+                                p(_money(line.get("line_total")), cell_strong_right)])
         widths = [0.3 * inch, drawing_w, inner - 3.4 * inch - drawing_w, 1.0 * inch, 0.4 * inch, 0.85 * inch, 0.85 * inch]
+        columns = heads("#", "", "Description", "Location", "Qty", "Unit", "Amount")
         block: list[Any] = [*section_heading("Scope of work", "Windows", _before_discount(sections["windows"]))]
         if shared:
             block += [Spacer(1, 8), window_specs_box(shared)]
-        block.append(product_table(rows, widths))
-        story.extend(padded(block, top=14))
+        groups = window_groups([line.get("location") for line in windows])
+        if not groups:
+            block.append(product_table([columns, *window_rows], widths))
+            story.extend(padded(block, top=14))
+        else:
+            story.extend(padded(block, top=14))
+            # Each group: its name, window count and subtotal, then its windows (numbered as on the order);
+            # the heading starts a page with its first window under it.
+            for label_text, indexes in groups:
+                subtotal = sum(float(windows[i].get("line_total") or 0) for i in indexes)
+                count = f"{len(indexes)} window{'s' if len(indexes) != 1 else ''}"
+                heading = Table([[Paragraph(f"{label_text.replace('&', '&amp;').replace('<', '&lt;')} <font size=9 color='{PDF_BRAND['muted']}'>· {count}</font>", h3),
+                                  p(_money(subtotal), h3_right)]], colWidths=[inner - 1.4 * inch, 1.4 * inch])
+                heading.setStyle(TableStyle([
+                    ("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LINEBELOW", (0, 0), (-1, -1), 0.75, line_colour),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                    ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]))
+                table = product_table([columns, *[window_rows[i] for i in indexes]], widths)
+                table.wrap(inner, doc.height)
+                first = sum(table._rowHeights[:2])
+                story.extend(padded([CondPageBreak(first + 34), heading, table], top=12))
 
     door_options = (view.get("door_options") or {}) if (view.get("door_options") or {}).get("openings") else None
     option_tiers = [tier for tier in view.get("tiers") or [] if tier.get("total") is not None]

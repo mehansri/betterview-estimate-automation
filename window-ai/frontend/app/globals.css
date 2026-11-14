@@ -202,6 +202,8 @@ button, input, select, textarea { max-width: 100%; }
 .window-specs-box dl > div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.5rem; }
 .window-specs-box dt { color: var(--estimate-navy, #0f172a); font-weight: 700; }
 .window-specs-box dd { color: #315269; }
+.estimate-window-group td { background: var(--estimate-soft, #f8fafc); color: var(--estimate-navy, #0f172a); font-weight: 800; font-size: 0.82rem; padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.estimate-window-group td span { color: var(--estimate-muted, #64748b); font-weight: 500; }
 .window-line { display: flex; align-items: flex-start; gap: 0.75rem; text-align: left; }
 .window-line-sketch { display: flex; flex-shrink: 0; justify-content: center; width: 8.25rem; }
 .window-line-text { display: flex; min-width: 0; flex-direction: column; gap: 0.1rem; }
@@ -305,6 +307,9 @@ button, input, select, textarea { max-width: 100%; }
   .estimate-table, .estimate-table tbody, .estimate-table tr, .estimate-table td { display: block; width: 100%; }
   .estimate-table thead { display: none; }
   .estimate-table tr { margin-top: 0.75rem; border: 1px solid var(--estimate-line); border-radius: 0.65rem; padding: 0.3rem 0.65rem; }
+  .estimate-table tr.estimate-window-group { display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 1.1rem; border: 0; background: var(--estimate-soft, #f8fafc); }
+  .estimate-table tr.estimate-window-group td { display: block; width: auto; border: 0; padding: 0.3rem 0; text-align: left; }
+  .estimate-table tr.estimate-window-group td::before { content: none; }
   .estimate-table td { display: grid; grid-template-columns: minmax(5rem, 0.38fr) minmax(0, 1fr); gap: 0.75rem; border-bottom: 1px solid #edf3f6; padding: 0.42rem 0; text-align: right; overflow-wrap: anywhere; }
   .estimate-table td:last-child { border-bottom: 0; }
   .estimate-table td::before { content: attr(data-label); color: var(--estimate-muted); font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-align: left; text-transform: uppercase; }

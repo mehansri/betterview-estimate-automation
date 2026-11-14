@@ -701,3 +701,23 @@ def test_window_specs_every_line_shares_are_stated_once():
     shared, own = shared_window_specs(["Casement - 24 x 72 in - LoE 180", "Awning - 30 x 20 in - Triple pane"])
     assert shared == [] and own[1] == "Awning - 30 x 20 in - Triple pane"
     assert shared_window_specs(["Casement - 24 x 72 in - LoE 180"]) == ([], ["Casement - 24 x 72 in - LoE 180"])
+
+
+def test_window_groups_by_where_the_windows_are():
+    """Estimates with many windows group them by location (frontend/lib/windowSpecs.ts windowGroups mirrors this)."""
+    from services.estimate_documents import window_groups
+
+    # A side with a note: grouped by the side, in the order the groups first appear.
+    sides = ["North side (left)"] * 4 + ["South side (right)"] * 8
+    assert [(label, len(ix)) for label, ix in window_groups(sides)] == [("North side", 4), ("South side", 8)]
+    # Floor · elevation · tag: the tag is per window; floor · elevation leaves many lone windows, so by floor.
+    levels = (["Second floor · East · front elevation · N/20%d" % i for i in range(5)]
+              + ["Second floor · West · back elevation · T/23%d" % i for i in range(5)]
+              + ["Ground floor · East · front elevation · A/10%d" % i for i in range(3)]
+              + ["Ground floor · South · left elevation · B/110", "Basement · North · right elevation · CC/001"])
+    assert [(label, len(ix)) for label, ix in window_groups(levels)] == [("Second floor", 10), ("Ground floor", 4), ("Basement", 1)]
+    # One window a room: nothing to group. Too few windows: nothing to group.
+    assert window_groups(["Kitchen", "Den", "Living room", "Basement", "Attic", "Primary bedroom", "Primary bedroom"]) is None
+    assert window_groups(["North"] * 3 + ["South"] * 2) is None
+    # Lines without a location go last.
+    assert window_groups(["Front"] * 4 + [""] + ["Back"] * 4)[-1] == ("Other windows", [4])

@@ -40,6 +40,44 @@ export function sharedSpecRows(shared: string[]): Array<[string, string]> {
   return rows;
 }
 
+const GROUP_MIN_LINES = 6;
+const GROUP_MAX_GROUPS = 12;
+const GROUP_MIN_AVERAGE = 2.5;
+
+/** A location's levels ("Second floor · East · front elevation · N/201"); notes in brackets are dropped. */
+function locationParts(location: string | null | undefined): string[] {
+  const text = String(location || "").replace(/\s*\([^)]*\)/g, "").trim();
+  return text.split(/\s*[·•|]\s*/).map((part) => part.trim()).filter(Boolean);
+}
+
+/**
+ * Window lines grouped by where they are, for an estimate with many: [{ label, indexes }], or null to
+ * keep one list. Mirrors window_groups() in services/estimate_documents.py: the most specific level of
+ * the locations that groups well (6+ lines, 2-12 groups, 2.5+ lines a group, no more than one group, or a
+ * quarter of them, a single window); groups in the order they first appear, lines without a location last.
+ */
+export function windowGroups(locations: Array<string | null | undefined>): Array<{ label: string; indexes: number[] }> | null {
+  if (locations.length < GROUP_MIN_LINES) return null;
+  const parts = locations.map(locationParts);
+  const deepest = Math.max(0, ...parts.map((item) => item.length));
+  for (let depth = deepest; depth > 0; depth -= 1) {
+    const groups = new Map<string, number[]>();
+    const labels = new Map<string, string>();
+    parts.forEach((item, index) => {
+      const label = item.slice(0, depth).join(" · ");
+      const key = label.toLowerCase();
+      if (!groups.has(key)) { groups.set(key, []); labels.set(key, label || "Other windows"); }
+      groups.get(key)!.push(index);
+    });
+    const named = Array.from(groups.keys()).filter(Boolean);
+    if (groups.size < 2 || groups.size > GROUP_MAX_GROUPS || locations.length / groups.size < GROUP_MIN_AVERAGE) continue;
+    if (named.filter((key) => groups.get(key)!.length === 1).length > Math.max(1, 0.25 * named.length)) continue;
+    const ordered = [...named, ...(groups.has("") ? [""] : [])];
+    return ordered.map((key) => ({ label: labels.get(key)!, indexes: groups.get(key)! }));
+  }
+  return null;
+}
+
 /** A line's own text as its window type (shown bold) and the rest, " · "-joined. */
 export function windowLineParts(text: string): { type: string; detail: string } {
   const [type, ...rest] = text.split(" - ");

@@ -1,12 +1,12 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
 import type { CustomerEstimate, CustomerEstimatePricing, EstimateCollectionCopy } from "@/lib/api";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import WindowUnitDrawing from "@/components/WindowUnitDrawing";
 import DoorOpeningCard from "@/components/estimate/DoorOpeningCard";
 import { WindowLineText, WindowSpecsBox } from "@/components/estimate/WindowSpecs";
-import { sharedWindowSpecs } from "@/lib/windowSpecs";
+import { sharedWindowSpecs, windowGroups } from "@/lib/windowSpecs";
 import { DoorOptionsStrip, OptionsPricingTable, doorOptionKicker } from "@/components/estimate/DoorOptions";
 import { layoutFromLegacySpec } from "@/lib/windowLayout";
 import { specExteriorColour } from "@/lib/productOptions";
@@ -122,7 +122,10 @@ export default function EstimateDocument({
   const totals = pricing?.totals;
   const taxLabel = totals?.tax_label || "HST";
   // What every window has is said once above the list; each line keeps its own type, size and sections.
-  const windowSpecs = sharedWindowSpecs((sections?.windows?.lines || []).map((line) => line.description || ""));
+  const windowLineList = sections?.windows?.lines || [];
+  const windowSpecs = sharedWindowSpecs(windowLineList.map((line) => line.description || ""));
+  // Many windows: grouped by where they are (each group's name, count and subtotal), numbered as on the order.
+  const groupedWindows = windowGroups(windowLineList.map((line) => line.location)) ?? [{ label: "", indexes: windowLineList.map((_, index) => index) }];
   // Doors offered as options: every option's door is shown and each option priced, never added up.
   const doorOptions = pricing?.door_options?.openings?.length ? pricing.door_options : null;
   const optionTiers = (pricing?.tiers || []).filter((tier) => !tier.error);
@@ -198,7 +201,20 @@ export default function EstimateDocument({
           <div className="estimate-section-heading"><div><p className="estimate-section-label">Scope of work</p><h2>Windows</h2></div><span>{money(sections.windows.base_subtotal ?? sections.windows.subtotal)}</span></div>
           <WindowSpecsBox shared={windowSpecs.shared} />
           <table className="estimate-table"><thead><tr><th>#</th><th>Description</th><th>Location</th><th className="text-right">Qty</th><th className="text-right">Unit</th><th className="text-right">Amount</th></tr></thead><tbody>
-            {sections.windows.lines.map((line, index) => <tr key={line.id}><td data-label="#">{index + 1}</td><td data-label="Description"><WindowLineText text={windowSpecs.own[index] ?? line.description} energy={line.energy} sketch={<WindowLineSketch line={line} estimate={estimate} />} /></td><td data-label="Location">{line.location || "—"}</td><td data-label="Qty" className="text-right">{line.qty}</td><td data-label="Unit" className="text-right">{money(line.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(line.line_total)}</td></tr>)}
+            {groupedWindows.map((group) => (
+              <Fragment key={group.label || "all"}>
+                {group.label ? (
+                  <tr className="estimate-window-group">
+                    <td colSpan={5}>{group.label}<span> · {group.indexes.length} window{group.indexes.length === 1 ? "" : "s"}</span></td>
+                    <td className="text-right">{money(group.indexes.reduce((sum, i) => sum + Number(windowLineList[i].line_total || 0), 0))}</td>
+                  </tr>
+                ) : null}
+                {group.indexes.map((index) => {
+                  const line = windowLineList[index];
+                  return <tr key={line.id}><td data-label="#">{index + 1}</td><td data-label="Description"><WindowLineText text={windowSpecs.own[index] ?? line.description} energy={line.energy} sketch={<WindowLineSketch line={line} estimate={estimate} />} /></td><td data-label="Location">{line.location || "—"}</td><td data-label="Qty" className="text-right">{line.qty}</td><td data-label="Unit" className="text-right">{money(line.unit_price)}</td><td data-label="Amount" className="text-right font-semibold">{money(line.line_total)}</td></tr>;
+                })}
+              </Fragment>
+            ))}
           </tbody></table>
         </section>
       ) : null}
