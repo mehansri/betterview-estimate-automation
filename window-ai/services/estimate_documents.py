@@ -468,12 +468,13 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
         """Wood grain on a stained slab, sidelite or transom frame (mirrors Grain in DoorDrawing.tsx)."""
         if not geometry.get("grain"):
             return
-        stroke = _hex_colour(slab_hex, 14 if dark_slab else -16)
+        # Faint, fine and wavy: a texture, not lines that read as grooves on a flush slab.
+        stroke = _hex_colour(slab_hex, GRAIN_SHADE_DARK if dark_slab else GRAIN_SHADE_LIGHT)
         for index, gx in enumerate(_grain_lines(w)):
             points: list[float] = []
             for gy in _grain_rows(h):
-                points += pt(ox + gx + 0.3 * math.sin(gy / 7 + index * 1.7), oy + gy)
-            d.add(PolyLine(points, strokeColor=stroke, strokeWidth=max(0.12 * scale, 0.2)))
+                points += pt(ox + gx + GRAIN_WAVE_IN * math.sin(gy / GRAIN_WAVE_PERIOD + index * 1.7), oy + gy)
+            d.add(PolyLine(points, strokeColor=stroke, strokeWidth=max(GRAIN_STROKE_IN * scale, 0.12)))
 
     # Brickmould, then the frame.
     d.add(Rect(0, 0, (total_w + 3) * scale, (total_h + 1.5) * scale, fillColor=_hex_colour(frame_hex, -25), strokeColor=None))
@@ -558,6 +559,13 @@ GLASS_FRAME_IN = 1.1  # the moulded frame round a glass insert
 GLASS_LATTICE_IN = 4.0  # decorative glass: diagonal lattice spacing
 GLASS_BORDER_IN = 1.2  # decorative glass: the border line inside the frame
 GRAIN_SPACING_IN = 1.6
+# Wood grain stays close to the stain colour so a flush slab doesn't look grooved
+# (same numbers as Grain in DoorDrawing.tsx).
+GRAIN_SHADE_DARK = 6  # lighter by this much per channel on a dark stain
+GRAIN_SHADE_LIGHT = -7  # darker by this much on a light stain
+GRAIN_STROKE_IN = 0.07
+GRAIN_WAVE_IN = 0.5
+GRAIN_WAVE_PERIOD = 9
 
 
 def _hash01(index: int) -> float:

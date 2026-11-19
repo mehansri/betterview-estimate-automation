@@ -207,20 +207,23 @@ function hash01(index: number) {
   return value - Math.floor(value);
 }
 
-/** Wood grain on a stained part: fine, slightly wavy lines about every 1.6" (grain() in estimate_documents.py). */
+/**
+ * Wood grain on a stained part: faint, fine, wavy lines about every 1.6" (grain() in estimate_documents.py).
+ * Kept close to the stain colour so a flush slab doesn't look grooved.
+ */
 function Grain({ ox, oy, w, h, slabColour }: { ox: number; oy: number; w: number; h: number; slabColour: string }) {
   const count = Math.floor(w / 1.6);
   const rows: number[] = [];
   for (let y = 0; y < Math.floor(h); y += 4) rows.push(y);
   rows.push(h);
-  const stroke = shade(slabColour, brightness(slabColour) < 0.35 ? 14 : -16);
+  const stroke = shade(slabColour, brightness(slabColour) < 0.35 ? 6 : -7);
   const lines: string[] = [];
   for (let i = 0; i < count; i += 1) {
     const gx = ((i + 0.5) * w) / Math.max(count, 1) + (hash01(i) - 0.5) * 0.8;
     if (gx <= 0.4 || gx >= w - 0.4) continue;
-    lines.push(rows.map((gy) => `${ox + gx + 0.3 * Math.sin(gy / 7 + lines.length * 1.7)},${oy + gy}`).join(" "));
+    lines.push(rows.map((gy) => `${ox + gx + 0.5 * Math.sin(gy / 9 + lines.length * 1.7)},${oy + gy}`).join(" "));
   }
-  return <g fill="none" stroke={stroke} strokeWidth={0.12}>{lines.map((points, i) => <polyline key={i} points={points} />)}</g>;
+  return <g fill="none" stroke={stroke} strokeWidth={0.07}>{lines.map((points, i) => <polyline key={i} points={points} />)}</g>;
 }
 
 export type DoorDrawingProps = {
