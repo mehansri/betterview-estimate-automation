@@ -61,6 +61,23 @@ type GlassSpec = { size?: string; family?: string } | null;
 
 type Lite = { x: number; y: number; w: number; h: number; shape: "rect" | "half" | "oval" };
 
+/** The frame showing round direct-set glass, inches (as competitor renders: the glass fills the sidelite). */
+const DIRECT_SET_INSET_IN = 0.9;
+
+/** A direct-glazed (direct-set) glass size: "up to 27.5\"", "10\"-14\"". */
+export function isDirectSet(size: string | undefined | null) {
+  const text = (size || "").toLowerCase();
+  return text.includes("up to") || /\d+(\.\d+)?"-/.test(text);
+}
+
+/** A Palma stain's swatch photo (config/door_stains, copied to public/door-stains), grain running up the door. */
+export function stainSwatchUrl(stain?: string | null) {
+  return stain && /^[a-z-]+$/.test(stain) ? `/door-stains/${stain}.jpg` : null;
+}
+
+/** Inches of door the swatch photo spans across (its grain density on every part). */
+const SWATCH_SPAN_IN = 42;
+
 /** Parse "22x36", "08x36 (x2)", "22x12 (x4)", "Half-Moon", "Oval 3/4" into lites on a slab. */
 export function glassLites(size: string | undefined, slabW: number, slabH: number, sidelite = false): Lite[] {
   if (!size) return [];
@@ -73,9 +90,9 @@ export function glassLites(size: string | undefined, slabW: number, slabH: numbe
     const w = Math.min(20, slabW - 10);
     return [{ x: (slabW - w) / 2, y: 8, w, h: slabH * 0.55, shape: "oval" }];
   }
-  if (text.includes("up to") || /\d+(\.\d+)?"-/.test(text)) {
-    // Direct-glazed sidelite: glass fills the panel.
-    return [{ x: 3, y: 3, w: slabW - 6, h: slabH - 6, shape: "rect" }];
+  if (isDirectSet(text)) {
+    // Direct-glazed sidelite: glass fills the panel inside a thin surround (DIRECT_SET_INSET_IN in pipeline.py).
+    return [{ x: DIRECT_SET_INSET_IN, y: DIRECT_SET_INSET_IN, w: slabW - 2 * DIRECT_SET_INSET_IN, h: slabH - 2 * DIRECT_SET_INSET_IN, shape: "rect" }];
   }
   const match = text.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/);
   if (!match) return [];
@@ -121,9 +138,12 @@ function GlassFill({ id, family }: { id: string; family?: string }) {
   const frosted = family === "sandblast" || family === "obscure";
   return (
     <defs>
-      <linearGradient id={`${id}-g`} x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor={frosted ? "#f1f5f9" : "#e0f2fe"} />
-        <stop offset="1" stopColor={frosted ? "#cbd5e1" : "#7dd3fc"} />
+      {/* Glass as competitor renders draw it: white in the middle, soft grey at the edges (frosted glass flatter and paler). */}
+      <linearGradient id={`${id}-g`} x1="0" y1="0" x2="1" y2="0">
+        {(frosted ? GLASS_FROSTED_STOPS : GLASS_STOPS).map(([offset, colour]) => <stop key={offset} offset={offset} stopColor={colour} />)}
+      </linearGradient>
+      <linearGradient id={`${id}-satin`} x1="0" y1="0" x2="0" y2="1">
+        {GLASS_FADE_STOPS.map(([offset, opacity]) => <stop key={offset} offset={offset} stopColor="#b9c0c6" stopOpacity={opacity} />)}
       </linearGradient>
       <pattern id={`${id}-deco`} width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
         <rect width="4" height="4" fill={`url(#${id}-g)`} />
@@ -136,6 +156,11 @@ function GlassFill({ id, family }: { id: string; family?: string }) {
     </defs>
   );
 }
+
+/** Glass colours across a pane, and the grey fade at its top and bottom (GLASS_* in estimate_documents.py). */
+const GLASS_STOPS: Array<[number, string]> = [[0, "#cdd3d8"], [0.2, "#eef1f3"], [0.5, "#ffffff"], [0.8, "#eef1f3"], [1, "#cdd3d8"]];
+const GLASS_FROSTED_STOPS: Array<[number, string]> = [[0, "#dfe3e7"], [0.5, "#f4f6f8"], [1, "#dfe3e7"]];
+const GLASS_FADE_STOPS: Array<[number, number]> = [[0, 0.55], [0.08, 0], [0.92, 0], [1, 0.55]];
 
 /** The moulded frame round a glass insert, the lattice spacing and border of decorative glass (as estimate_documents.py). */
 const GLASS_FRAME_IN = 1.1;
@@ -158,7 +183,7 @@ function LiteShape({ lite, id, family, ox, oy, slabColour, framed = true }: { li
   const fill = family === "blinds" ? `url(#${id}-blinds)` : `url(#${id}-g)`;
   const x = ox + lite.x;
   const y = oy + lite.y;
-  const common = { fill, stroke: "#475569", strokeWidth: 0.3 };
+  const common = { fill, stroke: "#9aa3ab", strokeWidth: 0.3 };
   const grid = family === "grills" || family === "sdl";
   const dark = brightness(slabColour) < 0.35;
   const clip = `${id}-clip-${Math.round(x * 10)}-${Math.round(y * 10)}`;
@@ -170,13 +195,16 @@ function LiteShape({ lite, id, family, ox, oy, slabColour, framed = true }: { li
   const pattern = "#0369a1";
   return (
     <g>
-      {framed ? shape(GLASS_FRAME_IN, { fill: shade(slabColour, dark ? 26 : -16), stroke: shade(slabColour, dark ? 55 : -50), strokeWidth: 0.25 }) : null}
+      {framed ? shape(GLASS_FRAME_IN, { fill: shade(slabColour, dark ? 26 : -16), stroke: "#000", strokeOpacity: 0.35, strokeWidth: 0.25 }) : null}
       <defs><clipPath id={clip}>{shape(0, {})}</clipPath></defs>
       {shape(0, common)}
       <g clipPath={`url(#${clip})`}>
-        {lite.shape === "rect" ? (
-          // A sheen across the glass (as the PDF's pane()).
-          <polygon points={[[x + lite.w * 0.18, y], [x + lite.w * 0.42, y], [x + lite.w * 0.42 - lite.h * 0.45, y + lite.h], [x + lite.w * 0.18 - lite.h * 0.45, y + lite.h]].map((p) => p.join(",")).join(" ")} fill="#ffffff" opacity={0.45} />
+        {lite.shape === "rect" && family !== "blinds" ? (
+          // A soft grey fade at the top and bottom, and a light bead inside the edge (as the PDF's pane()).
+          <>
+            <rect x={x} y={y} width={lite.w} height={lite.h} fill={`url(#${id}-satin)`} />
+            <rect x={x + 0.25} y={y + 0.25} width={Math.max(lite.w - 0.5, 0)} height={Math.max(lite.h - 0.5, 0)} fill="none" stroke="#ffffff" strokeOpacity={0.7} strokeWidth={0.15} />
+          </>
         ) : null}
         {(family === "decorative" || family === "specialty") && lite.shape !== "half" ? (
           <g stroke={pattern} strokeWidth={0.15} opacity={0.5}>
@@ -257,6 +285,10 @@ export type DoorDrawingProps = {
   sideliteFaces?: Array<FaceElement[] | null>;
   /** Stained finishes: draw a wood grain. */
   grain?: boolean;
+  /** A Palma standard stain on the slab (and sidelites), drawn with its swatch photo instead of grain lines. */
+  stain?: string | null;
+  /** The frame's Palma stain when it is stained. */
+  frameStain?: string | null;
 };
 
 /** 10.5 -> 10-1/2" (as the custom door estimates and the PDF's _inch_label write sizes). */
@@ -264,7 +296,7 @@ function inchLabel(value: number): string {
   return `${fmtInches(value).replace(" ", "-")}"`;
 }
 
-export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", face, doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, sideliteWidth, transomHeight, size = 360, showDimensions = true, heightLabel, sideliteLabelIn, transomLabelIn, sideliteFaces, grain = false }: DoorDrawingProps) {
+export default function DoorDrawing({ doors, sidelites, transom, width, heightIn, model = "", face, doorGlass, sideliteGlass = [], transomGlass, slabColour, frameColour, lock, pullBarIn, sideliteWidth, transomHeight, size = 360, showDimensions = true, heightLabel, sideliteLabelIn, transomLabelIn, sideliteFaces, grain = false, stain, frameStain }: DoorDrawingProps) {
   const frame = 2;
   const mull = 1.5;
   const sideW = sideliteWidth && sideliteWidth > 0 ? sideliteWidth : 14;
@@ -280,6 +312,11 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
   const scale = size / Math.max(totalW + pad * 2, totalH + pad * 2);
   const doorTop = frame + transomH + (transom ? mull : 0);
   const trim = shade(frameColour, -25);
+  const slabWood = stainSwatchUrl(stain);
+  const frameWood = stainSwatchUrl(frameStain);
+  const slabFill = slabWood ? `url(#${id}-wood)` : slabColour;
+  const frameFill = frameWood ? `url(#${id}-fwood)` : frameColour;
+  const soft = { stroke: "#000", strokeOpacity: 0.35, strokeWidth: 0.3 };
 
   const parts: Array<{ kind: "sidelite" | "door"; x: number; w: number; index: number }> = [];
   let cursor = frame;
@@ -302,9 +339,32 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
       <GlassFill id={id} family={doorGlass?.family} />
       <GlassFill id={`${id}-s`} family={sideliteGlass.find(Boolean)?.family} />
       <GlassFill id={`${id}-t`} family={transomGlass?.includes("decorative") || transomGlass?.includes("wrought") ? "decorative" : transomGlass?.includes("sandblast") ? "sandblast" : transomGlass?.includes("grill") || transomGlass?.includes("sdl") ? "grills" : "clear"} />
+      <defs>
+        {/* Light from the left, a little darker to the right (as competitor renders); frame bars and the pull bar rounded like posts. */}
+        <linearGradient id={`${id}-shade`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#fff" stopOpacity={0.16} /><stop offset="0.45" stopColor="#fff" stopOpacity={0} /><stop offset="0.45" stopColor="#000" stopOpacity={0} /><stop offset="1" stopColor="#000" stopOpacity={0.18} />
+        </linearGradient>
+        {(["bar", "barh"] as const).map((name) => (
+          <linearGradient key={name} id={`${id}-${name}`} x1="0" y1="0" x2={name === "bar" ? "1" : "0"} y2={name === "bar" ? "0" : "1"}>
+            <stop offset="0" stopColor="#000" stopOpacity={0.4} /><stop offset="0.45" stopColor="#fff" stopOpacity={0.25} /><stop offset="1" stopColor="#000" stopOpacity={0.45} />
+          </linearGradient>
+        ))}
+        <linearGradient id={`${id}-metal`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#000" /><stop offset="0.35" stopColor="#2e2e2e" /><stop offset="0.55" stopColor="#121212" /><stop offset="1" stopColor="#000" />
+        </linearGradient>
+        <linearGradient id={`${id}-sill`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3a3a3a" /><stop offset="1" stopColor="#050505" /></linearGradient>
+        {/* Palma's stain photos, grain up the door, the same density on every part. */}
+        {([["wood", slabWood], ["fwood", frameWood]] as const).map(([name, url]) => url ? (
+          <pattern key={name} id={`${id}-${name}`} patternUnits="userSpaceOnUse" x={0} y={-1.5} width={SWATCH_SPAN_IN} height={totalH + 3}>
+            <image href={url} x={0} y={0} width={SWATCH_SPAN_IN} height={totalH + 3} preserveAspectRatio="none" />
+          </pattern>
+        ) : null)}
+      </defs>
       {/* Brickmould + frame */}
       <rect x={-1.5} y={-1.5} width={totalW + 3} height={totalH + 1.5} rx={0.6} fill={trim} />
-      <rect x={0} y={0} width={totalW} height={totalH} fill={frameColour} stroke="#334155" strokeWidth={0.4} />
+      {frameWood ? <rect x={-1.5} y={-1.5} width={totalW + 3} height={totalH + 1.5} rx={0.6} fill={frameFill} opacity={0.75} /> : null}
+      <rect x={0} y={0} width={totalW} height={totalH} fill={frameFill} {...soft} />
+      <rect x={0} y={0} width={totalW} height={totalH} fill={`url(#${id}-shade)`} />
       {transom ? (
         <g>
           <rect x={frame} y={frame} width={innerW} height={transomH} fill={shade(frameColour, -10)} />
@@ -315,12 +375,14 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
         if (part.kind === "sidelite") {
           const glass = sideliteGlass[part.index];
           const lites = glass ? glassLites(glass.size, part.w, heightIn, true) : [];
+          // Direct-set glass sits in the frame itself: the thin surround is the frame's finish.
+          const direct = isDirectSet(glass?.size);
           return (
             <g key={`s${part.index}`}>
-              <rect x={part.x} y={doorTop} width={part.w} height={heightIn} fill={slabColour} stroke="#334155" strokeWidth={0.4} />
-              {grain ? <Grain ox={part.x} oy={doorTop} w={part.w} h={heightIn} slabColour={slabColour} /> : null}
+              <rect x={part.x} y={doorTop} width={part.w} height={heightIn} fill={direct ? frameFill : slabFill} {...soft} />
+              {grain && !(direct ? frameWood : slabWood) ? <Grain ox={part.x} oy={doorTop} w={part.w} h={heightIn} slabColour={direct ? frameColour : slabColour} /> : null}
               {sideliteFaces?.[part.index] ? <FaceShapes elements={withoutGlass(sideliteFaces[part.index]!, lites, part.w, heightIn)} ox={part.x} oy={doorTop} slabW={part.w} slabH={heightIn} slabColour={slabColour} /> : null}
-              {lites.map((lite, i) => <LiteShape key={i} lite={lite} id={`${id}-s`} family={glass?.family} ox={part.x} oy={doorTop} slabColour={slabColour} />)}
+              {lites.map((lite, i) => <LiteShape key={i} lite={lite} id={`${id}-s`} family={glass?.family} ox={part.x} oy={doorTop} slabColour={slabColour} framed={!direct} />)}
               {!lites.length && !sideliteFaces ? <rect x={part.x + 3} y={doorTop + 6} width={part.w - 6} height={heightIn - 12} fill="none" stroke={shade(slabColour, -30)} strokeWidth={0.5} /> : null}
             </g>
           );
@@ -332,8 +394,8 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
         const hingeX = hingeLeft ? part.x + 0.2 : part.x + part.w - 1.2;
         return (
           <g key={`d${part.index}`}>
-            <rect x={part.x} y={doorTop} width={part.w} height={heightIn} fill={slabColour} stroke="#1e293b" strokeWidth={0.5} />
-            {grain ? <Grain ox={part.x} oy={doorTop} w={part.w} h={heightIn} slabColour={slabColour} /> : null}
+            <rect x={part.x} y={doorTop} width={part.w} height={heightIn} fill={slabFill} {...soft} />
+            {grain && !slabWood ? <Grain ox={part.x} oy={doorTop} w={part.w} h={heightIn} slabColour={slabColour} /> : null}
             {panels.map((panel, i) => (
               <g key={i}>
                 <rect x={part.x + panel.x} y={doorTop + panel.y} width={panel.w} height={panel.h} fill={shade(slabColour, -12)} rx={0.5} />
@@ -342,10 +404,11 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
             ))}
             {face ? <FaceShapes elements={withoutGlass(face, lites, part.w, heightIn)} ox={part.x} oy={doorTop} slabW={part.w} slabH={heightIn} slabColour={slabColour} /> : null}
             {lites.map((lite, i) => <LiteShape key={i} lite={lite} id={id} family={doorGlass?.family} ox={part.x} oy={doorTop} slabColour={slabColour} />)}
+            <rect x={part.x} y={doorTop} width={part.w} height={heightIn} fill={`url(#${id}-shade)`} />
             {[0.15, 0.5, 0.85].map((f) => <rect key={f} x={hingeX} y={doorTop + heightIn * f - 2} width={1} height={4} fill="#111827" />)}
             {lock === "pull_bar" && pullBarIn ? (
               // To scale on the latch side, centred near handle height; a double's inactive leaf carries the dummy bar.
-              <PullBar x={handleX} top={doorTop + pullBarTop(pullBarIn, heightIn)} length={Math.min(pullBarIn, heightIn - 8)} />
+              <PullBar x={handleX} top={doorTop + pullBarTop(pullBarIn, heightIn)} length={Math.min(pullBarIn, heightIn - 8)} id={id} />
             ) : lock === "multipoint" || lock === "pull_bar" ? (
               // A double's inactive leaf carries the dummy handle, drawn like the active one.
               <g>
@@ -362,8 +425,16 @@ export default function DoorDrawing({ doors, sidelites, transom, width, heightIn
           </g>
         );
       })}
+      {/* Jambs, head and mullions shaded like rounded posts. */}
+      <g>
+        <rect x={0} y={0} width={frame} height={doorTop + heightIn} fill={`url(#${id}-bar)`} />
+        <rect x={totalW - frame} y={0} width={frame} height={doorTop + heightIn} fill={`url(#${id}-bar)`} />
+        <rect x={0} y={0} width={totalW} height={frame} fill={`url(#${id}-barh)`} />
+        {transom ? <rect x={frame} y={frame + transomH} width={innerW} height={mull} fill={`url(#${id}-barh)`} /> : null}
+        {mullions(parts).map((x) => <rect key={x} x={x} y={doorTop} width={mull} height={heightIn} fill={`url(#${id}-bar)`} />)}
+      </g>
       {/* Sill */}
-      <rect x={-1} y={doorTop + heightIn} width={totalW + 2} height={1.5} fill="#111827" />
+      <rect x={-1} y={doorTop + heightIn} width={totalW + 2} height={1.5} fill={`url(#${id}-sill)`} />
       {showDimensions ? (
         // Each slab's (and a set sidelite's) width underneath, the door (and a set transom's) height up the left: as _with_dimensions() in services/estimate_documents.py.
         // About 10px whatever the size (a small estimate drawing would otherwise print 6px labels); 3.4" at the builder's size.
@@ -506,14 +577,30 @@ export function pullBarTop(length: number, slabHeight: number) {
   return slabHeight - (centre + bar / 2);
 }
 
-function PullBar({ x, top, length }: { x: number; top: number; length: number }) {
+/** Pull bar width, inches: drawn a little wider than the real 1-1/4" bar so it reads on a dark stain (PULL_BAR_IN in estimate_documents.py). */
+const PULL_BAR_IN = 1.6;
+
+/** A metal pull bar with a soft shadow on the slab, its two stand-offs and a light edge (as the PDF). */
+function PullBar({ x, top, length, id }: { x: number; top: number; length: number; id: string }) {
+  const w = PULL_BAR_IN;
   return (
     <g>
-      <rect x={x - 0.7} y={top} width={1.4} height={length} rx={0.7} fill="#111827" stroke="#cbd5e1" strokeWidth={0.3} />
-      <rect x={x - 0.3} y={top + 1.5} width={0.6} height={1.2} fill="#475569" />
-      <rect x={x - 0.3} y={top + length - 2.7} width={0.6} height={1.2} fill="#475569" />
+      <rect x={x - w / 2 - 0.5} y={top + 0.4} width={w} height={length} rx={w / 2} fill="#000" fillOpacity={0.35} />
+      {[top + 2.2, top + length - 3.2].map((y) => <rect key={y} x={x - w / 2 - 0.9} y={y} width={0.9} height={1} fill="#3a3a3a" stroke="#cfcfcf" strokeOpacity={0.6} strokeWidth={0.12} />)}
+      <rect x={x - w / 2} y={top} width={w} height={length} rx={w / 2} fill={`url(#${id}-metal)`} stroke="#d9d9d9" strokeOpacity={0.55} strokeWidth={0.12} />
+      <line x1={x - w * 0.12} y1={top + 0.8} x2={x - w * 0.12} y2={top + length - 0.8} stroke="#fff" strokeOpacity={0.35} strokeWidth={0.15} />
     </g>
   );
+}
+
+/** Left edge of each mullion: between a sidelite and the door next to it. */
+function mullions(parts: Array<{ kind: "sidelite" | "door"; x: number; w: number }>) {
+  const out: number[] = [];
+  parts.forEach((part, i) => {
+    const next = parts[i + 1];
+    if (next && (part.kind === "sidelite" || next.kind === "sidelite")) out.push(part.x + part.w);
+  });
+  return out;
 }
 
 /** Draw a door from the geometry the server attaches to estimate openings. */
@@ -559,6 +646,8 @@ export function DoorGeometryDrawing({ geometry, size = 110, title, dimensions = 
         transomLabelIn={geometry.transom_height_in}
         sideliteFaces={geometry.sidelite_faces ? geometry.sidelite_faces.map((face) => face?.elements ?? null) : undefined}
         grain={Boolean(geometry.grain)}
+        stain={geometry.stain}
+        frameStain={geometry.frame_stain}
       />
     </span>
   );

@@ -423,7 +423,11 @@ def test_door_drawing_geometry_follows_the_configuration():
     assert geometry["door_glass"] == {"size": "22x36", "family": "decorative"}
     assert geometry["sidelite_glass"] == [{"size": "8x36", "family": "clear"}, None]
     assert geometry["slab_colour"] == "#5d3a1a"  # walnut stain
+    assert geometry["stain"] is None and geometry["frame_stain"] is None  # "Walnut" isn't a Palma stain: no photo
     assert geometry["lock"] == "multipoint"
+
+    palma = _fiberglass_selection(colours={"exterior": {"type": "stained", "colour": "Dark Walnut"}, "interior": {"type": "stained", "colour": "Dark Walnut"}})
+    assert (door_drawing(_spec(palma))["stain"], door_drawing(_spec(palma))["frame_stain"]) == ("dark-walnut", "dark-walnut")
 
     cut = _fiberglass_selection(custom_size={"enabled": True, "width_in": 35, "height_in": 79})
     assert (door_drawing(_spec(cut))["slab_width"], door_drawing(_spec(cut))["slab_height"]) == (35.0, 79.0)

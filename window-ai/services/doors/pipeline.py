@@ -2152,6 +2152,16 @@ def _pull_bar_length(pull: Any) -> float | None:
         return None
 
 
+def stain_key(side: dict[str, Any] | None) -> str | None:
+    """A Palma standard stain as its swatch file name ("Dark Walnut" -> "dark-walnut"), or None
+    (painted, white, or a custom stain). The swatches are config/door_stains/<key>.jpg, copied to
+    frontend/public/door-stains for the screen drawing."""
+    if not isinstance(side, dict) or side.get("type") != "stained":
+        return None
+    name = colours.standard_name("stained", side.get("colour"))
+    return re.sub(r"[^a-z]+", "-", name.lower()).strip("-") if name else None
+
+
 def finish_hex(side_type: str | None, colour: str | None) -> str:
     key = _clean(colour).lower()
     if not side_type or side_type == "white":
@@ -2268,6 +2278,9 @@ def sidelite_draw_width(pipe: dict[str, Any]) -> float:
     return SIDELITE_WIDTH_IN
 
 
+DIRECT_SET_INSET_IN = 0.9  # the frame showing round direct-set glass (DIRECT_SET_INSET_IN in DoorDrawing.tsx)
+
+
 def door_lites(size: str | None, slab_w: float, slab_h: float) -> list[tuple[float, float, float, float, str]]:
     """Glass lites on a slab as (x, y, w, h, shape), top-down inches.
 
@@ -2283,7 +2296,8 @@ def door_lites(size: str | None, slab_w: float, slab_h: float) -> list[tuple[flo
         w = min(20.0, slab_w - 10)
         return [((slab_w - w) / 2, 8.0, w, slab_h * 0.55, "oval")]
     if "up to" in text or re.search(r'\d+(\.\d+)?"-', text):
-        return [(3.0, 3.0, slab_w - 6, slab_h - 6, "rect")]
+        # Direct-set glass fills the sidelite inside a thin surround of frame.
+        return [(DIRECT_SET_INSET_IN, DIRECT_SET_INSET_IN, slab_w - 2 * DIRECT_SET_INSET_IN, slab_h - 2 * DIRECT_SET_INSET_IN, "rect")]
     match = re.search(r"(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)", text)
     if not match:
         return []
@@ -2437,6 +2451,9 @@ def door_drawing(spec: dict[str, Any] | None) -> dict[str, Any] | None:
             "sidelite_faces": _sidelite_faces(pipe, layout["sidelites"], height),
             # Stained finishes are drawn with a wood grain.
             "grain": exterior.get("type") == "stained",
+            # A Palma standard stain is drawn with its real swatch photo (config/door_stains/<stain>.jpg).
+            "stain": stain_key(exterior),
+            "frame_stain": stain_key(frame_side),
             "transom_glass": (glass.get("transom") or {}).get("glass") if layout["transom"] else None,
             "slab_colour": finish_hex(exterior.get("type"), exterior.get("colour")),
             "frame_colour": frame_colour,

@@ -123,3 +123,10 @@ export function isCustomColour(type?: string, colour?: string): boolean {
   if (type !== "painted" && type !== "stained") return false;
   return Boolean(key(colour)) && standardColourName(type, colour) === null;
 }
+
+/** A Palma standard stain as its swatch file name ("Dark Walnut" -> "dark-walnut"), or null (stain_key() in services/doors/pipeline.py). */
+export function stainKey(type?: string, colour?: string): string | null {
+  if (type !== "stained") return null;
+  const name = standardColourName(type, colour);
+  return name ? name.toLowerCase().replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "") : null;
+}

@@ -6,7 +6,7 @@ import { ChipGroup, InchInput, OptionCard, SectionTitle, Stepper } from "@/compo
 import DoorDrawing, { finishHex } from "@/components/DoorDrawing";
 import { doorFace, sideliteFace, slabDesignGroup, slabDesigns } from "@/lib/doorFaces";
 import { useViewMode } from "@/lib/viewMode";
-import { isCustomColour, PALMA_PAINTS, PALMA_STAINS, standardColourName } from "@/lib/palmaColours";
+import { isCustomColour, PALMA_PAINTS, PALMA_STAINS, stainKey, standardColourName } from "@/lib/palmaColours";
 import {
   accentsFor,
   applyAstragalDefault,
@@ -326,6 +326,8 @@ export default function DoorConfigurator({ catalog, value, onChange, price, loca
       transomHeight={value.glass.transom?.height_in ?? catalog.default_transom_height}
       sideliteFaces={(value.glass.sidelites || []).map((part) => (sideliteFace(value.material, part.model, sideliteDrawWidth(value)) ?? sideliteFace("fiberglass", part.model, sideliteDrawWidth(value)) ?? sideliteFace("steel", part.model, sideliteDrawWidth(value)))?.elements ?? null)}
       grain={value.colours.exterior?.type === "stained"}
+      stain={stainKey(value.colours.exterior?.type, value.colours.exterior?.colour)}
+      frameStain={value.material === "steel" && value.colours.frame.mode === "match" ? null : stainKey(frameSide?.type, frameSide?.colour)}
       size={330}
     />
   );

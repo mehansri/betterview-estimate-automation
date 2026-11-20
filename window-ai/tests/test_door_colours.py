@@ -41,3 +41,26 @@ def test_custom_colours_are_distinct_and_ignore_blanks():
     assert custom_colours(picked) == [("painted", "Barn Red")]
     assert finish_hex("painted", "G-525") == "#1a1a1c"
     assert finish_hex("stained", "Walnut") == "#5d3a1a"  # saved before the Palma list: legacy swatch
+
+
+def test_every_palma_stain_has_its_swatch_photo_for_the_pdf_and_the_screen():
+    from services.doors.pipeline import stain_key
+    from services.estimate_documents import _stain_swatch
+
+    root = Path(__file__).resolve().parents[1]
+    for name, _hex in colours.STAIN_COLOURS:
+        key = stain_key({"type": "stained", "colour": name})
+        assert key and _stain_swatch(key), name
+        pdf = root / "config" / "door_stains" / f"{key}.jpg"
+        screen = root / "frontend" / "public" / "door-stains" / f"{key}.jpg"
+        assert screen.read_bytes() == pdf.read_bytes(), name
+
+
+def test_stain_key_only_for_standard_stains():
+    from services.doors.pipeline import stain_key
+
+    assert stain_key({"type": "stained", "colour": "dark walnut"}) == "dark-walnut"
+    assert stain_key({"type": "stained", "colour": "Early American Black"}) == "early-american-black"
+    assert stain_key({"type": "stained", "colour": "My custom brown"}) is None
+    assert stain_key({"type": "painted", "colour": "Iron Ore"}) is None
+    assert stain_key(None) is None

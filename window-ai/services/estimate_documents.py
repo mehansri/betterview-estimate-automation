@@ -6,6 +6,7 @@ includes dealer cost, profit, floors, or the raw engine responses.
 from __future__ import annotations
 
 import base64
+import functools
 import io
 import math
 import re
@@ -383,18 +384,64 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     # The brickmould sits 1.5" outside the frame on the sides and top.
     scale = min(max_width / (total_w + 3), max_height / (total_h + 1.5))
     ink = colors.HexColor("#334155")
+    soft = colors.black  # outlines at 35%: soft, as competitor renders (DoorDrawing.tsx `soft`)
     hardware = colors.HexColor("#111827")
-    glass_fill = colors.HexColor("#bae6fd")
-    frosted = colors.HexColor("#e2e8f0")
     slab_hex = geometry.get("slab_colour") or "#f8fafc"
     frame_hex = geometry.get("frame_colour") or "#f8fafc"
     slab_colour = _hex_colour(slab_hex)
     frame_colour = _hex_colour(frame_hex)
+    slab_stain = _stain_swatch(geometry.get("stain"))
+    frame_stain = _stain_swatch(geometry.get("frame_stain"))
     lock = geometry.get("lock")
     d = Drawing((total_w + 3) * scale, (total_h + 1.5) * scale)
 
-    def rect(x: float, y: float, w: float, h: float, fill, stroke=ink, width=0.4) -> None:
-        d.add(Rect((x + 1.5) * scale, (total_h - y - h) * scale, w * scale, h * scale, fillColor=fill, strokeColor=stroke, strokeWidth=width))
+    def rect(x: float, y: float, w: float, h: float, fill, stroke=soft, width=0.4) -> None:
+        d.add(Rect((x + 1.5) * scale, (total_h - y - h) * scale, w * scale, h * scale, fillColor=fill, strokeColor=stroke, strokeWidth=width,
+                   strokeOpacity=0.35 if stroke is soft else 1))
+
+    def bands(x: float, y: float, w: float, h: float, stops, across: bool = True, steps: int = 24, radius: float = 0.0) -> None:
+        """A linear gradient across the part (left to right) or down it; ``stops`` are (offset, hex[, opacity]).
+
+        Opaque gradients are real PDF shadings. See-through ones (light and shade over a stain photo)
+        can't be (a PDF shading has one opacity), so each stretch between two stops is stacked
+        overlapping layers, thinning toward its faint end: no seams between bands, which on a flush
+        slab would read as grooves."""
+        stops = [(stop[0], stop[1], stop[2] if len(stop) > 2 else 1.0) for stop in stops]
+        x0, y0 = (x + 1.5) * scale, (total_h - y - h) * scale
+        if all(opacity >= 1 for _, _, opacity in stops):
+            d.add(_Shading(x0, y0, w * scale, h * scale, [(offset, colour) for offset, colour, _ in stops], across, radius * scale))
+            return
+
+        def layer(a: float, b: float, colour: str, opacity: float) -> None:
+            if across:
+                d.add(Rect(x0 + a * w * scale, y0, (b - a) * w * scale, h * scale, fillColor=_hex_colour(colour), fillOpacity=opacity, strokeColor=None, strokeWidth=0))
+            else:  # offsets run down the part; reportlab's y runs up
+                d.add(Rect(x0, y0 + (1 - b) * h * scale, w * scale, (b - a) * h * scale, fillColor=_hex_colour(colour), fillOpacity=opacity, strokeColor=None, strokeWidth=0))
+
+        for (a, ca, oa), (b, cb, ob) in zip(stops, stops[1:]):
+            low, high = min(oa, ob), max(oa, ob)
+            if b - a <= 0 or high <= 0.005:
+                continue
+            colour = ca if oa >= ob else cb
+            if low > 0.005:
+                layer(a, b, colour, low)
+            for k in range(steps):
+                reach = (b - a) * (1 - k / steps)  # each layer a little shorter, from the strong end
+                layer(a, a + reach, colour, (high - low) / steps) if oa > ob else layer(b - reach, b, colour, (high - low) / steps)
+
+    def wood(x: float, y: float, w: float, h: float, swatch) -> None:
+        """Palma's stain photo on a part, grain up the door: SWATCH_SPAN_IN of door across the photo,
+        repeating from the drawing's left edge (the screen drawing's pattern)."""
+        d.add(_StainFill((x + 1.5) * scale, (total_h - y - h) * scale, w * scale, h * scale, swatch, SWATCH_SPAN_IN * scale))
+
+    def finish(x: float, y: float, w: float, h: float, colour, swatch, width: float = 0.4) -> None:
+        """A part in its finish: the stain photo when there is one, else the colour; a soft outline."""
+        if swatch is not None:
+            rect(x, y, w, h, colour, stroke=None)
+            wood(x, y, w, h, swatch)
+            rect(x, y, w, h, None, width=width)
+        else:
+            rect(x, y, w, h, colour, width=width)
 
     def line(x1: float, y1: float, x2: float, y2: float, stroke, width: float) -> None:
         d.add(Line((x1 + 1.5) * scale, (total_h - y1) * scale, (x2 + 1.5) * scale, (total_h - y2) * scale, strokeColor=stroke, strokeWidth=width))
@@ -407,31 +454,35 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
     def pane(lx: float, ly: float, lw: float, lh: float, shape: str, family: str | None, framed: bool = True) -> None:
         """One piece of glass: a moulded frame round an insert, the glass with a sheen, and the
         family's look (decorative lattice and border, blinds, grilles, vent bar)."""
-        fill = frosted if family in ("sandblast", "obscure") else glass_fill
+        frosted_glass = family in ("sandblast", "obscure")
+        stops = GLASS_FROSTED_STOPS if frosted_glass else GLASS_STOPS
+        fill = _hex_colour("#eef1f3" if not frosted_glass else "#eceff2")
         if framed:
             fw = GLASS_FRAME_IN
-            moulding, edge = _hex_colour(slab_hex, 26 if dark_slab else -16), _hex_colour(slab_hex, 55 if dark_slab else -50)
+            moulding, edge = _hex_colour(slab_hex, 26 if dark_slab else -16), _hex_colour("#000000")
             cx, cy = pt(lx + lw / 2, ly + lh / 2)
             if shape == "oval":
-                d.add(Ellipse(cx, cy, (lw / 2 + fw) * scale, (lh / 2 + fw) * scale, fillColor=moulding, strokeColor=edge, strokeWidth=0.4))
+                d.add(Ellipse(cx, cy, (lw / 2 + fw) * scale, (lh / 2 + fw) * scale, fillColor=moulding, strokeColor=edge, strokeOpacity=0.35, strokeWidth=0.4))
             elif shape == "half":
                 bx, by = pt(lx + lw / 2, ly + lh + fw)
-                d.add(Wedge(bx, by, (lw / 2 + fw) * scale, 0, 180, fillColor=moulding, strokeColor=edge, strokeWidth=0.4))
+                d.add(Wedge(bx, by, (lw / 2 + fw) * scale, 0, 180, fillColor=moulding, strokeColor=edge, strokeOpacity=0.35, strokeWidth=0.4))
             else:
-                rect(lx - fw, ly - fw, lw + 2 * fw, lh + 2 * fw, moulding, stroke=edge, width=0.4)
+                rect(lx - fw, ly - fw, lw + 2 * fw, lh + 2 * fw, moulding, width=0.4)
         x, y = pt(lx, ly + lh)
         if shape == "oval":
-            d.add(Ellipse(x + lw * scale / 2, y + lh * scale / 2, lw * scale / 2, lh * scale / 2, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+            d.add(Ellipse(x + lw * scale / 2, y + lh * scale / 2, lw * scale / 2, lh * scale / 2, fillColor=fill, strokeColor=colors.HexColor("#9aa3ab"), strokeWidth=0.3))
         elif shape == "half":
-            d.add(Wedge(x + lw * scale / 2, y, lw * scale / 2, 0, 180, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+            d.add(Wedge(x + lw * scale / 2, y, lw * scale / 2, 0, 180, fillColor=fill, strokeColor=colors.HexColor("#9aa3ab"), strokeWidth=0.3))
         else:
-            d.add(Rect(x, y, lw * scale, lh * scale, fillColor=fill, strokeColor=ink, strokeWidth=0.3))
+            # White in the middle, soft grey at the edges, a grey fade at the top and bottom, a light bead (GlassFill in DoorDrawing.tsx).
+            bands(lx, ly, lw, lh, [(offset, colour, 1.0) for offset, colour in stops], steps=30)
+            if family != "blinds":
+                bands(lx, ly, lw, lh, [(offset, "#b9c0c6", opacity) for offset, opacity in GLASS_FADE_STOPS], across=False, steps=50)
+            d.add(Rect(x, y, lw * scale, lh * scale, fillColor=None, strokeColor=colors.HexColor("#9aa3ab"), strokeWidth=0.3))
+            if lw > 1 and lh > 1:
+                d.add(Rect(*pt(lx + 0.25, ly + lh - 0.25), (lw - 0.5) * scale, (lh - 0.5) * scale, fillColor=None,
+                           strokeColor=colors.white, strokeOpacity=0.7, strokeWidth=max(0.15 * scale, 0.3)))
         box = (lx, ly, lw, lh)
-        if shape == "rect":
-            band = [(lx + lw * 0.18, ly), (lx + lw * 0.42, ly), (lx + lw * 0.42 - lh * 0.45, ly + lh), (lx + lw * 0.18 - lh * 0.45, ly + lh)]
-            sheen = _clip_polygon(band, box)
-            if len(sheen) >= 3:
-                d.add(Polygon([v for point in sheen for v in pt(*point)], fillColor=colors.white, fillOpacity=0.45, strokeColor=None, strokeWidth=0))
         pattern = colors.HexColor("#0369a1")
         thin = max(0.15 * scale, 0.25)
         if family in ("decorative", "specialty") and shape in ("rect", "oval"):
@@ -456,29 +507,32 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
         elif family == "vented" and shape == "rect":
             line(lx, ly + lh / 2, lx + lw, ly + lh / 2, colors.HexColor("#334155"), 0.9 * scale)
 
-    def lites(ox: float, oy: float, w: float, h: float, glass: dict[str, Any] | None) -> list[tuple[float, float, float, float, str]]:
+    def lites(ox: float, oy: float, w: float, h: float, glass: dict[str, Any] | None, framed: bool = True) -> list[tuple[float, float, float, float, str]]:
         if not glass:
             return []
         found = door_lites(glass.get("size"), w, h)
         for lx, ly, lw, lh, shape in found:
-            pane(ox + lx, oy + ly, lw, lh, shape, glass.get("family"))
+            pane(ox + lx, oy + ly, lw, lh, shape, glass.get("family"), framed=framed)
         return found
 
-    def grain(ox: float, oy: float, w: float, h: float) -> None:
-        """Wood grain on a stained slab, sidelite or transom frame (mirrors Grain in DoorDrawing.tsx)."""
+    def grain(ox: float, oy: float, w: float, h: float, base_hex: str | None = None) -> None:
+        """Wood grain on a stained slab, sidelite or transom frame (mirrors Grain in DoorDrawing.tsx);
+        a part drawn with its stain photo has none."""
         if not geometry.get("grain"):
             return
+        base_hex = base_hex or slab_hex
         # Faint, fine and wavy: a texture, not lines that read as grooves on a flush slab.
-        stroke = _hex_colour(slab_hex, GRAIN_SHADE_DARK if dark_slab else GRAIN_SHADE_LIGHT)
+        stroke = _hex_colour(base_hex, GRAIN_SHADE_DARK if _slab_is_dark(base_hex) else GRAIN_SHADE_LIGHT)
         for index, gx in enumerate(_grain_lines(w)):
             points: list[float] = []
             for gy in _grain_rows(h):
                 points += pt(ox + gx + GRAIN_WAVE_IN * math.sin(gy / GRAIN_WAVE_PERIOD + index * 1.7), oy + gy)
             d.add(PolyLine(points, strokeColor=stroke, strokeWidth=max(GRAIN_STROKE_IN * scale, 0.12)))
 
-    # Brickmould, then the frame.
+    # Brickmould, then the frame (in its stain photo when stained), lit from the left.
     d.add(Rect(0, 0, (total_w + 3) * scale, (total_h + 1.5) * scale, fillColor=_hex_colour(frame_hex, -25), strokeColor=None))
-    rect(0, 0, total_w, total_h, frame_colour)
+    finish(0, 0, total_w, total_h, frame_colour, frame_stain)
+    bands(0, 0, total_w, total_h, SHADE_STOPS)
     door_top = frame + transom_h + (mull if transom_h else 0)
     if transom_h:
         rect(frame, frame, inner_w, transom_h, _hex_colour(frame_hex, -10), stroke=None)
@@ -497,20 +551,25 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
         if kind == "sidelite":
             right = index == 1  # the mullion sits between the door and each sidelite
             cursor += mull if right else 0
-            rect(cursor, door_top, side_w, slab_h, slab_colour)
-            grain(cursor, door_top, side_w, slab_h)
+            side_glass = sidelite_glass[index] if index < len(sidelite_glass) else None
+            # Direct-set glass sits in the frame itself: the thin surround is the frame's finish.
+            direct = _is_direct_set((side_glass or {}).get("size"))
+            finish(cursor, door_top, side_w, slab_h, frame_colour if direct else slab_colour, frame_stain if direct else slab_stain)
+            if (frame_stain if direct else slab_stain) is None:
+                grain(cursor, door_top, side_w, slab_h, frame_hex if direct else slab_hex)
             side_faces = geometry.get("sidelite_faces")
             side_face = side_faces[index] if isinstance(side_faces, list) and index < len(side_faces) else None
             if isinstance(side_face, dict):
                 _draw_face(d, side_face.get("elements") or [], lambda x, y, ox=cursor: pt(ox + x, door_top + y), scale, side_w, slab_h, slab_hex)
-            drawn = lites(cursor, door_top, side_w, slab_h, sidelite_glass[index] if index < len(sidelite_glass) else None)
+            drawn = lites(cursor, door_top, side_w, slab_h, side_glass, framed=not direct)
             if not drawn and side_faces is None:
                 # Snapshots priced before sidelite faces: an outline for the panel.
                 rect(cursor + 3, door_top + 6, side_w - 6, slab_h - 12, None, stroke=_hex_colour(slab_hex, -30), width=0.4)
             cursor += side_w + (0 if right else mull)
             continue
-        rect(cursor, door_top, slab_w, slab_h, slab_colour, width=0.5)
-        grain(cursor, door_top, slab_w, slab_h)
+        finish(cursor, door_top, slab_w, slab_h, slab_colour, slab_stain)
+        if slab_stain is None:
+            grain(cursor, door_top, slab_w, slab_h)
         door_glass = geometry.get("door_glass") or {}
         face = geometry.get("face") if isinstance(geometry.get("face"), dict) else None
         if face is not None:
@@ -520,6 +579,7 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
             rect(cursor + px, door_top + py, pw, ph, _hex_colour(slab_hex, -12), stroke=None)
             rect(cursor + px + 1.2, door_top + py + 1.2, pw - 2.4, ph - 2.4, _hex_colour(slab_hex, 8), stroke=None)
         lites(cursor, door_top, slab_w, slab_h, door_glass or None)
+        bands(cursor, door_top, slab_w, slab_h, SHADE_STOPS)
         hinge_left = index == 0
         handle_x = cursor + slab_w - 3.2 if hinge_left else cursor + 3.2
         hinge_x = cursor + 0.2 if hinge_left else cursor + slab_w - 1.2
@@ -534,7 +594,17 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
             if centre + bar / 2 > slab_h - 4:
                 centre = slab_h - 4 - bar / 2
             top = door_top + slab_h - (centre + bar / 2)
-            rect(handle_x - 0.7, top, 1.4, bar, hardware, stroke=colors.HexColor("#cbd5e1"), width=0.3)
+            # Metal bar with a soft shadow, two stand-offs and a light edge (PullBar in DoorDrawing.tsx).
+            bw = PULL_BAR_IN
+            sx, sy = pt(handle_x - bw / 2 - 0.5, top + 0.4 + bar)
+            d.add(Rect(sx, sy, bw * scale, bar * scale, rx=bw / 2 * scale, ry=bw / 2 * scale, fillColor=colors.black, fillOpacity=0.35, strokeColor=None, strokeWidth=0))
+            for stand in (top + 2.2, top + bar - 3.2):
+                rect(handle_x - bw / 2 - 0.9, stand, 0.9, 1, colors.HexColor("#3a3a3a"), stroke=colors.HexColor("#cfcfcf"), width=max(0.12 * scale, 0.2))
+            bx, by = pt(handle_x - bw / 2, top + bar)
+            bands(handle_x - bw / 2, top, bw, bar, METAL_STOPS, radius=bw / 2)
+            d.add(Rect(bx, by, bw * scale, bar * scale, rx=bw / 2 * scale, ry=bw / 2 * scale, fillColor=None, strokeColor=colors.HexColor("#d9d9d9"),
+                       strokeOpacity=0.55, strokeWidth=max(0.12 * scale, 0.2)))
+            line(handle_x - bw * 0.12, top + 0.8, handle_x - bw * 0.12, top + bar - 0.8, colors.Color(1, 1, 1, alpha=0.35), max(0.15 * scale, 0.25))
         elif lock in ("multipoint", "pull_bar"):
             # Lever on a plate; a double's inactive leaf carries the dummy, drawn the same.
             rect(handle_x - 0.6, door_top + slab_h * 0.44, 1.2, 9, hardware, stroke=None)
@@ -546,7 +616,22 @@ def door_drawing_flowable(geometry: dict[str, Any] | None, max_width: float, max
         if inactive:
             rect(cursor - 0.6, door_top, 1.2, slab_h, _hex_colour(slab_hex, -35), stroke=None)  # astragal
         cursor += slab_w
-    d.add(Rect(1.5 * scale, 0, total_w * scale, max(1.5 * scale, 0.8), fillColor=hardware, strokeColor=None))
+    # Jambs, head and mullions shaded like rounded posts (DoorDrawing.tsx).
+    bands(0, 0, frame, door_top + slab_h, BAR_STOPS, steps=5)
+    bands(total_w - frame, 0, frame, door_top + slab_h, BAR_STOPS, steps=5)
+    bands(0, 0, total_w, frame, BAR_STOPS, across=False, steps=5)
+    if transom_h:
+        bands(frame, frame + transom_h, inner_w, mull, BAR_STOPS, across=False, steps=4)
+    edge_x = frame
+    for i, (kind, _index) in enumerate(parts):
+        width_here = side_w if kind == "sidelite" else slab_w
+        nxt = parts[i + 1][0] if i + 1 < len(parts) else None
+        if nxt and "sidelite" in (kind, nxt):
+            bands(edge_x + width_here, door_top, mull, slab_h, BAR_STOPS, steps=4)
+            edge_x += mull
+        edge_x += width_here
+    # The sill, darker toward the floor.
+    bands(0, total_h - max(1.5 * scale, 0.8) / scale, total_w, max(1.5 * scale, 0.8) / scale, SILL_STOPS, across=False)
     # Where the dimension labels go (_with_dimensions), in this drawing's points.
     d._door_layout = {"scale": scale, "total_h": total_h, "frame": frame, "mull": mull, "parts": parts,
                       "slab_w": slab_w, "side_w": side_w, "slab_h": slab_h, "transom_h": transom_h, "door_top": door_top}
@@ -566,6 +651,100 @@ GRAIN_SHADE_LIGHT = -7  # darker by this much on a light stain
 GRAIN_STROKE_IN = 0.07
 GRAIN_WAVE_IN = 0.5
 GRAIN_WAVE_PERIOD = 9
+# The look learned from competitor renders (same numbers as DoorDrawing.tsx): (offset, hex, opacity).
+GLASS_STOPS = [(0.0, "#cdd3d8"), (0.2, "#eef1f3"), (0.5, "#ffffff"), (0.8, "#eef1f3"), (1.0, "#cdd3d8")]
+GLASS_FROSTED_STOPS = [(0.0, "#dfe3e7"), (0.5, "#f4f6f8"), (1.0, "#dfe3e7")]
+GLASS_FADE_STOPS = [(0.0, 0.55), (0.08, 0.0), (0.92, 0.0), (1.0, 0.55)]  # grey at a pane's top and bottom
+SHADE_STOPS = [(0.0, "#ffffff", 0.16), (0.45, "#ffffff", 0.0), (0.45, "#000000", 0.0), (1.0, "#000000", 0.18)]  # light from the left
+BAR_STOPS = [(0.0, "#000000", 0.4), (0.3, "#000000", 0.0), (0.31, "#ffffff", 0.0), (0.45, "#ffffff", 0.25), (0.6, "#ffffff", 0.0),
+             (0.61, "#000000", 0.0), (1.0, "#000000", 0.45)]  # frame bars rounded like posts
+METAL_STOPS = [(0.0, "#000000"), (0.35, "#2e2e2e"), (0.55, "#121212"), (1.0, "#000000")]
+SILL_STOPS = [(0.0, "#3a3a3a"), (1.0, "#050505")]
+PULL_BAR_IN = 1.6  # a little wider than the real bar so it reads on a dark stain
+SWATCH_SPAN_IN = 42.0  # inches of door across one stain photo
+DOOR_STAINS_DIR = Path(__file__).resolve().parents[1] / "config" / "door_stains"
+DIRECT_SET_RE = re.compile(r'\d+(\.\d+)?"-')
+
+
+@functools.lru_cache(maxsize=1)
+def _shading_class():
+    from reportlab.graphics.shapes import DirectDraw
+    from reportlab.lib import colors
+
+    class Shading(DirectDraw):
+        """An opaque linear gradient (a real PDF shading) filling a box, optionally rounded."""
+
+        def __init__(self, x, y, w, h, stops, across, radius):
+            self.box, self.stops, self.across, self.radius = (x, y, w, h), stops, across, radius
+
+        def getBounds(self):
+            x, y, w, h = self.box
+            return x, y, x + w, y + h
+
+        def drawDirectly(self, renderer):
+            canvas = renderer._canvas
+            x, y, w, h = self.box
+            canvas.saveState()
+            canvas.setFillAlpha(1)
+            path = canvas.beginPath()
+            if self.radius:
+                path.roundRect(x, y, w, h, self.radius)
+            else:
+                path.rect(x, y, w, h)
+            canvas.clipPath(path, stroke=0, fill=0)
+            ends = (x, y, x + w, y) if self.across else (x, y + h, x, y)  # offsets run left to right, or down
+            canvas.linearGradient(*ends, [colors.HexColor(colour) for _, colour in self.stops], [offset for offset, _ in self.stops], extend=False)
+            canvas.restoreState()
+
+
+    class StainFill(DirectDraw):
+        """A stain photo (JPEG) repeated across a box from x = 0, ``tile`` points per photo. Drawn with
+        canvas.drawImage, so each photo is stored once in the PDF however many parts use it."""
+
+        def __init__(self, x, y, w, h, path, tile):
+            self.box, self.path, self.tile = (x, y, w, h), path, tile
+
+        def getBounds(self):
+            x, y, w, h = self.box
+            return x, y, x + w, y + h
+
+        def drawDirectly(self, renderer):
+            canvas = renderer._canvas
+            x, y, w, h = self.box
+            canvas.saveState()
+            canvas.setFillAlpha(1)
+            path = canvas.beginPath()
+            path.rect(x, y, w, h)
+            canvas.clipPath(path, stroke=0, fill=0)
+            left = math.floor(x / self.tile) * self.tile
+            while left < x + w:
+                canvas.drawImage(self.path, left, y, self.tile, h)
+                left += self.tile
+            canvas.restoreState()
+
+    return Shading, StainFill
+
+
+def _Shading(x, y, w, h, stops, across, radius=0.0):  # noqa: N802 - built like a reportlab shape
+    return _shading_class()[0](x, y, w, h, stops, across, radius)
+
+
+def _StainFill(x, y, w, h, path, tile):  # noqa: N802 - built like a reportlab shape
+    return _shading_class()[1](x, y, w, h, path, tile)
+
+
+def _is_direct_set(size: Any) -> bool:
+    """A direct-glazed glass size ("up to 27.5\"", "10\"-14\""): glass set in the frame itself."""
+    text = str(size or "").lower()
+    return "up to" in text or bool(DIRECT_SET_RE.search(text))
+
+
+def _stain_swatch(key: Any) -> str | None:
+    """Palma's photo of a standard stain (config/door_stains/<key>.jpg), or None."""
+    if not key or not re.fullmatch(r"[a-z-]+", str(key)):
+        return None
+    path = DOOR_STAINS_DIR / f"{key}.jpg"
+    return str(path) if path.is_file() else None
 
 
 def _hash01(index: int) -> float:

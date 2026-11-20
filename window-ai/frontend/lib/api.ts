@@ -544,6 +544,9 @@ export type DoorDrawingGeometry = {
   sidelite_faces?: Array<import("@/lib/doorFaces").DoorFace | null> | null;
   /** Stained finish: drawn with a wood grain. */
   grain?: boolean;
+  /** A Palma standard stain on the slab / the frame ("dark-walnut"): drawn with its swatch photo (public/door-stains). */
+  stain?: string | null;
+  frame_stain?: string | null;
   transom: boolean;
   /** Whole opening (slabs + sidelites + transom), inches; the CRM draws from this and `sections`. */
   width: number;
